@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c47070"/>
+      <stop offset="1" stop-color="#8b3a3a"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#5a2020" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Фон: скруглённый квадрат -->
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+
+  <!-- Сердце -->
+  <path d="M256 430
+           C 130 340, 70 250, 130 180
+           C 180 122, 240 158, 256 200
+           C 272 158, 332 122, 382 180
+           C 442 250, 382 340, 256 430 Z"
+        fill="#fdf6f0"
+        filter="url(#shadow)"/>
+
+  <!-- Цифры 365 -->
+  <text x="256" y="316"
+        text-anchor="middle"
+        font-family="Georgia, 'Cormorant Garamond', serif"
+        font-size="120"
+        font-weight="700"
+        fill="#8b3a3a"
+        letter-spacing="-4">365</text>
+</svg>

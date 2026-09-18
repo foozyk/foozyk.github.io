@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Наш год — 365 вопросов</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8b3a3a">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Наш год">
+  <link rel="stylesheet" href="style.css">
+  <script src="confetti.browser.min.js"></script>
+</head>
+<body>
+
+  <div id="loading" class="screen active"><p>Загрузка...</p></div>
+
+  <div id="auth-screen" class="screen">
+    <h1>Наш год</h1>
+    <p class="subtitle">365 вопросов для пар</p>
+    <div class="tabs">
+      <button id="tab-login" class="tab active">Вход</button>
+      <button id="tab-register" class="tab">Регистрация</button>
+    </div>
+    <form id="auth-form">
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="password" id="password" placeholder="Пароль (мин. 6 символов)" required>
+      <button type="submit" id="auth-submit">Войти</button>
+    </form>
+    <p id="auth-error" class="error"></p>
+  </div>
+
+  <div id="setup-screen" class="screen">
+    <h1>Настройка пары</h1>
+    <div class="card">
+      <p>Создайте пару — вы получите код для партнёра.</p>
+      <button id="create-couple">Создать пару</button>
+    </div>
+    <div class="card">
+      <p>Или введите код приглашения:</p>
+      <input type="text" id="invite-code" placeholder="ABC123" maxlength="6" style="text-transform:uppercase">
+      <button id="join-couple">Присоединиться</button>
+    </div>
+    <p id="setup-error" class="error"></p>
+    <button id="logout-btn-setup" class="link">Выйти</button>
+  </div>
+
+  <div id="waiting-screen" class="screen">
+    <h1>Пара создана!</h1>
+    <p>Отправьте этот код партнёру:</p>
+    <div id="invite-code-display" class="invite-code">------</div>
+    <p class="hint">Страница обновится автоматически, когда партнёр присоединится.</p>
+    <button id="logout-btn-waiting" class="link">Выйти</button>
+  </div>
+
+  <div id="main-screen" class="screen has-bottom-nav">
+    <header>
+      <h1>Наш год</h1>
+      <div class="header-actions">
+        <button id="notif-btn" class="icon-btn" title="Уведомления">🔕</button>
+        <button id="scheme-btn" class="icon-btn" title="Цвета">🎨</button>
+        <button id="theme-btn" class="icon-btn" title="Тема">🌙</button>
+        <button id="logout-btn" class="icon-btn" title="Выйти">⎋</button>
+      </div>
+    </header>
+
+    <div class="couple-row">
+      <div class="person" id="person-me">
+        <div class="avatar-wrap">
+          <div class="avatar" id="avatar-me">?</div>
+          <span class="person-mood hidden" id="mood-me"></span>
+        </div>
+        <span class="person-name" id="name-me">Вы</span>
+      </div>
+      <div class="heart">❤️</div>
+      <div class="person">
+        <div class="avatar-wrap">
+          <div class="avatar" id="avatar-partner">?</div>
+          <span class="person-mood hidden" id="mood-partner"></span>
+        </div>
+        <span class="person-name" id="name-partner">Партнёр</span>
+      </div>
+    </div>
+
+    <!-- Сегодня -->
+    <section id="today-view">
+      <div class="badges">
+        <span class="badge">День <span id="current-day">1</span> из 365</span>
+        <span class="badge theme-badge" id="current-theme">—</span>
+        <span class="badge streak-badge">🔥 <span id="streak-count">0</span> подряд</span>
+      </div>
+      <div class="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+      <p class="progress-label" id="progress-label">Пройдено 0%</p>
+
+      <div class="widgets-row">
+        <div class="moon-widget" id="moon-widget">
+          <span class="moon-icon" id="moon-icon">🌕</span>
+          <div class="moon-info">
+            <div class="moon-phase" id="moon-phase">Фаза луны</div>
+            <div class="moon-day" id="moon-day">Лунный день</div>
+          </div>
+        </div>
+        <div class="weather-widget" id="weather-widget" style="display:none;">
+          <span class="weather-icon" id="weather-icon">☀️</span>
+          <div class="weather-info">
+            <div class="weather-temp" id="weather-temp">—</div>
+            <div class="weather-desc" id="weather-desc">Загрузка...</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="moon-event" class="moon-event hidden"></div>
+      <div class="moon-week" id="moon-week"></div>
+      <div class="moon-advice">
+        <span class="moon-advice-icon">💫</span>
+        <span class="moon-advice-text" id="moon-advice-text">—</span>
+      </div>
+
+      <h2 id="current-question">Загрузка...</h2>
+      <textarea id="my-answer" placeholder="Ваш ответ..." rows="6"></textarea>
+      <button id="save-answer">Сохранить ответ</button>
+      <p id="answer-status" class="hint"></p>
+
+      <div class="partner-section">
+        <h3>Ответ партнёра</h3>
+        <div id="partner-answer" class="partner-answer">Пока скрыт.</div>
+        <div id="reactions-block" class="hidden">
+          <p class="reaction-label">Ваша реакция:</p>
+          <div class="reactions-row" id="reactions-row">
+            <button data-emoji="❤️">❤️</button>
+            <button data-emoji="😂">😂</button>
+            <button data-emoji="🥹">🥹</button>
+            <button data-emoji="👏">👏</button>
+            <button data-emoji="🤔">🤔</button>
+          </div>
+          <p class="reaction-info" id="partner-reaction-info"></p>
+        </div>
+      </div>
+
+      <div class="mood-today">
+        <h3>Как вы себя чувствуете?</h3>
+        <div class="mood-picker" id="mood-picker">
+          <button data-mood="😍">😍</button>
+          <button data-mood="😊">😊</button>
+          <button data-mood="😐">😐</button>
+          <button data-mood="😔">😔</button>
+          <button data-mood="😡">😡</button>
+          <button data-mood="😴">😴</button>
+        </div>
+        <textarea id="mood-note" class="mood-note" placeholder="Почему так? (необязательно)" rows="2" maxlength="200"></textarea>
+        <button id="save-mood-note" class="mood-note-btn" type="button">Сохранить заметку</button>
+        <div class="mood-partner-block">
+          <p class="hint" id="mood-partner-text">Партнёр ещё не отметил настроение.</p>
+          <p class="hint mood-partner-note" id="mood-partner-note"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Разговор -->
+    <section id="conversation-view" class="hidden">
+      <h2>Разговор</h2>
+      <p class="hint">Поговорите о важном. Напишите своё — партнёр ответит своим. Потом договоритесь о чём-то конкретном.</p>
+      <button id="new-conversation-btn" class="add-agreement-btn">+ Начать разговор</button>
+
+      <h3 class="conv-section-title">Активные</h3>
+      <div id="conversations-active"></div>
+
+      <div id="conversations-past-block" class="hidden">
+        <h3 class="conv-section-title">Прошлые</h3>
+        <div id="conversations-past"></div>
+      </div>
+
+      <h3 class="conv-section-title">Договорённости</h3>
+      <button id="add-agreement-btn" class="add-agreement-btn">+ Новая договорённость</button>
+      <div id="agreements-list"></div>
+      <div id="agreements-done-block" class="hidden">
+        <h3 class="conv-section-title done-title">Выполненные</h3>
+        <div id="agreements-done-list"></div>
+      </div>
+    </section>
+
+    <!-- Мы -->
+    <section id="about-view" class="hidden">
+      <h2>Про нас</h2>
+      <div class="sub-tabs">
+        <button id="sub-quiz" class="sub-tab active">Квиз</button>
+        <button id="sub-lovelang" class="sub-tab">Любовь</button>
+        <button id="sub-truth" class="sub-tab">Игра</button>
+      </div>
+
+      <div id="about-quiz">
+        <p class="hint">Ответь на 10 вопросов о себе. Партнёр попробует угадать.</p>
+        <div id="quiz-main">
+          <div class="quiz-card">
+            <h3>Ваш квиз</h3>
+            <div id="my-quiz-status"></div>
+          </div>
+          <div class="quiz-card">
+            <h3>Квиз партнёра</h3>
+            <div id="partner-quiz-status"></div>
+          </div>
+        </div>
+        <div id="quiz-play" class="hidden">
+          <p class="quiz-progress" id="quiz-progress">Вопрос 1 из 10</p>
+          <div class="quiz-progress-bar"><div id="quiz-progress-fill"></div></div>
+          <h3 id="quiz-question">—</h3>
+          <div id="quiz-options"></div>
+          <button id="quiz-cancel" class="link">Отмена</button>
+        </div>
+        <div id="quiz-result" class="hidden">
+          <h3 id="quiz-result-title">—</h3>
+          <div class="quiz-score" id="quiz-score">—</div>
+          <p class="hint">Разбор:</p>
+          <div id="quiz-breakdown"></div>
+          <button id="quiz-back" class="link">Назад к квизам</button>
+        </div>
+      </div>
+
+      <div id="about-lovelang" class="hidden">
+        <div id="lovelang-intro">
+          <p class="hint">Небольшой тест из 10 вопросов. Займёт 2 минуты. Каждый проходит отдельно — потом вы увидите результаты друг друга.</p>
+          <div id="lovelang-status"></div>
+          <button id="start-lovelang-test">Пройти тест</button>
+        </div>
+        <div id="lovelang-test" class="hidden">
+          <p class="lovelang-progress" id="lovelang-progress">Вопрос 1 из 10</p>
+          <div class="lovelang-progress-bar"><div id="lovelang-progress-fill"></div></div>
+          <h3 id="lovelang-question">—</h3>
+          <div id="lovelang-options"></div>
+        </div>
+        <div id="lovelang-result" class="hidden">
+          <h3>Ваш язык любви:</h3>
+          <div class="lovelang-primary" id="lovelang-primary">—</div>
+          <p class="hint">Полная картина:</p>
+          <div id="lovelang-scores"></div>
+          <p class="hint" id="lovelang-compare"></p>
+        </div>
+      </div>
+
+      <div id="about-truth" class="hidden">
+        <div id="truth-intro">
+          <p class="hint">Правда или действие. Выбирайте уровень — и играйте. Правда — вопрос, действие — задание.</p>
+
+          <button class="truth-level-btn level-1" data-level="easy">
+            <span class="truth-level-name">Первые шаги</span>
+            <span class="truth-level-desc">Уютный вечер, лёгкие вопросы</span>
+          </button>
+
+          <button class="truth-level-btn level-2" data-level="medium">
+            <span class="truth-level-name">Ближе</span>
+            <span class="truth-level-desc">Откровенно, тепло, по-настоящему</span>
+          </button>
+
+          <button class="truth-level-btn level-3" data-level="bold">
+            <span class="truth-level-name">Всё всерьёз</span>
+            <span class="truth-level-desc">Смелые вопросы, взрослые ответы</span>
+          </button>
+        </div>
+
+        <div id="truth-game" class="hidden">
+          <p class="truth-progress">Раунд <span id="truth-round">1</span></p>
+
+          <div id="truth-choose">
+            <button id="truth-pick-truth" class="truth-pick-btn">Правда</button>
+            <button id="truth-pick-dare" class="truth-pick-btn">Действие</button>
+            <button id="truth-pick-random" class="link">🎲 Случайно</button>
+          </div>
+
+          <div id="truth-card" class="hidden">
+            <div class="truth-card-type" id="truth-card-type">Правда</div>
+            <div class="truth-card-text" id="truth-card-text">—</div>
+            <button id="truth-done">Выполнено</button>
+            <button id="truth-skip" class="link">Пропустить</button>
+          </div>
+
+          <button id="truth-end" class="link" style="margin-top:16px;">Закончить игру</button>
+        </div>
+
+        <div id="truth-final" class="hidden">
+          <div class="truth-final-emoji">🎉</div>
+          <div class="truth-final-title">Игра окончена!</div>
+          <div class="truth-final-score">Раундов: <span id="truth-final-rounds">0</span></div>
+          <button id="truth-restart">Играть заново</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Архив -->
+    <section id="archive-view" class="hidden">
+      <h2>Архив</h2>
+
+      <!-- ХИТМАП -->
+      <div class="heatmap-card">
+        <div class="hm-header">
+          <div>
+            <div class="hm-title">Активность года</div>
+            <div class="hm-subtitle" id="hm-subtitle">Загрузка...</div>
+          </div>
+          <div class="hm-streak hidden" id="hm-streak">🔥 <span id="hm-streak-count">0</span></div>
+        </div>
+
+        <div class="hm-stats">
+          <div class="hm-stat">
+            <div class="hm-stat-value" id="hm-stat-both">0</div>
+            <div class="hm-stat-label">вдвоём</div>
+          </div>
+          <div class="hm-stat">
+            <div class="hm-stat-value" id="hm-stat-one">0</div>
+            <div class="hm-stat-label">один</div>
+          </div>
+          <div class="hm-stat">
+            <div class="hm-stat-value" id="hm-stat-miss">0</div>
+            <div class="hm-stat-label">пропуск</div>
+          </div>
+        </div>
+
+        <div class="hm-scroll">
+          <div class="hm-months" id="hm-months"></div>
+          <div class="hm-grid-wrapper">
+            <div class="hm-day-labels">
+              <div class="hm-day-label"></div>
+              <div class="hm-day-label">Пн</div>
+              <div class="hm-day-label"></div>
+              <div class="hm-day-label">Ср</div>
+              <div class="hm-day-label"></div>
+              <div class="hm-day-label">Пт</div>
+              <div class="hm-day-label"></div>
+            </div>
+            <div class="hm-grid" id="hm-grid"></div>
+          </div>
+        </div>
+
+        <div class="hm-legend">
+          <span class="hm-legend-text">меньше</span>
+          <div class="hm-legend-cells">
+            <div class="hm-cell future"></div>
+            <div class="hm-cell empty"></div>
+            <div class="hm-cell one"></div>
+            <div class="hm-cell both"></div>
+          </div>
+          <span class="hm-legend-text">больше</span>
+        </div>
+      </div>
+
+      <h3 class="conv-section-title">Статистика</h3>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-answers">0</div>
+          <div class="stat-label">ответов всего</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-days">0</div>
+          <div class="stat-label">дней вместе</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-active-days">0</div>
+          <div class="stat-label">дней с ответами</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-favorite">—</div>
+          <div class="stat-label">любимая тема</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-mood">—</div>
+          <div class="stat-label">частое настроение</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-agreements">0</div>
+          <div class="stat-label">договорённостей</div>
+        </div>
+      </div>
+
+      <h3 class="conv-section-title">Дневник настроения</h3>
+      <p class="hint">Последние 30 дней</p>
+      <div id="mood-grid" class="mood-grid"></div>
+
+      <h3 class="conv-section-title">История ответов</h3>
+      <button id="retro-btn" class="retro-btn">📊 Итоги года</button>
+      <button id="export-pdf-btn" class="export-pdf-btn">📄 Скачать год в PDF</button>
+      <div id="history-list"></div>
+    </section>
+
+    <!-- Нижняя навигация -->
+    <nav class="bottom-nav">
+      <button class="bottom-nav-item active" data-view="today">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+        </span>
+        <span class="nav-label">Сегодня</span>
+      </button>
+      <button class="bottom-nav-item" data-view="conversation">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+        </span>
+        <span class="nav-label">Разговор</span>
+        <span class="nav-badge hidden" id="badge-conversation">0</span>
+      </button>
+      <button class="bottom-nav-item" data-view="about">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="12" r="5"/>
+            <circle cx="15" cy="12" r="5"/>
+          </svg>
+        </span>
+        <span class="nav-label">Мы</span>
+        <span class="nav-badge hidden" id="badge-about">0</span>
+      </button>
+      <button class="bottom-nav-item" data-view="archive">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </span>
+        <span class="nav-label">Архив</span>
+        <span class="nav-badge hidden" id="badge-archive">0</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="profile-modal" class="modal hidden">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3>Ваш профиль</h3>
+      <label class="field-label">Имя</label>
+      <input type="text" id="profile-name" placeholder="Например, Руслан" maxlength="30">
+      <label class="field-label">Ссылка на фото (необязательно)</label>
+      <input type="url" id="profile-photo" placeholder="https://...">
+      <p class="hint" style="text-align:left;">Можно вставить ссылку на любое фото из интернета или из облака.</p>
+
+      <div id="lovelang-info" class="hidden">
+        <label class="field-label" style="margin-top:16px;">Язык любви</label>
+        <p class="lovelang-line"><strong>Ваш:</strong> <span id="my-lovelang">—</span></p>
+        <p class="lovelang-line"><strong>Партнёра:</strong> <span id="partner-lovelang">—</span></p>
+      </div>
+
+      <label class="field-label" style="margin-top:16px;">Время напоминания</label>
+      <input type="time" id="notif-time" value="21:00">
+      <p class="hint" style="text-align:left; margin-top:-6px; margin-bottom:14px;">Мы напомним, если вы ещё не ответили.</p>
+
+      <label class="field-label" style="margin-top:16px;">Лунный календарь</label>
+      <label class="toggle-row">
+        <input type="checkbox" id="moon-toggle">
+        <span>Показывать фазу луны и совет дня</span>
+      </label>
+
+      <button id="save-profile">Сохранить</button>
+      <button id="close-profile" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <div id="scheme-modal" class="modal hidden">
+    <div class="modal-backdrop" id="scheme-backdrop"></div>
+    <div class="modal-content">
+      <h3>Цветовая схема</h3>
+      <div class="scheme-grid">
+        <button class="scheme-option" data-scheme="classic">
+          <span class="scheme-dot" style="background: linear-gradient(135deg, #b25a5a, #8b3a3a)"></span>
+          <span class="scheme-name">Классика</span>
+        </button>
+        <button class="scheme-option" data-scheme="autumn">
+          <span class="scheme-dot" style="background: linear-gradient(135deg, #d97706, #b45309)"></span>
+          <span class="scheme-name">Осень</span>
+        </button>
+        <button class="scheme-option" data-scheme="spring">
+          <span class="scheme-dot" style="background: linear-gradient(135deg, #d4708c, #a64563)"></span>
+          <span class="scheme-name">Весна</span>
+        </button>
+        <button class="scheme-option" data-scheme="ocean">
+          <span class="scheme-dot" style="background: linear-gradient(135deg, #2a7d9c, #1a5570)"></span>
+          <span class="scheme-name">Океан</span>
+        </button>
+      </div>
+      <button id="close-scheme" class="link">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="topic-modal" class="modal hidden">
+    <div class="modal-backdrop" id="topic-backdrop"></div>
+    <div class="modal-content modal-wide">
+      <h3>О чём поговорить?</h3>
+      <div id="topic-list" class="topic-list"></div>
+      <label class="field-label" style="margin-top:16px;">Или своя тема</label>
+      <input type="text" id="topic-custom" placeholder="Например: «Планы на лето»" maxlength="80">
+      <label class="toggle-row" style="margin-top:0;">
+        <input type="checkbox" id="topic-save-custom">
+        <span>Сохранить как свою тему</span>
+      </label>
+      <button id="topic-confirm">Начать разговор</button>
+      <button id="topic-cancel" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <div id="conversation-modal" class="modal hidden">
+    <div class="modal-backdrop" id="conversation-backdrop"></div>
+    <div class="modal-content modal-wide">
+      <h3 id="conversation-title">—</h3>
+      <p class="hint conv-date" id="conversation-date">—</p>
+      <label class="field-label">Что важно для меня</label>
+      <textarea id="conversation-my-text" rows="5" maxlength="2000" placeholder="Напишите своё..."></textarea>
+      <button id="conversation-save-my">Сохранить</button>
+      <label class="field-label" style="margin-top:20px;">Что важно для партнёра</label>
+      <div id="conversation-partner-text" class="conversation-partner-text">Пока скрыт.</div>
+      <button id="conversation-make-agreement" class="make-agreement-btn">🤝 Договориться</button>
+      <button id="conversation-close" class="link">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="agreement-modal" class="modal hidden">
+    <div class="modal-backdrop" id="agreement-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="agreement-modal-title">Новая договорённость</h3>
+      <label class="field-label">О чём договорились</label>
+      <input type="text" id="agreement-title-input" placeholder="Например: «Гулять по субботам»" maxlength="80">
+      <label class="field-label">Детали</label>
+      <textarea id="agreement-text-input" placeholder="Что именно решили, как часто, с какого момента..." rows="5" maxlength="1000"></textarea>
+      <button id="save-agreement">Сохранить</button>
+      <button id="close-agreement" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <div id="retro-modal" class="modal hidden">
+    <div class="modal-backdrop" id="retro-backdrop"></div>
+    <div class="modal-content modal-wide">
+      <h3>Наш год</h3>
+      <div id="retro-content">
+        <p class="hint">Загрузка...</p>
+      </div>
+      <button id="retro-close" class="link">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА ПРОСМОТРА ДНЯ -->
+  <div id="day-view-modal" class="modal hidden">
+    <div class="modal-backdrop" id="day-view-backdrop"></div>
+    <div class="modal-content modal-wide">
+      <h3 id="day-view-title">День 1</h3>
+      <p class="hint" id="day-view-date">—</p>
+      <div class="day-view-question" id="day-view-question">—</div>
+      <div class="day-view-answers">
+        <div class="day-view-answer">
+          <div class="day-view-answer-label" id="day-view-label-me">Вы</div>
+          <div class="day-view-answer-text" id="day-view-answer-me">—</div>
+        </div>
+        <div class="day-view-answer partner">
+          <div class="day-view-answer-label" id="day-view-label-partner">Партнёр</div>
+          <div class="day-view-answer-text" id="day-view-answer-partner">—</div>
+        </div>
+      </div>
+      <button id="day-view-close" class="link">Закрыть</button>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
+      });
+    }
+  </script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
