@@ -6,7 +6,7 @@
   <title>Наш год — 365 вопросов</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Caveat:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#8b3a3a">
   <link rel="icon" type="image/png" href="icon-192.png">
@@ -60,43 +60,58 @@
   </div>
 
   <div id="main-screen" class="screen has-bottom-nav">
-    <header>
-      <h1>Наш год</h1>
-      <div class="header-actions">
-        <button id="notif-btn" class="icon-btn" title="Уведомления">🔕</button>
-        <button id="scheme-btn" class="icon-btn" title="Цвета">🎨</button>
-        <button id="theme-btn" class="icon-btn" title="Тема">🌙</button>
-        <button id="logout-btn" class="icon-btn" title="Выйти">⎋</button>
-      </div>
-    </header>
 
-    <div class="couple-row">
-      <div class="person" id="person-me">
-        <div class="avatar-wrap">
-          <div class="avatar" id="avatar-me">?</div>
-          <span class="person-mood hidden" id="mood-me"></span>
-        </div>
-        <span class="person-name" id="name-me">Вы</span>
+    <!-- ===== НОВАЯ ШАПКА ===== -->
+    <div class="header">
+      <div class="header-top">
+        <div class="header-date" id="header-date">—</div>
+        <button class="gear-btn" id="gearBtn" title="Настройки">
+          ⚙
+          <span class="dot" id="gear-dot"></span>
+        </button>
       </div>
-      <div class="heart">❤️</div>
-      <div class="person">
-        <div class="avatar-wrap">
-          <div class="avatar" id="avatar-partner">?</div>
-          <span class="person-mood hidden" id="mood-partner"></span>
+
+      <div class="header-polaroids">
+        <div class="polaroid">
+          <div class="tape"></div>
+          <div class="polaroid-img" id="polaroid-me" style="background: linear-gradient(135deg, #5a3a2a, #8b5a3a);">?</div>
+          <div class="polaroid-caption" id="polaroid-name-me">Вы</div>
         </div>
-        <span class="person-name" id="name-partner">Партнёр</span>
+        <div class="polaroid">
+          <div class="tape"></div>
+          <div class="polaroid-img" id="polaroid-partner" style="background: linear-gradient(135deg, #c9a961, #b25a5a);">?</div>
+          <div class="polaroid-caption" id="polaroid-name-partner">Партнёр</div>
+        </div>
+      </div>
+
+      <div class="header-title">
+        <div class="header-headline">Наш год</div>
+
+        <div class="ornament">
+          <div class="ornament-line"></div>
+          <div class="ornament-dot"></div>
+          <div class="ornament-text">365 вопросов</div>
+          <div class="ornament-dot"></div>
+          <div class="ornament-line"></div>
+        </div>
+
+        <div class="header-days">
+          <span class="header-days-num" id="current-day">1</span>
+          <span class="header-days-slash">/</span>
+          <span class="header-days-total">365</span>
+          <span class="header-days-lbl">день вместе</span>
+        </div>
       </div>
     </div>
 
     <!-- Сегодня -->
     <section id="today-view">
       <div class="badges">
-        <span class="badge">День <span id="current-day">1</span> из 365</span>
         <span class="badge theme-badge" id="current-theme">—</span>
         <span class="badge streak-badge">🔥 <span id="streak-count">0</span> подряд</span>
+        <span class="badge" id="progress-label">Пройдено 0%</span>
       </div>
       <div class="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
-      <p class="progress-label" id="progress-label">Пройдено 0%</p>
 
       <div class="widgets-row">
         <div class="moon-widget" id="moon-widget">
@@ -123,7 +138,7 @@
       </div>
 
       <h2 id="current-question">Загрузка...</h2>
-      <textarea id="my-answer" placeholder="Ваш ответ..." rows="6"></textarea>
+      <textarea id="my-answer" placeholder="Напишите свой ответ..." rows="6"></textarea>
       <button id="save-answer">Сохранить ответ</button>
       <p id="answer-status" class="hint"></p>
 
@@ -295,7 +310,6 @@
     <section id="archive-view" class="hidden">
       <h2>Архив</h2>
 
-      <!-- ХИТМАП -->
       <div class="heatmap-card">
         <div class="hm-header">
           <div>
@@ -429,6 +443,29 @@
     </nav>
   </div>
 
+  <!-- ===== МЕНЮ ШЕСТЕРЁНКИ ===== -->
+  <div class="backdrop" id="settingsBackdrop"></div>
+  <div class="settings-menu" id="settingsMenu">
+    <button class="settings-item" id="notif-btn">
+      <span class="settings-icon">🔔</span>
+      <span id="notif-label">Уведомления</span>
+    </button>
+    <button class="settings-item" id="scheme-btn">
+      <span class="settings-icon">🎨</span>
+      <span>Цветовая схема</span>
+    </button>
+    <button class="settings-item" id="theme-btn">
+      <span class="settings-icon" id="theme-icon">🌙</span>
+      <span id="theme-label">Тёмная тема</span>
+    </button>
+    <div class="settings-divider"></div>
+    <button class="settings-item danger" id="logout-btn">
+      <span class="settings-icon">⎋</span>
+      <span>Выйти</span>
+    </button>
+  </div>
+
+  <!-- ===== МОДАЛЬНЫЕ ОКНА ===== -->
   <div id="profile-modal" class="modal hidden">
     <div class="modal-backdrop" id="modal-backdrop"></div>
     <div class="modal-content">
@@ -541,7 +578,6 @@
     </div>
   </div>
 
-  <!-- МОДАЛКА ПРОСМОТРА ДНЯ -->
   <div id="day-view-modal" class="modal hidden">
     <div class="modal-backdrop" id="day-view-backdrop"></div>
     <div class="modal-content modal-wide">
@@ -569,6 +605,54 @@
       });
     }
   </script>
+
+  <!-- ===== СКРИПТ МЕНЮ ШЕСТЕРЁНКИ + ДАТА В ШАПКЕ ===== -->
+  <script>
+    (function() {
+      // Дата в шапке
+      function setHeaderDate() {
+        const el = document.getElementById('header-date');
+        if (!el) return;
+        const now = new Date();
+        const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+        el.textContent = now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+      }
+      setHeaderDate();
+
+      // Меню шестерёнки
+      const gearBtn = document.getElementById('gearBtn');
+      const menu = document.getElementById('settingsMenu');
+      const backdrop = document.getElementById('settingsBackdrop');
+
+      function toggleMenu() {
+        if (!menu) return;
+        const isOpen = menu.classList.contains('open');
+        menu.classList.toggle('open', !isOpen);
+        if (gearBtn) gearBtn.classList.toggle('open', !isOpen);
+        if (backdrop) backdrop.classList.toggle('open', !isOpen);
+      }
+
+      if (gearBtn) {
+        gearBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleMenu();
+        });
+      }
+      if (backdrop) backdrop.addEventListener('click', toggleMenu);
+
+      // Клик по пункту меню закрывает его (но обработчики на кнопках уже есть в app.js)
+      document.querySelectorAll('.settings-item').forEach(item => {
+        item.addEventListener('click', () => {
+          setTimeout(() => {
+            if (menu) menu.classList.remove('open');
+            if (gearBtn) gearBtn.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('open');
+          }, 150);
+        });
+      });
+    })();
+  </script>
+
   <script type="module" src="app.js"></script>
 </body>
 </html>
