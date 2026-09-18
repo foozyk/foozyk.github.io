@@ -2060,3 +2060,22 @@ body.dark .scheme-option { color: #e8d4d8; }
   .nav-label { font-size: 9px; }
   .truth-level-name { font-size: 20px; }
 }
+/* Эмодзи настроения поверх полароида */
+.polaroid .person-mood {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #fff;
+  border-radius: 50%;
+  padding: 4px 6px;
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  border: 2px solid #faf5ea;
+  z-index: 10;
+  transform: rotate(8deg);
+}
+body.dark .polaroid .person-mood {
+  background: #2a1c24;
+  border-color: #faf5ea;
+}
