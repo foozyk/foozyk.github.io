@@ -49,15 +49,12 @@ let selectedTopic = null;
 let currentView = "today";
 let truthState = { level: null, round: 0, history: [] };
 
-// «Партнёр ответил»
 let lastSeenPartnerAnswerDay = null;
 let answersListenerInitialized = false;
 
-// Кэш дня
 let cachedDay = null;
 let cachedDayTime = 0;
 
-// Наблюдатель за сменой дня
 let moodWatcherDay = null;
 let dayWatcherInterval = null;
 
@@ -88,17 +85,24 @@ const ICONS = {
 /* ---------- ТЕМА ---------- */
 function initTheme() {
   const saved = localStorage.getItem("theme");
+  const icon = $("theme-icon");
+  const label = $("theme-label");
   if (saved === "dark") {
     document.body.classList.add("dark");
-    $("theme-btn").textContent = "☀️";
+    if (icon) icon.textContent = "☀️";
+    if (label) label.textContent = "Светлая тема";
   } else {
-    $("theme-btn").textContent = "🌙";
+    if (icon) icon.textContent = "🌙";
+    if (label) label.textContent = "Тёмная тема";
   }
   $("theme-btn").onclick = () => { vibrate(10); toggleTheme(); };
 }
 function toggleTheme() {
   const isDark = document.body.classList.toggle("dark");
-  $("theme-btn").textContent = isDark ? "☀️" : "🌙";
+  const icon = $("theme-icon");
+  const label = $("theme-label");
+  if (icon) icon.textContent = isDark ? "☀️" : "🌙";
+  if (label) label.textContent = isDark ? "Светлая тема" : "Тёмная тема";
   localStorage.setItem("theme", isDark ? "dark" : "light");
 }
 
@@ -446,7 +450,7 @@ async function renderToday() {
   $("current-question").textContent = q.text;
   const percent = Math.round((day / 365) * 100);
   $("progress-bar").style.width = percent + "%";
-  $("progress-label").textContent = "Пройдено " + percent + "% пути";
+  $("progress-label").textContent = "Пройдено " + percent + "%";
 }
 
 function listenForAnswers() {
@@ -1121,20 +1125,26 @@ async function initProfile() {
   });
 }
 function renderAvatars() {
-  renderOneAvatar("avatar-me", "name-me", myProfile, "Вы");
-  renderOneAvatar("avatar-partner", "name-partner", partnerProfile, "Партнёр");
+  renderOnePolaroid("polaroid-me", "polaroid-name-me", myProfile, "Вы");
+  renderOnePolaroid("polaroid-partner", "polaroid-name-partner", partnerProfile, "Партнёр");
 }
-function renderOneAvatar(avatarId, nameId, profile, fallbackName) {
-  const avatarEl = $(avatarId);
+function renderOnePolaroid(polaroidId, nameId, profile, fallbackName) {
+  const polaroidEl = $(polaroidId);
   const nameEl = $(nameId);
+  if (!polaroidEl || !nameEl) return;
   const name = profile?.displayName?.trim() || fallbackName;
   nameEl.textContent = name;
   if (profile?.photoURL?.trim()) {
-    avatarEl.innerHTML = `<img src="${escapeHtml(profile.photoURL)}" alt="${escapeHtml(name)}" onerror="this.parentElement.textContent='${escapeHtml(getInitials(name))}'">`;
+    polaroidEl.innerHTML = `<img src="${escapeHtml(profile.photoURL)}" alt="${escapeHtml(name)}" onerror="this.parentElement.textContent='${escapeHtml(getInitials(name))}'">`;
+    polaroidEl.style.background = "";
   } else {
-    avatarEl.textContent = getInitials(name);
+    polaroidEl.textContent = getInitials(name);
     const hue = hashString(name) % 360;
-    avatarEl.style.background = `linear-gradient(135deg, hsl(${hue}, 45%, 60%) 0%, hsl(${hue}, 50%, 42%) 100%)`;
+    polaroidEl.style.background = `linear-gradient(135deg, hsl(${hue}, 45%, 60%) 0%, hsl(${hue}, 50%, 42%) 100%)`;
+    polaroidEl.style.fontFamily = "'Bodoni Moda', serif";
+    polaroidEl.style.fontSize = "48px";
+    polaroidEl.style.color = "#fff";
+    polaroidEl.style.fontStyle = "italic";
   }
 }
 function getInitials(name) {
@@ -1215,7 +1225,10 @@ function initNotifications() {
 function updateNotifButton() {
   const enabled = localStorage.getItem("notif-enabled") === "1";
   const granted = typeof Notification !== "undefined" && Notification.permission === "granted";
-  $("notif-btn").textContent = (enabled && granted) ? "🔔" : "🔕";
+  const label = $("notif-label");
+  if (label) {
+    label.textContent = (enabled && granted) ? "Уведомления вкл" : "Уведомления выкл";
+  }
 }
 async function toggleNotifications() {
   if (localStorage.getItem("notif-enabled") === "1") {
@@ -1387,18 +1400,17 @@ function renderTodayMood() {
   if (noteTextEl) noteTextEl.textContent = partnerNote ? "«" + partnerNote + "»" : "";
 }
 
-/* ИСПРАВЛЕНО: используем updateDoc вместо setDoc — не создаёт плоских полей с точками */
+/* ИСПРАВЛЕНО: используем setDoc с готовым объектом moods, чтобы не создавать плоские поля с точками */
 async function selectMood(emoji) {
   const day = getCurrentDay();
   const docRef = doc(db, "couples", currentCoupleId, "moods", String(day));
   try {
     const snap = await getDoc(docRef);
-    if (!snap.exists()) {
-      await setDoc(docRef, { day, moods: {}, notes: {} });
-    }
-    await updateDoc(docRef, {
-      [`moods.${currentUser.uid}`]: emoji
-    });
+    const data = snap.exists() ? snap.data() : {};
+    const moods = { ...(data.moods || {}) };
+    const notes = { ...(data.notes || {}) };
+    moods[currentUser.uid] = emoji;
+    await setDoc(docRef, { day, moods, notes }, { merge: true });
     vibrate(10);
   } catch (e) {
     console.error(e);
@@ -1413,12 +1425,11 @@ async function saveMoodNote() {
   const docRef = doc(db, "couples", currentCoupleId, "moods", String(day));
   try {
     const snap = await getDoc(docRef);
-    if (!snap.exists()) {
-      await setDoc(docRef, { day, moods: {}, notes: {} });
-    }
-    await updateDoc(docRef, {
-      [`notes.${currentUser.uid}`]: text
-    });
+    const data = snap.exists() ? snap.data() : {};
+    const moods = { ...(data.moods || {}) };
+    const notes = { ...(data.notes || {}) };
+    notes[currentUser.uid] = text;
+    await setDoc(docRef, { day, moods, notes }, { merge: true });
     $("save-mood-note").textContent = "Сохранено ✓";
     setTimeout(() => { $("save-mood-note").textContent = "Сохранить заметку"; }, 1500);
   } catch (e) {
@@ -1426,7 +1437,6 @@ async function saveMoodNote() {
     alert("Не удалось сохранить заметку: " + e.message);
   }
 }
-
 async function renderMoodHistory() {
   const container = $("mood-grid");
   if (!container) return;
@@ -2607,7 +2617,7 @@ async function deleteAgreement(id) {
   }
 }
 
-/* ---------- ЭКСПОРТ PDF ---------- */
+/* ---------- ЭКСПОРТ В PDF ---------- */
 function initPDFExport() {
   const btn = $("export-pdf-btn");
   if (!btn) return;
