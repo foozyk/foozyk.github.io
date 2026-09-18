@@ -507,7 +507,7 @@ function notifyPartnerAnswered(partnerAnswer) {
     try {
       new Notification("❤️ Партнёр ответил!", {
         body: "Откройте «Наш год», чтобы прочитать.",
-        icon: "icon-192.png",
+        icon: "./icon-192.png",
         tag: "partner-answered"
       });
     } catch (e) {}
@@ -1238,7 +1238,7 @@ async function toggleNotifications() {
   try {
     new Notification("Уведомления включены 💛", {
       body: "Мы напомним вам вечером, если вы ещё не ответили на вопрос дня.",
-      icon: "icon-192.png"
+      icon: "./icon-192.png"
     });
   } catch (e) { console.log("Notif error:", e); }
 }
@@ -1260,7 +1260,7 @@ function checkReminder() {
   try {
     new Notification("Наш год 💛", {
       body: "Вы ещё не ответили на сегодняшний вопрос. Загляните!",
-      icon: "icon-192.png",
+      icon: "./icon-192.png",
       tag: "daily-reminder"
     });
     localStorage.setItem("last-notif", today);
@@ -1386,29 +1386,39 @@ function renderTodayMood() {
   const noteTextEl = $("mood-partner-note");
   if (noteTextEl) noteTextEl.textContent = partnerNote ? "«" + partnerNote + "»" : "";
 }
+
+/* ИСПРАВЛЕНО: используем updateDoc вместо setDoc — не создаёт плоских полей с точками */
 async function selectMood(emoji) {
   const day = getCurrentDay();
   const docRef = doc(db, "couples", currentCoupleId, "moods", String(day));
   try {
-    await setDoc(docRef,
-      { day, [`moods.${currentUser.uid}`]: emoji },
-      { merge: true }
-    );
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      await setDoc(docRef, { day, moods: {}, notes: {} });
+    }
+    await updateDoc(docRef, {
+      [`moods.${currentUser.uid}`]: emoji
+    });
     vibrate(10);
   } catch (e) {
     console.error(e);
     alert("Не удалось сохранить настроение: " + e.message);
   }
 }
+
+/* ИСПРАВЛЕНО: то же самое для заметок */
 async function saveMoodNote() {
   const day = getCurrentDay();
   const text = $("mood-note").value.trim();
   const docRef = doc(db, "couples", currentCoupleId, "moods", String(day));
   try {
-    await setDoc(docRef,
-      { day, [`notes.${currentUser.uid}`]: text },
-      { merge: true }
-    );
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      await setDoc(docRef, { day, moods: {}, notes: {} });
+    }
+    await updateDoc(docRef, {
+      [`notes.${currentUser.uid}`]: text
+    });
     $("save-mood-note").textContent = "Сохранено ✓";
     setTimeout(() => { $("save-mood-note").textContent = "Сохранить заметку"; }, 1500);
   } catch (e) {
@@ -1416,6 +1426,7 @@ async function saveMoodNote() {
     alert("Не удалось сохранить заметку: " + e.message);
   }
 }
+
 async function renderMoodHistory() {
   const container = $("mood-grid");
   if (!container) return;
