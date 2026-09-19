@@ -368,8 +368,8 @@ function startMainApp() {
   renderToday();
   applySeasonTheme();
 
-  if (localStorage.getItem("moon-visible") !== "0") renderMoonWidget();
-  else hideMoonBlocks();
+   renderMoonWidget();
+  if (localStorage.getItem("moon-visible") === "0") hideMoonBlocks();
 
   initWeather();
   listenForAnswers();
