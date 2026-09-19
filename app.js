@@ -376,7 +376,6 @@ function startMainApp() {
   initProfile();
   initNotifications();
   initMood();
-  initReactions();
   initLoveLang();
   initQuiz();
   initAboutSubTabs();
@@ -588,7 +587,6 @@ function updateTodayView() {
       statusEl.textContent = "";
     }
   }
-  renderReactions();
   checkConfetti();
 }
 $("save-answer").onclick = async () => {
@@ -1108,6 +1106,7 @@ async function renderHistory() {
     container.appendChild(div);
   }
 }
+
 /* ---------- ЗАПУСК ТЕМЫ И СХЕМЫ ---------- */
 initTheme();
 applySavedScheme();
@@ -1142,6 +1141,23 @@ async function initProfile() {
 function renderAvatars() {
   renderOnePolaroid("polaroid-me", "polaroid-name-me", myProfile, "Вы");
   renderOnePolaroid("polaroid-partner", "polaroid-name-partner", partnerProfile, "Партнёр");
+  initPolaroidTap();
+}
+function initPolaroidTap() {
+  document.querySelectorAll(".polaroid").forEach(el => {
+    if (el.dataset.tapBound === "1") return;
+    el.dataset.tapBound = "1";
+    el.addEventListener("pointerdown", () => {
+      el.classList.add("tapped");
+      vibrate(10);
+    });
+    const release = () => {
+      setTimeout(() => el.classList.remove("tapped"), 200);
+    };
+    el.addEventListener("pointerup", release);
+    el.addEventListener("pointercancel", release);
+    el.addEventListener("pointerleave", release);
+  });
 }
 function renderOnePolaroid(polaroidId, nameId, profile, fallbackName) {
   const polaroidEl = $(polaroidId);
@@ -1213,21 +1229,19 @@ function initMoonToggle() {
     vibrate(10);
   };
 }
+const MOON_VISIBLE_IDS = ["moon-info-item", "moon-info-divider", "moon-tip-line"];
+
 function hideMoonBlocks() {
-  ["moon-widget", "moon-event", "moon-week"].forEach(id => {
+  MOON_VISIBLE_IDS.forEach(id => {
     const el = $(id);
     if (el) el.classList.add("hidden");
   });
-  const advice = document.querySelector(".moon-advice");
-  if (advice) advice.classList.add("hidden");
 }
 function showMoonBlocks() {
-  ["moon-widget", "moon-week"].forEach(id => {
+  MOON_VISIBLE_IDS.forEach(id => {
     const el = $(id);
     if (el) el.classList.remove("hidden");
   });
-  const advice = document.querySelector(".moon-advice");
-  if (advice) advice.classList.remove("hidden");
 }
 
 /* ---------- УВЕДОМЛЕНИЯ ---------- */
@@ -1308,56 +1322,6 @@ function initNotifTime() {
       setTimeout(() => { label.textContent = original; }, 1200);
     }
   };
-}
-
-/* ---------- РЕАКЦИИ ---------- */
-function initReactions() {
-  document.querySelectorAll("#reactions-row button").forEach(btn => {
-    btn.onclick = () => toggleReaction(btn.dataset.emoji);
-  });
-}
-async function toggleReaction(emoji) {
-  const partnerAnswer = todayAnswers.find(a => a.userId !== currentUser.uid);
-  if (!partnerAnswer) return;
-  const currentReactions = partnerAnswer.reactions || {};
-  const myCurrent = currentReactions[currentUser.uid];
-  const newReactions = { ...currentReactions };
-  if (myCurrent === emoji) delete newReactions[currentUser.uid];
-  else newReactions[currentUser.uid] = emoji;
-  try {
-    await updateDoc(
-      doc(db, "couples", currentCoupleId, "answers", partnerAnswer.id),
-      { reactions: newReactions }
-    );
-    vibrate(15);
-  } catch (e) {
-    console.error(e);
-    alert("Не удалось сохранить реакцию: " + e.message);
-  }
-}
-function renderReactions() {
-  const block = $("reactions-block");
-  if (!block) return;
-  const row = $("reactions-row");
-  const info = $("partner-reaction-info");
-  const myAnswer = todayAnswers.find(a => a.userId === currentUser.uid);
-  const partnerAnswer = todayAnswers.find(a => a.userId !== currentUser.uid);
-  if (!myAnswer || !partnerAnswer) {
-    block.classList.add("hidden");
-    return;
-  }
-  block.classList.remove("hidden");
-  const myReaction = (partnerAnswer.reactions || {})[currentUser.uid];
-  row.querySelectorAll("button").forEach(btn => {
-    btn.classList.toggle("selected", btn.dataset.emoji === myReaction);
-  });
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-  const partnerReactionEmoji = (myAnswer.reactions || {})[partnerUid];
-  if (partnerReactionEmoji) {
-    info.innerHTML = `Партнёр отреагировал на ваш ответ: <strong>${partnerReactionEmoji}</strong>`;
-  } else {
-    info.textContent = "Партнёр пока не отреагировал на ваш ответ.";
-  }
 }
 
 /* ---------- НАСТРОЕНИЕ ---------- */

@@ -61,6 +61,7 @@
 
   <div id="main-screen" class="screen has-bottom-nav">
 
+    <!-- ===== ШАПКА ===== -->
     <div class="header">
       <div class="header-top">
         <button class="gear-btn" id="gearBtn" title="Настройки">
@@ -102,14 +103,15 @@
       </div>
     </div>
 
+    <!-- Сегодня -->
     <section id="today-view">
 
       <div class="info-strip">
-        <div class="info-item">
+        <div class="info-item" id="moon-info-item">
           <span class="ico" id="moon-icon">🌓</span>
           <span id="moon-day">7-й лунный день</span>
         </div>
-        <div class="info-divider"></div>
+        <div class="info-divider" id="moon-info-divider"></div>
         <div class="info-item">
           <span class="ico" id="weather-icon">🌧</span>
           <span id="weather-temp">—</span>
@@ -121,7 +123,7 @@
         </div>
       </div>
 
-      <div class="tip-line">
+      <div class="tip-line" id="moon-tip-line">
         <span class="tip-emoji">💫</span><span id="moon-advice-text">—</span>
       </div>
 
@@ -142,17 +144,6 @@
       <div class="partner-section">
         <h3>Ответ партнёра</h3>
         <div id="partner-answer" class="partner-answer">Пока скрыт.</div>
-        <div id="reactions-block" class="hidden">
-          <p class="reaction-label">Ваша реакция:</p>
-          <div class="reactions-row" id="reactions-row">
-            <button data-emoji="❤️">❤️</button>
-            <button data-emoji="😂">😂</button>
-            <button data-emoji="🥹">🥹</button>
-            <button data-emoji="👏">👏</button>
-            <button data-emoji="🤔">🤔</button>
-          </div>
-          <p class="reaction-info" id="partner-reaction-info"></p>
-        </div>
       </div>
 
       <div class="mood-today">
@@ -186,6 +177,7 @@
 
     </section>
 
+    <!-- Разговор -->
     <section id="conversation-view" class="hidden">
       <h2>Разговор</h2>
       <p class="hint">Поговорите о важном. Напишите своё — партнёр ответит своим. Потом договоритесь о чём-то конкретном.</p>
@@ -208,6 +200,7 @@
       </div>
     </section>
 
+    <!-- Мы -->
     <section id="about-view" class="hidden">
       <h2>Про нас</h2>
       <div class="sub-tabs">
@@ -313,6 +306,7 @@
       </div>
     </section>
 
+    <!-- Архив -->
     <section id="archive-view" class="hidden">
       <h2>Архив</h2>
 
@@ -406,6 +400,7 @@
       <div id="history-list"></div>
     </section>
 
+    <!-- Нижняя навигация -->
     <nav class="bottom-nav">
       <button class="bottom-nav-item active" data-view="today">
         <span class="nav-icon">
@@ -448,6 +443,7 @@
     </nav>
   </div>
 
+  <!-- ===== МЕНЮ ШЕСТЕРЁНКИ ===== -->
   <div class="backdrop" id="settingsBackdrop"></div>
   <div class="settings-menu" id="settingsMenu">
     <button class="settings-item" id="notif-btn">
@@ -469,6 +465,7 @@
     </button>
   </div>
 
+  <!-- ===== МОДАЛЬНЫЕ ОКНА ===== -->
   <div id="profile-modal" class="modal hidden">
     <div class="modal-backdrop" id="modal-backdrop"></div>
     <div class="modal-content">

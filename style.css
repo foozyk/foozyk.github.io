@@ -380,7 +380,7 @@ body.dark .error { color: #ff8080; }
   box-shadow: 0 0 8px rgba(255, 92, 92, 1);
 }
 
-/* Полароиды */
+/* Полароиды — с плавной тап-анимацией */
 .header-polaroids {
   position: relative;
   z-index: 2;
@@ -394,9 +394,52 @@ body.dark .error { color: #ff8080; }
   padding: 7px 7px 32px;
   box-shadow: 0 10px 28px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
   position: relative;
+  cursor: pointer;
+  will-change: transform, box-shadow;
+  transition:
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
-.polaroid:nth-child(1) { transform: rotate(-6deg) translateY(6px); }
-.polaroid:nth-child(2) { transform: rotate(4deg) translateY(-4px); z-index: 1; }
+.polaroid:nth-child(1) {
+  --rot: -6deg;
+  --lift: 6px;
+  transform: rotate(var(--rot)) translateY(var(--lift));
+  transform-origin: 60% 90%;
+}
+.polaroid:nth-child(2) {
+  --rot: 4deg;
+  --lift: -4px;
+  transform: rotate(var(--rot)) translateY(var(--lift));
+  transform-origin: 40% 90%;
+  z-index: 1;
+}
+.polaroid.tapped {
+  transform: rotate(var(--rot)) translateY(calc(var(--lift) - 10px)) scale(1.08);
+  box-shadow:
+    0 22px 50px rgba(0,0,0,0.55),
+    0 6px 14px rgba(0,0,0,0.3);
+  z-index: 5;
+  transition:
+    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.35s ease-out;
+}
+.polaroid:not(.tapped) {
+  transition:
+    transform 0.6s cubic-bezier(0.25, 1.2, 0.5, 1),
+    box-shadow 0.6s ease-out;
+}
+@media (hover: hover) and (pointer: fine) {
+  .polaroid:hover {
+    transform: rotate(var(--rot)) translateY(calc(var(--lift) - 8px)) scale(1.06);
+    box-shadow:
+      0 20px 45px rgba(0,0,0,0.5),
+      0 4px 12px rgba(0,0,0,0.28);
+    z-index: 5;
+  }
+}
+
 .polaroid-img {
   width: 118px;
   height: 118px;
@@ -764,6 +807,7 @@ body.dark .moon-week-day.today { background: rgba(178, 90, 90, 0.25); }
 }
 body.dark .moon-advice-text { color: var(--accent-alt); }
 
+
 /* ===== ВОПРОС ДНЯ ===== */
 #current-question {
   font-family: 'Bodoni Moda', serif;
@@ -813,39 +857,6 @@ body.dark .partner-section h3 { color: var(--accent-alt); }
   word-wrap: break-word;
   font-style: italic;
 }
-
-/* ===== РЕАКЦИИ ===== */
-.reaction-label {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 8px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.reactions-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
-.reactions-row button {
-  background: var(--input-bg);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: var(--text);
-  font-size: 20px;
-  padding: 8px 12px;
-  border-radius: 14px;
-  line-height: 1;
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
-}
-.reactions-row button:hover { transform: scale(1.1); box-shadow: var(--shadow); }
-.reactions-row button.selected {
-  background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(232, 160, 168, 0.4) 100%);
-  border-color: var(--accent);
-  transform: scale(1.1);
-  box-shadow: var(--shadow-glow);
-}
-body.dark .reactions-row button.selected { background: rgba(178, 90, 90, 0.3); }
-.reaction-info { font-size: 12.5px; color: var(--muted); margin: 0; font-weight: 500; }
 
 /* ===== НАСТРОЕНИЕ ===== */
 .mood-today {
@@ -1254,7 +1265,7 @@ body.dark .lovelang-primary { color: var(--accent-alt); }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 body.dark .stat-value { color: var(--accent-alt); }
-.stat-value.text { font-size: 15px; padding-top: 6px; }
+.stat-value.text { font-size: 15px; padding-top: 6px; font-style: normal; }
 .stat-label {
   font-size: 10.5px; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;
