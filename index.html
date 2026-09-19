@@ -633,15 +633,6 @@
 
   <script>
     (function() {
-      function setHeaderDate() {
-        const el = document.getElementById('header-date');
-        if (!el) return;
-        const now = new Date();
-        const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-        el.textContent = now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
-      }
-      setHeaderDate();
-
       const gearBtn = document.getElementById('gearBtn');
       const menu = document.getElementById('settingsMenu');
       const backdrop = document.getElementById('settingsBackdrop');
