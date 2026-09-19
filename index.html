@@ -201,6 +201,63 @@
       </div>
     </section>
 
+    <!-- Планы -->
+    <section id="plans-view" class="hidden">
+      <h2>Планы</h2>
+      <div class="sub-tabs">
+        <button id="sub-tasks" class="sub-tab active">Задачи</button>
+        <button id="sub-notes" class="sub-tab">Заметки</button>
+        <button id="sub-calendar" class="sub-tab">Календарь</button>
+      </div>
+
+      <!-- Задачи -->
+      <div id="plans-tasks">
+        <div class="filter-row" id="tasks-filters">
+          <button class="filter-chip active" data-filter="active">Активные</button>
+          <button class="filter-chip" data-filter="mine">Мои</button>
+          <button class="filter-chip" data-filter="partner">Партнёра</button>
+          <button class="filter-chip" data-filter="free">Свободные</button>
+        </div>
+
+        <button id="add-task-btn" class="add-task-btn">+ Добавить задачу</button>
+
+        <div id="tasks-active-list"></div>
+        <div id="tasks-done-block" class="hidden">
+          <div class="done-divider">Выполненные</div>
+          <div id="tasks-done-list"></div>
+        </div>
+      </div>
+
+      <!-- Заметки -->
+      <div id="plans-notes" class="hidden">
+        <div class="add-row">
+          <button id="add-sticker-btn" class="add-btn">+ Стикер</button>
+          <button id="add-note-btn" class="add-btn">+ Заметка</button>
+        </div>
+
+        <div id="stickers-container"></div>
+        <div id="notes-container"></div>
+      </div>
+
+      <!-- Календарь -->
+      <div id="plans-calendar" class="hidden">
+        <div class="cal-card">
+          <div class="cal-header">
+            <div class="cal-month" id="cal-month-label">—</div>
+            <div class="cal-nav">
+              <button id="cal-prev" aria-label="Предыдущий месяц">‹</button>
+              <button id="cal-next" aria-label="Следующий месяц">›</button>
+            </div>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
+
+        <button id="add-event-btn" class="add-event-btn">+ Добавить событие</button>
+
+        <div id="events-list"></div>
+      </div>
+    </section>
+
     <!-- Мы -->
     <section id="about-view" class="hidden">
       <h2>Про нас</h2>
@@ -208,6 +265,7 @@
         <button id="sub-quiz" class="sub-tab active">Квиз</button>
         <button id="sub-lovelang" class="sub-tab">Любовь</button>
         <button id="sub-truth" class="sub-tab">Игра</button>
+        <button id="sub-archive" class="sub-tab">Архив</button>
       </div>
 
       <div id="about-quiz">
@@ -305,100 +363,97 @@
           <button id="truth-restart">Играть заново</button>
         </div>
       </div>
-    </section>
 
-    <!-- Архив -->
-    <section id="archive-view" class="hidden">
-      <h2>Архив</h2>
-
-      <div class="heatmap-card reveal">
-        <div class="hm-header">
-          <div>
-            <div class="hm-title">Активность года</div>
-            <div class="hm-subtitle" id="hm-subtitle">Загрузка...</div>
-          </div>
-          <div class="hm-streak hidden" id="hm-streak">🔥 <span id="hm-streak-count">0</span></div>
-        </div>
-
-        <div class="hm-stats">
-          <div class="hm-stat">
-            <div class="hm-stat-value" id="hm-stat-both">0</div>
-            <div class="hm-stat-label">вдвоём</div>
-          </div>
-          <div class="hm-stat">
-            <div class="hm-stat-value" id="hm-stat-one">0</div>
-            <div class="hm-stat-label">один</div>
-          </div>
-          <div class="hm-stat">
-            <div class="hm-stat-value" id="hm-stat-miss">0</div>
-            <div class="hm-stat-label">пропуск</div>
-          </div>
-        </div>
-
-        <div class="hm-scroll">
-          <div class="hm-months" id="hm-months"></div>
-          <div class="hm-grid-wrapper">
-            <div class="hm-day-labels">
-              <div class="hm-day-label"></div>
-              <div class="hm-day-label">Пн</div>
-              <div class="hm-day-label"></div>
-              <div class="hm-day-label">Ср</div>
-              <div class="hm-day-label"></div>
-              <div class="hm-day-label">Пт</div>
-              <div class="hm-day-label"></div>
+      <div id="about-archive" class="hidden">
+        <div class="heatmap-card reveal">
+          <div class="hm-header">
+            <div>
+              <div class="hm-title">Активность года</div>
+              <div class="hm-subtitle" id="hm-subtitle">Загрузка...</div>
             </div>
-            <div class="hm-grid" id="hm-grid"></div>
+            <div class="hm-streak hidden" id="hm-streak">🔥 <span id="hm-streak-count">0</span></div>
+          </div>
+
+          <div class="hm-stats">
+            <div class="hm-stat">
+              <div class="hm-stat-value" id="hm-stat-both">0</div>
+              <div class="hm-stat-label">вдвоём</div>
+            </div>
+            <div class="hm-stat">
+              <div class="hm-stat-value" id="hm-stat-one">0</div>
+              <div class="hm-stat-label">один</div>
+            </div>
+            <div class="hm-stat">
+              <div class="hm-stat-value" id="hm-stat-miss">0</div>
+              <div class="hm-stat-label">пропуск</div>
+            </div>
+          </div>
+
+          <div class="hm-scroll">
+            <div class="hm-months" id="hm-months"></div>
+            <div class="hm-grid-wrapper">
+              <div class="hm-day-labels">
+                <div class="hm-day-label"></div>
+                <div class="hm-day-label">Пн</div>
+                <div class="hm-day-label"></div>
+                <div class="hm-day-label">Ср</div>
+                <div class="hm-day-label"></div>
+                <div class="hm-day-label">Пт</div>
+                <div class="hm-day-label"></div>
+              </div>
+              <div class="hm-grid" id="hm-grid"></div>
+            </div>
+          </div>
+
+          <div class="hm-legend">
+            <span class="hm-legend-text">меньше</span>
+            <div class="hm-legend-cells">
+              <div class="hm-cell future"></div>
+              <div class="hm-cell empty"></div>
+              <div class="hm-cell one"></div>
+              <div class="hm-cell both"></div>
+            </div>
+            <span class="hm-legend-text">больше</span>
           </div>
         </div>
 
-        <div class="hm-legend">
-          <span class="hm-legend-text">меньше</span>
-          <div class="hm-legend-cells">
-            <div class="hm-cell future"></div>
-            <div class="hm-cell empty"></div>
-            <div class="hm-cell one"></div>
-            <div class="hm-cell both"></div>
+        <h3 class="conv-section-title">Статистика</h3>
+        <div class="stats-grid reveal" id="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-answers">0</div>
+            <div class="stat-label">ответов всего</div>
           </div>
-          <span class="hm-legend-text">больше</span>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-days">0</div>
+            <div class="stat-label">дней вместе</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-active-days">0</div>
+            <div class="stat-label">дней с ответами</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-favorite">—</div>
+            <div class="stat-label">любимая тема</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-mood">—</div>
+            <div class="stat-label">частое настроение</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-agreements">0</div>
+            <div class="stat-label">договорённостей</div>
+          </div>
         </div>
+
+        <h3 class="conv-section-title">Дневник настроения</h3>
+        <p class="hint">Последние 30 дней</p>
+        <div id="mood-grid" class="mood-grid reveal"></div>
+
+        <h3 class="conv-section-title">История ответов</h3>
+        <button id="retro-btn" class="retro-btn reveal stagger" style="--i: 0;">📊 Итоги года</button>
+        <button id="export-pdf-btn" class="export-pdf-btn reveal stagger" style="--i: 1;">📄 Скачать год в PDF</button>
+        <div id="history-list" class="reveal"></div>
       </div>
-
-      <h3 class="conv-section-title">Статистика</h3>
-      <div class="stats-grid reveal" id="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value" id="stat-answers">0</div>
-          <div class="stat-label">ответов всего</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-days">0</div>
-          <div class="stat-label">дней вместе</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-active-days">0</div>
-          <div class="stat-label">дней с ответами</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-favorite">—</div>
-          <div class="stat-label">любимая тема</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-mood">—</div>
-          <div class="stat-label">частое настроение</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-agreements">0</div>
-          <div class="stat-label">договорённостей</div>
-        </div>
-      </div>
-
-      <h3 class="conv-section-title">Дневник настроения</h3>
-      <p class="hint">Последние 30 дней</p>
-      <div id="mood-grid" class="mood-grid reveal"></div>
-
-      <h3 class="conv-section-title">История ответов</h3>
-      <button id="retro-btn" class="retro-btn reveal stagger" style="--i: 0;">📊 Итоги года</button>
-      <button id="export-pdf-btn" class="export-pdf-btn reveal stagger" style="--i: 1;">📄 Скачать год в PDF</button>
-      <div id="history-list" class="reveal"></div>
     </section>
 
     <!-- Нижняя навигация -->
@@ -422,6 +477,16 @@
         <span class="nav-label">Разговор</span>
         <span class="nav-badge hidden" id="badge-conversation">0</span>
       </button>
+      <button class="bottom-nav-item" data-view="plans">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3 8-8"/>
+            <path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>
+          </svg>
+        </span>
+        <span class="nav-label">Планы</span>
+        <span class="nav-badge hidden" id="badge-plans">0</span>
+      </button>
       <button class="bottom-nav-item" data-view="about">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -431,16 +496,6 @@
         </span>
         <span class="nav-label">Мы</span>
         <span class="nav-badge hidden" id="badge-about">0</span>
-      </button>
-      <button class="bottom-nav-item" data-view="archive">
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-          </svg>
-        </span>
-        <span class="nav-label">Архив</span>
-        <span class="nav-badge hidden" id="badge-archive">0</span>
       </button>
     </nav>
 
@@ -571,6 +626,131 @@
       <textarea id="agreement-text-input" placeholder="Что именно решили, как часто, с какого момента..." rows="5" maxlength="1000"></textarea>
       <button id="save-agreement">Сохранить</button>
       <button id="close-agreement" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <!-- ===== МОДАЛКА ЗАДАЧИ ===== -->
+  <div id="task-modal" class="modal hidden">
+    <div class="modal-backdrop" id="task-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="task-modal-title">Новая задача</h3>
+
+      <label class="field-label">Что нужно сделать?</label>
+      <input type="text" id="task-title-input" placeholder="Например: записаться к стоматологу" maxlength="100">
+
+      <label class="field-label">Кому назначить?</label>
+      <div class="who-picker" id="task-who-picker">
+        <button type="button" class="who-option" data-who="me">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>
+          Себе
+        </button>
+        <button type="button" class="who-option" data-who="partner">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Партнёру
+        </button>
+        <button type="button" class="who-option active none" data-who="none">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/></svg>
+          Кто возьмёт
+        </button>
+      </div>
+
+      <label class="field-label">Срок <span class="optional">(необязательно)</span></label>
+      <div class="row-2col">
+        <input type="date" id="task-due-date">
+        <input type="time" id="task-due-time">
+      </div>
+
+      <label class="field-label">Заметка <span class="optional">(необязательно)</span></label>
+      <textarea id="task-note-input" placeholder="Что-то важное по задаче..." rows="3" maxlength="500"></textarea>
+
+      <button id="task-save-btn">Сохранить</button>
+      <button id="task-delete-btn" class="link hidden" style="color: #ff8080;">🗑 Удалить задачу</button>
+      <button id="task-cancel-btn" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <!-- ===== МОДАЛКА СТИКЕРА ===== -->
+  <div id="sticker-modal" class="modal hidden">
+    <div class="modal-backdrop" id="sticker-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="sticker-modal-title">Новый стикер</h3>
+
+      <label class="field-label">Текст</label>
+      <textarea id="sticker-text-input" class="sticker-preview" rows="3" placeholder="Быстрая мысль..." maxlength="300"></textarea>
+
+      <label class="field-label">Цвет</label>
+      <div class="color-picker-row" id="sticker-color-picker">
+        <button type="button" class="color-dot c-0" data-color="0"></button>
+        <button type="button" class="color-dot c-1" data-color="1"></button>
+        <button type="button" class="color-dot c-2" data-color="2"></button>
+        <button type="button" class="color-dot c-3" data-color="3"></button>
+        <button type="button" class="color-dot c-4" data-color="4"></button>
+        <button type="button" class="color-dot c-5" data-color="5"></button>
+      </div>
+
+      <button id="sticker-save-btn">Сохранить</button>
+      <button id="sticker-delete-btn" class="link hidden" style="color: #ff8080;">🗑 Удалить стикер</button>
+      <button id="sticker-cancel-btn" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <!-- ===== МОДАЛКА ЗАМЕТКИ ===== -->
+  <div id="note-modal" class="modal hidden">
+    <div class="modal-backdrop" id="note-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="note-modal-title">Новая заметка</h3>
+
+      <label class="field-label">Текст</label>
+      <textarea id="note-text-input" rows="7" placeholder="Что хочется записать..." maxlength="2000"></textarea>
+
+      <button id="note-save-btn">Сохранить</button>
+      <button id="note-delete-btn" class="link hidden" style="color: #ff8080;">🗑 Удалить заметку</button>
+      <button id="note-cancel-btn" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <!-- ===== МОДАЛКА СОБЫТИЯ ===== -->
+  <div id="event-modal" class="modal hidden">
+    <div class="modal-backdrop" id="event-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="event-modal-title">Новое событие</h3>
+
+      <label class="field-label">Что за событие?</label>
+      <input type="text" id="event-title-input" placeholder="Например: ужин с родителями" maxlength="100">
+
+      <label class="field-label">Дата</label>
+      <input type="date" id="event-date-input">
+
+      <label class="field-label">Время <span class="optional">(необязательно)</span></label>
+      <input type="time" id="event-time-input">
+      <p style="font-size: 11px; color: var(--muted); margin-top: 6px;">Если пусто — событие считается «весь день»</p>
+
+      <label class="field-label">Повтор</label>
+      <div class="repeat-picker" id="event-repeat-picker">
+        <button type="button" class="repeat-option active" data-repeat="none">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          Один раз
+        </button>
+        <button type="button" class="repeat-option" data-repeat="week">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 9 9"/><path d="M3 5v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9 9 0 0 0 9-9"/><path d="M21 19v-5h-5"/></svg>
+          Каждую неделю
+        </button>
+        <button type="button" class="repeat-option" data-repeat="month">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 9 9"/><path d="M3 5v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9 9 0 0 0 9-9"/><path d="M21 19v-5h-5"/></svg>
+          Каждый месяц
+        </button>
+        <button type="button" class="repeat-option" data-repeat="year">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 9 9"/><path d="M3 5v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9 9 0 0 0 9-9"/><path d="M21 19v-5h-5"/></svg>
+          Каждый год
+        </button>
+      </div>
+
+      <label class="field-label" style="margin-top: 16px;">Заметка <span class="optional">(необязательно)</span></label>
+      <textarea id="event-note-input" placeholder="Что важно помнить?" rows="3" maxlength="500"></textarea>
+
+      <button id="event-save-btn">Сохранить</button>
+      <button id="event-delete-btn" class="link hidden" style="color: #ff8080;">🗑 Удалить событие</button>
+      <button id="event-cancel-btn" class="link">Отмена</button>
     </div>
   </div>
 

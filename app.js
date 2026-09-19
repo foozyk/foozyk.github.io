@@ -50,6 +50,25 @@ let currentView = "today";
 let truthState = { level: null, round: 0, history: [] };
 let conversationsInitialized = false;
 let quizInitialized = false;
+let tasks = [];
+let unsubTasks = null;
+let tasksInitialized = false;
+let currentTasksFilter = "active";
+let editingTaskId = null;
+let selectedTaskWho = "none";
+let notes = [];
+let unsubNotes = null;
+let notesInitialized = false;
+let editingNoteId = null;
+let selectedStickerColor = 0;
+let events = [];
+let unsubEvents = null;
+let eventsInitialized = false;
+let editingEventId = null;
+let selectedEventRepeat = "none";
+let currentCalYear = new Date().getFullYear();
+let currentCalMonth = new Date().getMonth();
+let selectedCalDate = null;
 let unsubSignals = null;
 let signalsInitialized = false;
 
@@ -343,7 +362,7 @@ function generateCode() {
 }
 
 /* ---------- НИЖНЯЯ НАВИГАЦИЯ ---------- */
-const VIEW_ORDER = ["today", "conversation", "about", "archive"];
+const VIEW_ORDER = ["today", "conversation", "plans", "about"];
 
 function initBottomNav() {
   document.querySelectorAll(".bottom-nav-item").forEach(btn => {
@@ -367,13 +386,13 @@ function switchNav(view) {
   }
   $("today-view").classList.toggle("hidden", view !== "today");
   $("conversation-view").classList.toggle("hidden", view !== "conversation");
+  $("plans-view").classList.toggle("hidden", view !== "plans");
   $("about-view").classList.toggle("hidden", view !== "about");
-  $("archive-view").classList.toggle("hidden", view !== "archive");
 
   const activeSection = $(
     view === "today" ? "today-view" :
     view === "conversation" ? "conversation-view" :
-    view === "about" ? "about-view" : "archive-view"
+    view === "plans" ? "plans-view" : "about-view"
   );
   if (activeSection) {
     activeSection.classList.remove("view-enter-right", "view-enter-left");
@@ -382,13 +401,8 @@ function switchNav(view) {
   }
 
   if (view === "conversation") renderConversations();
+  if (view === "plans") renderPlansSubTab();
   if (view === "about") renderAboutSubTab();
-  if (view === "archive") {
-    renderStats();
-    renderHeatmap();
-    renderMoodHistory();
-    renderHistory();
-  }
   window.scrollTo({ top: 0, behavior: "smooth" });
 
   requestAnimationFrame(() => {
@@ -404,19 +418,62 @@ function initAboutSubTabs() {
   $("sub-quiz").onclick = () => { vibrate(10); setAboutSubTab("quiz"); };
   $("sub-lovelang").onclick = () => { vibrate(10); setAboutSubTab("lovelang"); };
   $("sub-truth").onclick = () => { vibrate(10); setAboutSubTab("truth"); };
+  $("sub-archive").onclick = () => { vibrate(10); setAboutSubTab("archive"); };
 }
 function setAboutSubTab(tab) {
   currentAboutSubTab = tab;
   $("sub-quiz").classList.toggle("active", tab === "quiz");
   $("sub-lovelang").classList.toggle("active", tab === "lovelang");
   $("sub-truth").classList.toggle("active", tab === "truth");
+  $("sub-archive").classList.toggle("active", tab === "archive");
   $("about-quiz").classList.toggle("hidden", tab !== "quiz");
   $("about-lovelang").classList.toggle("hidden", tab !== "lovelang");
   $("about-truth").classList.toggle("hidden", tab !== "truth");
+  $("about-archive").classList.toggle("hidden", tab !== "archive");
+
+  // Ленивая загрузка данных архива — только когда открыли под-таб
+  if (tab === "archive") {
+    renderStats();
+    renderHeatmap();
+    renderMoodHistory();
+    renderHistory();
+  }
 }
 function renderAboutSubTab() {
   setAboutSubTab(currentAboutSubTab);
   if (currentAboutSubTab === "quiz") renderQuizMain();
+  if (currentAboutSubTab === "archive") {
+    renderStats();
+    renderHeatmap();
+    renderMoodHistory();
+    renderHistory();
+  }
+}
+
+/* ---------- ПОД-ТАБЫ «Планы» ---------- */
+let currentPlansSubTab = "tasks";
+function initPlansSubTabs() {
+  $("sub-tasks").onclick = () => { vibrate(10); setPlansSubTab("tasks"); };
+  $("sub-notes").onclick = () => { vibrate(10); setPlansSubTab("notes"); };
+  $("sub-calendar").onclick = () => { vibrate(10); setPlansSubTab("calendar"); };
+}
+function setPlansSubTab(tab) {
+  currentPlansSubTab = tab;
+  $("sub-tasks").classList.toggle("active", tab === "tasks");
+  $("sub-notes").classList.toggle("active", tab === "notes");
+  $("sub-calendar").classList.toggle("active", tab === "calendar");
+  $("plans-tasks").classList.toggle("hidden", tab !== "tasks");
+  $("plans-notes").classList.toggle("hidden", tab !== "notes");
+  $("plans-calendar").classList.toggle("hidden", tab !== "calendar");
+}
+function renderPlansSubTab() {
+  setPlansSubTab(currentPlansSubTab);
+  if (currentPlansSubTab === "tasks") renderTasks();
+  if (currentPlansSubTab === "notes") renderNotes();
+  if (currentPlansSubTab === "calendar") {
+    renderCalendar();
+    renderEventsList();
+  }
 }
 
 /* ---------- MAIN APP ---------- */
@@ -441,6 +498,10 @@ function startMainApp() {
   initLoveLang();
   initQuiz();
   initAboutSubTabs();
+  initPlansSubTabs();
+  initTasks();
+  initNotes();
+  initEvents();
   initTruthOrDare();
   initConversations();
   initAgreements();
@@ -748,7 +809,9 @@ function updateBadges() {
     if (partnerQuiz?.answers && (!myQuiz?.guesses || myQuiz.guessesFor !== partnerUid)) aboutNew++;
   }
   setBadge("badge-about", aboutNew);
-  setBadge("badge-archive", 0);
+
+  // Бейдж «Планы» — задачи
+  updateTasksBadge();
 
   // Бейдж «Сегодня»
   updateTodayBadge();
@@ -3257,4 +3320,1224 @@ function initThinkSignals() {
       );
     }
   );
+}
+/* ==========================================================
+   ПЛАГИНЫ «ПЛАНЫ» → ЗАДАЧИ
+   ========================================================== */
+
+function todayISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function formatTaskDue(dueDate, dueTime) {
+  if (!dueDate) return null;
+  const today = todayISO();
+  const tomorrow = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  })();
+
+  let label;
+  let cls = "";
+  if (dueDate < today) {
+    const days = Math.round((new Date(today) - new Date(dueDate)) / 86400000);
+    label = `просрочено (${days} ${plural(days, "день", "дня", "дней")})`;
+    cls = "overdue";
+  } else if (dueDate === today) {
+    label = "сегодня";
+    cls = "soon";
+  } else if (dueDate === tomorrow) {
+    label = "завтра";
+  } else {
+    const [y, m, d] = dueDate.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    label = dt.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  }
+
+  const time = dueTime ? ` <span class="time">${dueTime}</span>` : "";
+  return { html: `📅 ${label}${time}`, cls };
+}
+
+function initTasks() {
+  $("add-task-btn").onclick = () => openTaskModal(null);
+  $("task-backdrop").onclick = closeTaskModal;
+  $("task-cancel-btn").onclick = closeTaskModal;
+  $("task-save-btn").onclick = saveTask;
+  $("task-delete-btn").onclick = deleteTaskFromModal;
+
+  document.querySelectorAll("#task-who-picker .who-option").forEach(btn => {
+    btn.onclick = () => {
+      vibrate(10);
+      selectedTaskWho = btn.dataset.who;
+      document.querySelectorAll("#task-who-picker .who-option").forEach(b => {
+        b.classList.remove("active", "me", "partner", "none");
+      });
+      btn.classList.add("active", selectedTaskWho);
+    };
+  });
+
+  document.querySelectorAll("#tasks-filters .filter-chip").forEach(chip => {
+    chip.onclick = () => {
+      vibrate(10);
+      currentTasksFilter = chip.dataset.filter;
+      document.querySelectorAll("#tasks-filters .filter-chip").forEach(c => {
+        c.classList.toggle("active", c.dataset.filter === currentTasksFilter);
+      });
+      renderTasks();
+    };
+  });
+
+  listenForTasks();
+}
+
+function listenForTasks() {
+  if (unsubTasks) unsubTasks();
+  tasksInitialized = false;
+
+  unsubTasks = onSnapshot(
+    collection(db, "couples", currentCoupleId, "tasks"),
+    (snap) => {
+      const prevTasks = tasks.slice();
+      tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      renderTasks();
+      updateBadges();
+
+      if (tasksInitialized) {
+        detectTaskEvents(prevTasks);
+      } else {
+        tasksInitialized = true;
+      }
+    }
+  );
+}
+
+function detectTaskEvents(prevTasks) {
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  if (!partnerUid) return;
+
+  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
+  const avatar = {
+    letter: getInitials(partnerName).slice(0, 1),
+    photoURL: partnerProfile?.photoURL?.trim() || ""
+  };
+
+  const prevMap = new Map(prevTasks.map(t => [t.id, t]));
+
+  for (const task of tasks) {
+    const prev = prevMap.get(task.id);
+    if (!prev) {
+      // Новая задача
+      if (task.createdBy === partnerUid && task.assignee === currentUser.uid) {
+        notifyUser(
+          `${partnerName} назначила тебе задачу`,
+          `«${task.title}»`,
+          "plans",
+          { avatar }
+        );
+      } else if (task.createdBy === partnerUid && !task.assignee) {
+        notifyUser(
+          `${partnerName} добавила задачу`,
+          `«${task.title}»`,
+          "plans",
+          { avatar }
+        );
+      }
+    } else {
+      // Изменение существующей
+      // Партнёр взял свободную задачу, которую создал я
+      if (!prev.assignee && task.assignee === partnerUid && task.createdBy === currentUser.uid) {
+        notifyUser(
+          `${partnerName} взяла задачу`,
+          `«${task.title}»`,
+          "plans",
+          { avatar }
+        );
+      }
+      // Партнёр выполнил задачу, которую создал я
+      if (!prev.done && task.done && task.createdBy === currentUser.uid && task.doneBy === partnerUid) {
+        notifyUser(
+          `${partnerName} выполнила задачу`,
+          `«${task.title}»`,
+          "plans",
+          { avatar }
+        );
+      }
+    }
+  }
+}
+
+function sortTasks(arr) {
+  const today = todayISO();
+  return arr.sort((a, b) => {
+    // Выполненные — всегда вниз (сортируются отдельно)
+    if (a.done !== b.done) return a.done ? 1 : -1;
+
+    const aDate = a.dueDate || "";
+    const bDate = b.dueDate || "";
+
+    // Просроченные — вверх
+    const aOverdue = aDate && aDate < today;
+    const bOverdue = bDate && bDate < today;
+    if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+
+    // С датой — раньше по дате
+    if (aDate && !bDate) return -1;
+    if (!aDate && bDate) return 1;
+    if (aDate && bDate && aDate !== bDate) return aDate < bDate ? -1 : 1;
+
+    // Одинаковая дата — по времени
+    const aTime = a.dueTime || "99:99";
+    const bTime = b.dueTime || "99:99";
+    if (aTime !== bTime) return aTime < bTime ? -1 : 1;
+
+    // Иначе по createdAt (свежие сверху)
+    const at = a.createdAt?.toDate?.()?.getTime?.() || 0;
+    const bt = b.createdAt?.toDate?.()?.getTime?.() || 0;
+    return bt - at;
+  });
+}
+
+function renderTasks() {
+  const container = $("tasks-active-list");
+  const doneBlock = $("tasks-done-block");
+  const doneList = $("tasks-done-list");
+  if (!container || !doneBlock || !doneList) return;
+
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+
+  let filtered = tasks.filter(t => {
+    if (currentTasksFilter === "active") return !t.done;
+    if (currentTasksFilter === "mine") return !t.done && t.assignee === currentUser.uid;
+    if (currentTasksFilter === "partner") return !t.done && t.assignee === partnerUid;
+    if (currentTasksFilter === "free") return !t.done && !t.assignee;
+    return true;
+  });
+
+  const active = sortTasks(filtered.filter(t => !t.done));
+  const done = sortTasks(tasks.filter(t => t.done));
+
+  container.innerHTML = "";
+
+  // Пустое состояние
+  if (active.length === 0) {
+    const emptyText = currentTasksFilter === "mine"
+      ? "У вас пока нет задач"
+      : currentTasksFilter === "partner"
+      ? "У партнёра пока нет задач"
+      : currentTasksFilter === "free"
+      ? "Нет свободных задач"
+      : "Активных задач нет — можно отдохнуть 💛";
+    container.innerHTML = emptyStateHtml({
+      icon: ICONS.book,
+      title: "Пусто",
+      text: emptyText
+    });
+  } else {
+    active.forEach(t => container.appendChild(buildTaskItem(t)));
+  }
+
+  if (done.length === 0) {
+    doneBlock.classList.add("hidden");
+  } else {
+    doneBlock.classList.remove("hidden");
+    doneList.innerHTML = "";
+    done.forEach(t => doneList.appendChild(buildTaskItem(t)));
+  }
+}
+
+function buildTaskItem(task) {
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  const div = document.createElement("div");
+  div.className = "task-item";
+  if (task.done) div.classList.add("done");
+  if (task.assignee === currentUser.uid) div.classList.add("who-me");
+  else if (task.assignee === partnerUid) div.classList.add("who-partner");
+  else div.classList.add("who-none");
+
+  const whoLabel = task.assignee === currentUser.uid ? "Я"
+                  : task.assignee === partnerUid ? (partnerProfile?.displayName?.trim() || "Партнёр")
+                  : "Свободная";
+
+  const due = formatTaskDue(task.dueDate, task.dueTime);
+  const dueHtml = due
+    ? `<span class="due ${due.cls}">${due.html}</span>`
+    : (task.done && task.doneAt?.toDate
+        ? `<span class="due">📅 выполнено</span>`
+        : "");
+
+  div.innerHTML = `
+    <button class="task-check" data-action="toggle">${task.done ? "✓" : ""}</button>
+    <div class="task-body" data-action="edit">
+      <div class="task-title">${escapeHtml(task.title)}</div>
+      <div class="task-meta">
+        <span class="who"><span class="dot"></span> ${escapeHtml(whoLabel)}</span>
+        ${dueHtml}
+      </div>
+    </div>
+    ${!task.assignee && !task.done ? `<button class="take-btn" data-action="take">Беру</button>` : ""}
+  `;
+
+  const checkBtn = div.querySelector('[data-action="toggle"]');
+  if (checkBtn) {
+    checkBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleTaskDone(task.id, !task.done);
+    };
+  }
+
+  const takeBtn = div.querySelector('[data-action="take"]');
+  if (takeBtn) {
+    takeBtn.onclick = (e) => {
+      e.stopPropagation();
+      takeTask(task.id);
+    };
+  }
+
+  const body = div.querySelector('[data-action="edit"]');
+  if (body) {
+    body.onclick = () => openTaskModal(task.id);
+  }
+
+  return div;
+}
+
+async function toggleTaskDone(taskId, done) {
+  vibrate(done ? 15 : 10);
+  try {
+    const update = {
+      done,
+      doneAt: done ? serverTimestamp() : null,
+      doneBy: done ? currentUser.uid : null,
+      updatedAt: serverTimestamp()
+    };
+    await updateDoc(doc(db, "couples", currentCoupleId, "tasks", taskId), update);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+async function takeTask(taskId) {
+  vibrate(15);
+  try {
+    await updateDoc(doc(db, "couples", currentCoupleId, "tasks", taskId), {
+      assignee: currentUser.uid,
+      updatedAt: serverTimestamp()
+    });
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+function openTaskModal(taskId) {
+  editingTaskId = taskId;
+  const isEdit = !!taskId;
+
+  const titleEl = $("task-modal-title");
+  titleEl.textContent = isEdit ? "Редактировать задачу" : "Новая задача";
+
+  const deleteBtn = $("task-delete-btn");
+  deleteBtn.classList.toggle("hidden", !isEdit);
+
+  if (isEdit) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    $("task-title-input").value = task.title || "";
+    $("task-due-date").value = task.dueDate || "";
+    $("task-due-time").value = task.dueTime || "";
+    $("task-note-input").value = task.note || "";
+
+    const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+    if (task.assignee === currentUser.uid) selectedTaskWho = "me";
+    else if (task.assignee === partnerUid) selectedTaskWho = "partner";
+    else selectedTaskWho = "none";
+  } else {
+    $("task-title-input").value = "";
+    $("task-due-date").value = "";
+    $("task-due-time").value = "";
+    $("task-note-input").value = "";
+    selectedTaskWho = "none";
+  }
+
+  document.querySelectorAll("#task-who-picker .who-option").forEach(b => {
+    b.classList.remove("active", "me", "partner", "none");
+    if (b.dataset.who === selectedTaskWho) {
+      b.classList.add("active", selectedTaskWho);
+    }
+  });
+
+  $("task-modal").classList.remove("hidden");
+  setTimeout(() => $("task-title-input").focus(), 100);
+}
+
+function closeTaskModal() {
+  $("task-modal").classList.add("hidden");
+  editingTaskId = null;
+}
+
+async function saveTask() {
+  const title = $("task-title-input").value.trim();
+  if (!title) { alert("Введите название задачи"); return; }
+
+  const dueDate = $("task-due-date").value || null;
+  const dueTime = $("task-due-time").value || null;
+  const note = $("task-note-input").value.trim();
+
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  let assignee = null;
+  if (selectedTaskWho === "me") assignee = currentUser.uid;
+  else if (selectedTaskWho === "partner") assignee = partnerUid;
+
+  const btn = $("task-save-btn");
+  btn.disabled = true;
+
+  try {
+    if (editingTaskId) {
+      await updateDoc(doc(db, "couples", currentCoupleId, "tasks", editingTaskId), {
+        title, assignee, dueDate, dueTime, note,
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      await addDoc(collection(db, "couples", currentCoupleId, "tasks"), {
+        title,
+        assignee,
+        dueDate,
+        dueTime,
+        note,
+        done: false,
+        doneAt: null,
+        doneBy: null,
+        createdBy: currentUser.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    }
+    vibrate(15);
+    closeTaskModal();
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка сохранения: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteTaskFromModal() {
+  if (!editingTaskId) return;
+  if (!confirm("Удалить задачу? Это действие нельзя отменить.")) return;
+  try {
+    await deleteDoc(doc(db, "couples", currentCoupleId, "tasks", editingTaskId));
+    vibrate(15);
+    closeTaskModal();
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка удаления: " + e.message);
+  }
+}
+
+function updateTasksBadge() {
+  if (!currentUser || !currentCoupleId) {
+    setBadge("badge-plans", 0);
+    return;
+  }
+  // Считаем: сколько задач на мне + сколько свободных
+  const activeMineOrFree = tasks.filter(t => !t.done && (!t.assignee || t.assignee === currentUser.uid)).length;
+  setBadge("badge-plans", activeMineOrFree);
+}
+/* ==========================================================
+   ПЛАГИНЫ «ПЛАНЫ» → ЗАМЕТКИ
+   ========================================================== */
+
+function formatNoteTimeShort(ts) {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "сейчас";
+  if (diffMin < 60) return diffMin + "м";
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return diffH + "ч";
+  const diffD = Math.floor(diffH / 24);
+  if (diffD === 1) return "вчера";
+  if (diffD < 7) return diffD + "д";
+  if (diffD < 14) return "неделю";
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+}
+
+function formatNoteTimeFull(ts) {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const y = new Date(now); y.setDate(y.getDate() - 1);
+  const isYesterday = d.toDateString() === y.toDateString();
+  const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  if (isToday) return `сегодня, ${time}`;
+  if (isYesterday) return `вчера, ${time}`;
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+}
+
+function initNotes() {
+  $("add-sticker-btn").onclick = () => openStickerModal(null);
+  $("add-note-btn").onclick = () => openNoteModal(null);
+
+  $("sticker-backdrop").onclick = closeNoteModals;
+  $("sticker-cancel-btn").onclick = closeNoteModals;
+  $("sticker-save-btn").onclick = saveSticker;
+  $("sticker-delete-btn").onclick = deleteNoteFromModal;
+
+  $("note-backdrop").onclick = closeNoteModals;
+  $("note-cancel-btn").onclick = closeNoteModals;
+  $("note-save-btn").onclick = saveNote;
+  $("note-delete-btn").onclick = deleteNoteFromModal;
+
+  document.querySelectorAll("#sticker-color-picker .color-dot").forEach(dot => {
+    dot.onclick = () => {
+      vibrate(10);
+      selectedStickerColor = Number(dot.dataset.color);
+      document.querySelectorAll("#sticker-color-picker .color-dot").forEach(d => {
+        d.classList.toggle("active", Number(d.dataset.color) === selectedStickerColor);
+      });
+    };
+  });
+
+  listenForNotes();
+}
+
+function listenForNotes() {
+  if (unsubNotes) unsubNotes();
+  notesInitialized = false;
+
+  unsubNotes = onSnapshot(
+    collection(db, "couples", currentCoupleId, "notes"),
+    (snap) => {
+      const prevNotes = notes.slice();
+      notes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      renderNotes();
+
+      if (notesInitialized) {
+        detectNoteEvents(prevNotes);
+      } else {
+        notesInitialized = true;
+      }
+    }
+  );
+}
+
+function detectNoteEvents(prevNotes) {
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  if (!partnerUid) return;
+
+  const prevIds = new Set(prevNotes.map(n => n.id));
+  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
+  const avatar = {
+    letter: getInitials(partnerName).slice(0, 1),
+    photoURL: partnerProfile?.photoURL?.trim() || ""
+  };
+
+  for (const note of notes) {
+    if (prevIds.has(note.id)) continue;
+    if (note.createdBy !== partnerUid) continue;
+
+    const typeLabel = note.type === "sticker" ? "стикер" : "заметку";
+    const preview = (note.text || "").slice(0, 60);
+    notifyUser(
+      `${partnerName} оставила ${typeLabel}`,
+      preview + ((note.text || "").length > 60 ? "…" : ""),
+      "plans",
+      { avatar }
+    );
+  }
+}
+
+function renderNotes() {
+  const stickerContainer = $("stickers-container");
+  const notesContainer = $("notes-container");
+  if (!stickerContainer || !notesContainer) return;
+
+  const sortFn = (a, b) => {
+    const at = a.createdAt?.toDate?.()?.getTime?.() || 0;
+    const bt = b.createdAt?.toDate?.()?.getTime?.() || 0;
+    return bt - at;
+  };
+  const stickers = notes.filter(n => n.type === "sticker").sort(sortFn);
+  const longNotes = notes.filter(n => n.type === "long").sort(sortFn);
+
+  stickerContainer.innerHTML = "";
+  notesContainer.innerHTML = "";
+
+  if (stickers.length === 0 && longNotes.length === 0) {
+    stickerContainer.innerHTML = emptyStateHtml({
+      icon: ICONS.book,
+      title: "Пока пусто",
+      text: "Стикеры — для быстрых мыслей. Заметки — для длинных записей. Оба типа видны вам двоим."
+    });
+    return;
+  }
+
+  if (stickers.length > 0) {
+    const grid = document.createElement("div");
+    grid.className = "sticker-grid";
+    stickers.forEach(s => grid.appendChild(buildStickerCard(s)));
+    stickerContainer.appendChild(grid);
+  }
+
+  if (longNotes.length > 0) {
+    if (stickers.length > 0) {
+      const divider = document.createElement("div");
+      divider.className = "section-divider";
+      divider.textContent = "Заметки";
+      notesContainer.appendChild(divider);
+    }
+    longNotes.forEach(n => notesContainer.appendChild(buildLongNoteCard(n)));
+  }
+}
+
+function buildStickerCard(note) {
+  const isMine = note.createdBy === currentUser.uid;
+  const authorName = isMine
+    ? (myProfile?.displayName?.trim() || "Я")
+    : (partnerProfile?.displayName?.trim() || "Партнёр");
+  const colorIdx = (typeof note.color === "number" && note.color >= 0 && note.color <= 5)
+    ? note.color : 0;
+
+  const div = document.createElement("div");
+  div.className = `sticker color-${colorIdx}`;
+  div.innerHTML = `
+    <div class="sticker-text">${escapeHtml(note.text || "")}</div>
+    <div class="sticker-meta">
+      <span class="sticker-author">${escapeHtml(authorName)}</span>
+      <span class="sticker-time">${formatNoteTimeShort(note.createdAt)}</span>
+    </div>
+  `;
+  div.onclick = () => openStickerModal(note.id);
+  return div;
+}
+
+function buildLongNoteCard(note) {
+  const isMine = note.createdBy === currentUser.uid;
+  const authorName = isMine
+    ? (myProfile?.displayName?.trim() || "Я")
+    : (partnerProfile?.displayName?.trim() || "Партнёр");
+
+  const div = document.createElement("div");
+  div.className = `long-note ${isMine ? "author-me" : "author-partner"}`;
+  div.innerHTML = `
+    <div class="long-note-text">${escapeHtml(note.text || "")}</div>
+    <div class="long-note-meta">
+      <span class="long-note-author"><span class="dot"></span> ${escapeHtml(authorName)}</span>
+      <span>${formatNoteTimeFull(note.createdAt)}</span>
+    </div>
+  `;
+  div.onclick = () => openNoteModal(note.id);
+  return div;
+}
+
+function openStickerModal(noteId) {
+  editingNoteId = noteId;
+  const isEdit = !!noteId;
+  const titleEl = $("sticker-modal-title");
+  const deleteBtn = $("sticker-delete-btn");
+  const saveBtn = $("sticker-save-btn");
+  const ta = $("sticker-text-input");
+
+  if (isEdit) {
+    const note = notes.find(n => n.id === noteId);
+    if (!note) return;
+    const isMine = note.createdBy === currentUser.uid;
+
+    ta.value = note.text || "";
+    ta.readOnly = !isMine;
+    selectedStickerColor = (typeof note.color === "number") ? note.color : 0;
+    titleEl.textContent = isMine ? "Редактировать стикер" : "Стикер партнёра";
+    saveBtn.classList.toggle("hidden", !isMine);
+    deleteBtn.classList.toggle("hidden", !isMine);
+  } else {
+    ta.value = "";
+    ta.readOnly = false;
+    selectedStickerColor = 0;
+    titleEl.textContent = "Новый стикер";
+    saveBtn.classList.remove("hidden");
+    deleteBtn.classList.add("hidden");
+  }
+
+  document.querySelectorAll("#sticker-color-picker .color-dot").forEach(d => {
+    d.classList.toggle("active", Number(d.dataset.color) === selectedStickerColor);
+  });
+
+  $("sticker-modal").classList.remove("hidden");
+  setTimeout(() => { if (!ta.readOnly) ta.focus(); }, 100);
+}
+
+function openNoteModal(noteId) {
+  editingNoteId = noteId;
+  const isEdit = !!noteId;
+  const titleEl = $("note-modal-title");
+  const deleteBtn = $("note-delete-btn");
+  const saveBtn = $("note-save-btn");
+  const ta = $("note-text-input");
+
+  if (isEdit) {
+    const note = notes.find(n => n.id === noteId);
+    if (!note) return;
+    const isMine = note.createdBy === currentUser.uid;
+
+    ta.value = note.text || "";
+    ta.readOnly = !isMine;
+    titleEl.textContent = isMine ? "Редактировать заметку" : "Заметка партнёра";
+    saveBtn.classList.toggle("hidden", !isMine);
+    deleteBtn.classList.toggle("hidden", !isMine);
+  } else {
+    ta.value = "";
+    ta.readOnly = false;
+    titleEl.textContent = "Новая заметка";
+    saveBtn.classList.remove("hidden");
+    deleteBtn.classList.add("hidden");
+  }
+
+  $("note-modal").classList.remove("hidden");
+  setTimeout(() => { if (!ta.readOnly) ta.focus(); }, 100);
+}
+
+function closeNoteModals() {
+  $("sticker-modal").classList.add("hidden");
+  $("note-modal").classList.add("hidden");
+  editingNoteId = null;
+}
+
+async function saveSticker() {
+  const text = $("sticker-text-input").value.trim();
+  if (!text) { alert("Введите текст стикера"); return; }
+
+  const btn = $("sticker-save-btn");
+  btn.disabled = true;
+  try {
+    if (editingNoteId) {
+      await updateDoc(doc(db, "couples", currentCoupleId, "notes", editingNoteId), {
+        text,
+        color: selectedStickerColor,
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      await addDoc(collection(db, "couples", currentCoupleId, "notes"), {
+        type: "sticker",
+        text,
+        color: selectedStickerColor,
+        createdBy: currentUser.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    }
+    vibrate(15);
+    closeNoteModals();
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function saveNote() {
+  const text = $("note-text-input").value.trim();
+  if (!text) { alert("Введите текст заметки"); return; }
+
+  const btn = $("note-save-btn");
+  btn.disabled = true;
+  try {
+    if (editingNoteId) {
+      await updateDoc(doc(db, "couples", currentCoupleId, "notes", editingNoteId), {
+        text,
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      await addDoc(collection(db, "couples", currentCoupleId, "notes"), {
+        type: "long",
+        text,
+        createdBy: currentUser.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    }
+    vibrate(15);
+    closeNoteModals();
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteNoteFromModal() {
+  if (!editingNoteId) return;
+  if (!confirm("Удалить? Это действие нельзя отменить.")) return;
+  try {
+    await deleteDoc(doc(db, "couples", currentCoupleId, "notes", editingNoteId));
+    vibrate(15);
+    closeNoteModals();
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка удаления: " + e.message);
+  }
+}
+/* ==========================================================
+   ПЛАГИНЫ «ПЛАНЫ» → КАЛЕНДАРЬ
+   ========================================================== */
+
+function pad2(n) { return String(n).padStart(2, "0"); }
+
+function toISODate(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function parseISODate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/* Проверяет, попадает ли событие в указанную дату (учитывая повторы) */
+function eventMatchesDate(ev, targetDate) {
+  if (!ev.date) return false;
+  const start = parseISODate(ev.date);
+  const target = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+  const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+
+  // Событие не может быть раньше даты старта
+  if (target < startDay) return false;
+
+  if (ev.repeat === "year") {
+    return target.getMonth() === start.getMonth() && target.getDate() === start.getDate();
+  }
+  if (ev.repeat === "month") {
+    return target.getDate() === start.getDate();
+  }
+  if (ev.repeat === "week") {
+    return target.getDay() === start.getDay();
+  }
+  // none
+  return target.getTime() === startDay.getTime();
+}
+
+/* Возвращает события на конкретную дату, отсортированные */
+function getEventsForDate(date, eventsArr) {
+  const result = eventsArr.filter(ev => eventMatchesDate(ev, date));
+  return sortEvents(result);
+}
+
+/* Сортировка событий: по времени, потом по названию */
+function sortEvents(arr) {
+  return arr.slice().sort((a, b) => {
+    const at = a.time || "99:99";
+    const bt = b.time || "99:99";
+    if (at !== bt) return at < bt ? -1 : 1;
+    return (a.title || "").localeCompare(b.title || "");
+  });
+}
+
+function initEvents() {
+  $("cal-prev").onclick = () => {
+    vibrate(10);
+    currentCalMonth--;
+    if (currentCalMonth < 0) { currentCalMonth = 11; currentCalYear--; }
+    selectedCalDate = null;
+    renderCalendar();
+    renderEventsList();
+  };
+  $("cal-next").onclick = () => {
+    vibrate(10);
+    currentCalMonth++;
+    if (currentCalMonth > 11) { currentCalMonth = 0; currentCalYear++; }
+    selectedCalDate = null;
+    renderCalendar();
+    renderEventsList();
+  };
+
+  $("add-event-btn").onclick = () => openEventModal(null);
+  $("event-backdrop").onclick = closeEventModal;
+  $("event-cancel-btn").onclick = closeEventModal;
+  $("event-save-btn").onclick = saveEvent;
+  $("event-delete-btn").onclick = deleteEventFromModal;
+
+  document.querySelectorAll("#event-repeat-picker .repeat-option").forEach(btn => {
+    btn.onclick = () => {
+      vibrate(10);
+      selectedEventRepeat = btn.dataset.repeat;
+      document.querySelectorAll("#event-repeat-picker .repeat-option").forEach(b => {
+        b.classList.toggle("active", b.dataset.repeat === selectedEventRepeat);
+      });
+    };
+  });
+
+  listenForEvents();
+}
+
+function listenForEvents() {
+  if (unsubEvents) unsubEvents();
+  eventsInitialized = false;
+
+  unsubEvents = onSnapshot(
+    collection(db, "couples", currentCoupleId, "events"),
+    (snap) => {
+      const prevEvents = events.slice();
+      events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      renderCalendar();
+      renderEventsList();
+
+      if (eventsInitialized) {
+        detectEventChanges(prevEvents);
+      } else {
+        eventsInitialized = true;
+      }
+    }
+  );
+}
+
+function detectEventChanges(prevEvents) {
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  if (!partnerUid) return;
+
+  const prevIds = new Set(prevEvents.map(e => e.id));
+  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
+  const avatar = {
+    letter: getInitials(partnerName).slice(0, 1),
+    photoURL: partnerProfile?.photoURL?.trim() || ""
+  };
+
+  for (const ev of events) {
+    if (prevIds.has(ev.id)) continue;
+    if (ev.createdBy !== partnerUid) continue;
+
+    notifyUser(
+      `${partnerName} добавила событие`,
+      ev.title || "Без названия",
+      "plans",
+      { avatar }
+    );
+  }
+}
+
+function renderCalendar() {
+  const grid = $("cal-grid");
+  const label = $("cal-month-label");
+  if (!grid || !label) return;
+
+  const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+                      "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+  label.textContent = `${monthNames[currentCalMonth]} ${currentCalYear}`;
+
+  // Первый день месяца
+  const firstDay = new Date(currentCalYear, currentCalMonth, 1);
+  // День недели первого дня: 0 = Пн по нашей сетке
+  const startDow = (firstDay.getDay() + 6) % 7;
+
+  const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+  const prevMonthDays = new Date(currentCalYear, currentCalMonth, 0).getDate();
+
+  const todayISOStr = todayISO();
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+
+  grid.innerHTML = "";
+
+  // Заголовки дней
+  ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].forEach(d => {
+    const el = document.createElement("div");
+    el.className = "cal-dayname";
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  // Ячейки
+  const totalCells = 42;
+  for (let i = 0; i < totalCells; i++) {
+    const cell = document.createElement("div");
+    cell.className = "cal-day";
+
+    let dateObj;
+    let isOtherMonth = false;
+
+    if (i < startDow) {
+      // Прошлый месяц
+      const dayNum = prevMonthDays - (startDow - i) + 1;
+      dateObj = new Date(currentCalYear, currentCalMonth - 1, dayNum);
+      isOtherMonth = true;
+    } else if (i >= startDow + daysInMonth) {
+      // Следующий месяц
+      const dayNum = i - (startDow + daysInMonth) + 1;
+      dateObj = new Date(currentCalYear, currentCalMonth + 1, dayNum);
+      isOtherMonth = true;
+    } else {
+      const dayNum = i - startDow + 1;
+      dateObj = new Date(currentCalYear, currentCalMonth, dayNum);
+    }
+
+    const iso = toISODate(dateObj);
+    cell.textContent = dateObj.getDate();
+
+    if (isOtherMonth) {
+      cell.classList.add("other-month");
+    } else {
+      // Проверяем события
+      const dayEvents = getEventsForDate(dateObj, events);
+      const hasMine = dayEvents.some(e => e.createdBy === currentUser.uid);
+      const hasPartner = dayEvents.some(e => e.createdBy === partnerUid);
+
+      if (dayEvents.length > 0) cell.classList.add("has-events");
+      if (iso === todayISOStr) cell.classList.add("today");
+      if (selectedCalDate === iso) cell.classList.add("selected");
+
+      if (hasMine || hasPartner) {
+        const dots = document.createElement("div");
+        dots.className = "dots";
+        if (hasMine) {
+          const d = document.createElement("span");
+          d.className = "dot mine";
+          dots.appendChild(d);
+        }
+        if (hasPartner) {
+          const d = document.createElement("span");
+          d.className = "dot partner";
+          dots.appendChild(d);
+        }
+        cell.appendChild(dots);
+      }
+
+      cell.onclick = () => {
+        vibrate(10);
+        selectedCalDate = (selectedCalDate === iso) ? null : iso;
+        renderCalendar();
+        renderEventsList();
+      };
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function renderEventsList() {
+  const container = $("events-list");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  const todayDate = new Date();
+  const todayISOStr = todayISO();
+
+  // Если выбран день — показываем его первым
+  if (selectedCalDate) {
+    const selDate = parseISODate(selectedCalDate);
+    const dayEvents = getEventsForDate(selDate, events);
+
+    const title = document.createElement("div");
+    title.className = "events-title";
+    const dateLabel = selDate.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+    title.innerHTML = `<span>${dateLabel}</span>`;
+    const clearBtn = document.createElement("span");
+    clearBtn.className = "clear-selection";
+    clearBtn.textContent = "Сбросить выбор";
+    clearBtn.onclick = () => {
+      selectedCalDate = null;
+      renderCalendar();
+      renderEventsList();
+    };
+    title.appendChild(clearBtn);
+    container.appendChild(title);
+
+    if (dayEvents.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "events-empty";
+      empty.textContent = "На этот день ничего нет.";
+      container.appendChild(empty);
+    } else {
+      dayEvents.forEach(ev => container.appendChild(buildEventItem(ev, selDate)));
+    }
+    return;
+  }
+
+  // Иначе: «Сегодня» + «Ближайшие 30 дней»
+  const todayEvents = getEventsForDate(todayDate, events);
+  if (todayEvents.length > 0) {
+    const title = document.createElement("div");
+    title.className = "events-title";
+    title.textContent = "Сегодня";
+    container.appendChild(title);
+    todayEvents.forEach(ev => container.appendChild(buildEventItem(ev, todayDate)));
+  }
+
+  // Ближайшие 30 дней (начиная с завтра)
+  const upcoming = [];
+  for (let i = 1; i <= 30; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const evs = getEventsForDate(d, events);
+    evs.forEach(ev => upcoming.push({ ev, date: new Date(d) }));
+  }
+
+  if (upcoming.length === 0 && todayEvents.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "events-empty";
+    empty.textContent = "Пока нет ближайших событий. Добавьте годовщины, ДР родных, встречи — и они появятся здесь.";
+    container.appendChild(empty);
+    return;
+  }
+
+  if (upcoming.length > 0) {
+    const title = document.createElement("div");
+    title.className = "events-title";
+    title.style.marginTop = todayEvents.length > 0 ? "16px" : "0";
+    title.textContent = "Ближайшие 30 дней";
+    container.appendChild(title);
+    upcoming.forEach(({ ev, date }) => container.appendChild(buildEventItem(ev, date)));
+  }
+}
+
+function buildEventItem(ev, dateObj) {
+  const isMine = ev.createdBy === currentUser.uid;
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  const authorName = isMine
+    ? (myProfile?.displayName?.trim() || "Я")
+    : (partnerProfile?.displayName?.trim() || "Партнёр");
+
+  const div = document.createElement("div");
+  div.className = `event-item ${isMine ? "author-me" : "author-partner"}`;
+
+  const day = dateObj.getDate();
+  const monthShort = dateObj.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "");
+
+  // Повтор
+  let repeatBadge = "";
+  if (ev.repeat === "year") repeatBadge = `<span class="repeat-badge">каждый год</span>`;
+  else if (ev.repeat === "month") repeatBadge = `<span class="repeat-badge">каждый месяц</span>`;
+  else if (ev.repeat === "week") repeatBadge = `<span class="repeat-badge">каждую неделю</span>`;
+
+  // «Скоро»-бейдж для ближайших дней
+  let soonBadge = "";
+  const todayISOStr = todayISO();
+  const targetISO = toISODate(dateObj);
+  if (targetISO !== todayISOStr) {
+    const diffDays = Math.round((parseISODate(targetISO) - parseISODate(todayISOStr)) / 86400000);
+    if (diffDays === 1) soonBadge = `<span class="soon-badge">завтра</span>`;
+    else if (diffDays === 2) soonBadge = `<span class="soon-badge">через 2 дня</span>`;
+    else if (diffDays === 3) soonBadge = `<span class="soon-badge">через 3 дня</span>`;
+  }
+
+  div.innerHTML = `
+    <div class="event-date">
+      <div class="event-day">${day}</div>
+      <div class="event-month">${monthShort}</div>
+    </div>
+    <div class="event-body">
+      <div class="event-title">${escapeHtml(ev.title || "Без названия")}</div>
+      <div class="event-sub">
+        <span class="time">${ev.time ? ev.time : "весь день"}</span>
+        <span class="author">${escapeHtml(authorName)}</span>
+        ${repeatBadge}
+        ${soonBadge}
+      </div>
+    </div>
+  `;
+  div.onclick = () => openEventModal(ev.id);
+  return div;
+}
+
+function openEventModal(eventId) {
+  editingEventId = eventId;
+  const isEdit = !!eventId;
+
+  const titleEl = $("event-modal-title");
+  const deleteBtn = $("event-delete-btn");
+
+  if (isEdit) {
+    const ev = events.find(e => e.id === eventId);
+    if (!ev) return;
+    titleEl.textContent = "Редактировать событие";
+    deleteBtn.classList.remove("hidden");
+    $("event-title-input").value = ev.title || "";
+    $("event-date-input").value = ev.date || "";
+    $("event-time-input").value = ev.time || "";
+    $("event-note-input").value = ev.note || "";
+    selectedEventRepeat = ev.repeat || "none";
+  } else {
+    titleEl.textContent = "Новое событие";
+    deleteBtn.classList.add("hidden");
+    $("event-title-input").value = "";
+    $("event-date-input").value = selectedCalDate || todayISO();
+    $("event-time-input").value = "";
+    $("event-note-input").value = "";
+    selectedEventRepeat = "none";
+  }
+
+  document.querySelectorAll("#event-repeat-picker .repeat-option").forEach(b => {
+    b.classList.toggle("active", b.dataset.repeat === selectedEventRepeat);
+  });
+
+  $("event-modal").classList.remove("hidden");
+  setTimeout(() => $("event-title-input").focus(), 100);
+}
+
+function closeEventModal() {
+  $("event-modal").classList.add("hidden");
+  editingEventId = null;
+}
+
+async function saveEvent() {
+  const title = $("event-title-input").value.trim();
+  if (!title) { alert("Введите название события"); return; }
+  const date = $("event-date-input").value;
+  if (!date) { alert("Выберите дату"); return; }
+  const time = $("event-time-input").value || null;
+  const note = $("event-note-input").value.trim();
+
+  const btn = $("event-save-btn");
+  btn.disabled = true;
+  try {
+    if (editingEventId) {
+      await updateDoc(doc(db, "couples", currentCoupleId, "events", editingEventId), {
+        title, date, time, note,
+        repeat: selectedEventRepeat,
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      await addDoc(collection(db, "couples", currentCoupleId, "events"), {
+        title, date, time, note,
+        repeat: selectedEventRepeat,
+        createdBy: currentUser.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    }
+    vibrate(15);
+    closeEventModal();
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка сохранения: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteEventFromModal() {
+  if (!editingEventId) return;
+  if (!confirm("Удалить событие? Это действие нельзя отменить.")) return;
+  try {
+    await deleteDoc(doc(db, "couples", currentCoupleId, "events", editingEventId));
+    vibrate(15);
+    closeEventModal();
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка удаления: " + e.message);
+  }
 }
