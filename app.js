@@ -10,6 +10,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 import { questions } from "./questions.js";
+import { words } from "./words.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -502,6 +503,7 @@ function startMainApp() {
   initTasks();
   initNotes();
   initEvents();
+  initWord();
   initTruthOrDare();
   initConversations();
   initAgreements();
@@ -560,6 +562,7 @@ function startDayWatcher() {
       moodWatcherDay = day;
       listenForMood();
       renderToday();
+      renderWordCard();
       todayAnswers = [];
       updateTodayView();
     }
@@ -1238,7 +1241,8 @@ async function openRetro() {
 async function renderHistory() {
   const container = $("history-list");
   if (!container) return;
-  container.innerHTML = "<p class='hint'>Загрузка...</p>";
+  const prevIds = collectPrevIds(container);
+  container.innerHTML = "";
   const snap = await getDocs(collection(db, "couples", currentCoupleId, "answers"));
   const byDay = {};
   snap.docs.forEach(d => {
@@ -1246,7 +1250,6 @@ async function renderHistory() {
     if (!byDay[data.day]) byDay[data.day] = [];
     byDay[data.day].push({ id: d.id, ...data });
   });
-  container.innerHTML = "";
   const days = Object.keys(byDay).map(Number).sort((a, b) => b - a);
   if (days.length === 0) {
     container.innerHTML = emptyStateHtml({
@@ -1256,6 +1259,7 @@ async function renderHistory() {
     });
     return;
   }
+  let idx = 0;
   for (const day of days) {
     const answers = byDay[day];
     const mine = answers.find(a => a.userId === currentUser.uid);
@@ -1264,6 +1268,7 @@ async function renderHistory() {
     const showPartner = !!mine;
     const div = document.createElement("div");
     div.className = "history-item";
+    div.dataset.animId = "day-" + day;
     div.innerHTML = `
       <div class="history-day">День ${day}${q ? " • " + escapeHtml(q.theme) : ""}</div>
       <div class="history-question">${escapeHtml(q?.text || "—")}</div>
@@ -1277,6 +1282,7 @@ async function renderHistory() {
         }
       </div>
     `;
+    markForAnim(div, "day-" + day, prevIds, idx++);
     container.appendChild(div);
   }
 }
@@ -1600,7 +1606,8 @@ async function saveMoodNote() {
 async function renderMoodHistory() {
   const container = $("mood-grid");
   if (!container) return;
-  container.innerHTML = "<p class='hint'>Загрузка...</p>";
+  const prevIds = collectPrevIds(container);
+  container.innerHTML = "";
   try {
     const snap = await getDocs(collection(db, "couples", currentCoupleId, "moods"));
     const byDay = {};
@@ -1611,8 +1618,8 @@ async function renderMoodHistory() {
     const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
     const today = getCurrentDay();
     const start = Math.max(1, today - 29);
-    container.innerHTML = "";
     let hasAny = false;
+    let idx = 0;
     for (let d = today; d >= start; d--) {
       const moods = byDay[d] || {};
       const myMood = moods[currentUser.uid] || null;
@@ -1620,11 +1627,13 @@ async function renderMoodHistory() {
       if (myMood || partnerMood) hasAny = true;
       const div = document.createElement("div");
       div.className = "mood-day";
+      div.dataset.animId = "day-" + d;
       div.innerHTML = `
         <div class="mood-day-num">День ${d}</div>
         <div class="mood-day-emoji">${myMood || '<span class="mood-day-empty">·</span>'}</div>
         <div class="mood-day-partner">${partnerMood || '<span class="mood-day-empty">·</span>'}</div>
       `;
+      markForAnim(div, "day-" + d, prevIds, idx++);
       container.appendChild(div);
     }
     if (!hasAny) {
@@ -2525,6 +2534,9 @@ function renderConversations() {
     if (hasBoth) past.push(conv);
     else active.push(conv);
   });
+  const prevActiveIds = collectPrevIds(activeBox);
+  const prevPastIds = collectPrevIds(pastBox);
+
   activeBox.innerHTML = "";
   pastBox.innerHTML = "";
   if (active.length === 0 && past.length === 0) {
@@ -2539,12 +2551,20 @@ function renderConversations() {
   if (active.length === 0) {
     activeBox.innerHTML = `<div class="hint" style="text-align:center; padding: 12px;">Нет активных разговоров.</div>`;
   } else {
-    active.forEach(conv => activeBox.appendChild(buildConvCard(conv, partnerUid)));
+    active.forEach((conv, i) => {
+      const el = buildConvCard(conv, partnerUid);
+      markForAnim(el, conv.id, prevActiveIds, i);
+      activeBox.appendChild(el);
+    });
   }
   if (past.length === 0) pastBlock.classList.add("hidden");
   else {
     pastBlock.classList.remove("hidden");
-    past.forEach(conv => pastBox.appendChild(buildConvCard(conv, partnerUid)));
+    past.forEach((conv, i) => {
+      const el = buildConvCard(conv, partnerUid);
+      markForAnim(el, conv.id, prevPastIds, i);
+      pastBox.appendChild(el);
+    });
   }
 }
 function buildConvCard(conv, partnerUid) {
@@ -2553,6 +2573,7 @@ function buildConvCard(conv, partnerUid) {
   const partnerText = texts[partnerUid] || "";
   const card = document.createElement("div");
   card.className = "conv-card";
+  card.dataset.animId = conv.id;
   let statusHtml = "";
   if (!myText && !partnerText) statusHtml = `<span class="status-dot waiting"></span> Никто ещё не написал`;
   else if (myText && !partnerText) statusHtml = `<span class="status-dot mine-done"></span> Вы написали, ждём партнёра`;
@@ -2782,6 +2803,8 @@ function renderAgreements() {
   if (!activeBox || !doneBox) return;
   const active = agreements.filter(a => !a.done);
   const done = agreements.filter(a => a.done);
+  const prevActiveIds = collectPrevIds(activeBox);
+  const prevDoneIds = collectPrevIds(doneBox);
   activeBox.innerHTML = "";
   doneBox.innerHTML = "";
   if (active.length === 0 && done.length === 0) {
@@ -2796,17 +2819,26 @@ function renderAgreements() {
   if (active.length === 0) {
     activeBox.innerHTML = `<div class="hint" style="text-align:center; padding: 12px;">Все договорённости выполнены 🎉</div>`;
   } else {
-    active.forEach(a => activeBox.appendChild(buildAgreementItem(a, false)));
+    active.forEach((a, i) => {
+      const el = buildAgreementItem(a, false);
+      markForAnim(el, a.id, prevActiveIds, i);
+      activeBox.appendChild(el);
+    });
   }
   if (done.length === 0) doneBlock.classList.add("hidden");
   else {
     doneBlock.classList.remove("hidden");
-    done.forEach(a => doneBox.appendChild(buildAgreementItem(a, true)));
+    done.forEach((a, i) => {
+      const el = buildAgreementItem(a, true);
+      markForAnim(el, a.id, prevDoneIds, i);
+      doneBox.appendChild(el);
+    });
   }
 }
 function buildAgreementItem(agr, isDone) {
   const div = document.createElement("div");
   div.className = "agreement-item" + (isDone ? " done" : "");
+  div.dataset.animId = agr.id;
   const author = agr.createdBy === currentUser.uid ? "вами" : "партнёром";
   const dateStr = formatDate(agr.createdAt);
   div.innerHTML = `
@@ -3525,7 +3557,11 @@ function renderTasks() {
   const active = sortTasks(filtered.filter(t => !t.done));
   const done = sortTasks(tasks.filter(t => t.done));
 
+  const prevActiveIds = collectPrevIds(container);
+  const prevDoneIds = collectPrevIds(doneList);
+
   container.innerHTML = "";
+  doneList.innerHTML = "";
 
   // Пустое состояние
   if (active.length === 0) {
@@ -3542,15 +3578,22 @@ function renderTasks() {
       text: emptyText
     });
   } else {
-    active.forEach(t => container.appendChild(buildTaskItem(t)));
+    active.forEach((t, i) => {
+      const el = buildTaskItem(t);
+      markForAnim(el, t.id, prevActiveIds, i);
+      container.appendChild(el);
+    });
   }
 
   if (done.length === 0) {
     doneBlock.classList.add("hidden");
   } else {
     doneBlock.classList.remove("hidden");
-    doneList.innerHTML = "";
-    done.forEach(t => doneList.appendChild(buildTaskItem(t)));
+    done.forEach((t, i) => {
+      const el = buildTaskItem(t);
+      markForAnim(el, t.id, prevDoneIds, i);
+      doneList.appendChild(el);
+    });
   }
 }
 
@@ -3558,6 +3601,7 @@ function buildTaskItem(task) {
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
   const div = document.createElement("div");
   div.className = "task-item";
+  div.dataset.animId = task.id;
   if (task.done) div.classList.add("done");
   if (task.assignee === currentUser.uid) div.classList.add("who-me");
   else if (task.assignee === partnerUid) div.classList.add("who-partner");
@@ -3875,6 +3919,9 @@ function renderNotes() {
   const stickers = notes.filter(n => n.type === "sticker").sort(sortFn);
   const longNotes = notes.filter(n => n.type === "long").sort(sortFn);
 
+  const prevStickerIds = collectPrevIds(stickerContainer);
+  const prevNoteIds = collectPrevIds(notesContainer);
+
   stickerContainer.innerHTML = "";
   notesContainer.innerHTML = "";
 
@@ -3890,7 +3937,11 @@ function renderNotes() {
   if (stickers.length > 0) {
     const grid = document.createElement("div");
     grid.className = "sticker-grid";
-    stickers.forEach(s => grid.appendChild(buildStickerCard(s)));
+    stickers.forEach((s, i) => {
+      const el = buildStickerCard(s);
+      markForAnim(el, s.id, prevStickerIds, i);
+      grid.appendChild(el);
+    });
     stickerContainer.appendChild(grid);
   }
 
@@ -3901,7 +3952,11 @@ function renderNotes() {
       divider.textContent = "Заметки";
       notesContainer.appendChild(divider);
     }
-    longNotes.forEach(n => notesContainer.appendChild(buildLongNoteCard(n)));
+    longNotes.forEach((n, i) => {
+      const el = buildLongNoteCard(n);
+      markForAnim(el, n.id, prevNoteIds, i);
+      notesContainer.appendChild(el);
+    });
   }
 }
 
@@ -3915,6 +3970,7 @@ function buildStickerCard(note) {
 
   const div = document.createElement("div");
   div.className = `sticker color-${colorIdx}`;
+  div.dataset.animId = note.id;
   div.innerHTML = `
     <div class="sticker-text">${escapeHtml(note.text || "")}</div>
     <div class="sticker-meta">
@@ -3934,6 +3990,7 @@ function buildLongNoteCard(note) {
 
   const div = document.createElement("div");
   div.className = `long-note ${isMine ? "author-me" : "author-partner"}`;
+  div.dataset.animId = note.id;
   div.innerHTML = `
     <div class="long-note-text">${escapeHtml(note.text || "")}</div>
     <div class="long-note-meta">
@@ -4330,6 +4387,7 @@ function renderCalendar() {
 function renderEventsList() {
   const container = $("events-list");
   if (!container) return;
+  const prevEventIds = collectPrevIds(container);
   container.innerHTML = "";
 
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
@@ -4362,7 +4420,11 @@ function renderEventsList() {
       empty.textContent = "На этот день ничего нет.";
       container.appendChild(empty);
     } else {
-      dayEvents.forEach(ev => container.appendChild(buildEventItem(ev, selDate)));
+      dayEvents.forEach((ev, i) => {
+        const el = buildEventItem(ev, selDate);
+        markForAnim(el, ev.id, prevEventIds, i);
+        container.appendChild(el);
+      });
     }
     return;
   }
@@ -4374,7 +4436,11 @@ function renderEventsList() {
     title.className = "events-title";
     title.textContent = "Сегодня";
     container.appendChild(title);
-    todayEvents.forEach(ev => container.appendChild(buildEventItem(ev, todayDate)));
+    todayEvents.forEach((ev, i) => {
+      const el = buildEventItem(ev, todayDate);
+      markForAnim(el, ev.id, prevEventIds, i);
+      container.appendChild(el);
+    });
   }
 
   // Ближайшие 30 дней (начиная с завтра)
@@ -4400,7 +4466,11 @@ function renderEventsList() {
     title.style.marginTop = todayEvents.length > 0 ? "16px" : "0";
     title.textContent = "Ближайшие 30 дней";
     container.appendChild(title);
-    upcoming.forEach(({ ev, date }) => container.appendChild(buildEventItem(ev, date)));
+    upcoming.forEach(({ ev, date }, i) => {
+      const el = buildEventItem(ev, date);
+      markForAnim(el, ev.id, prevEventIds, i);
+      container.appendChild(el);
+    });
   }
 }
 
@@ -4413,6 +4483,7 @@ function buildEventItem(ev, dateObj) {
 
   const div = document.createElement("div");
   div.className = `event-item ${isMine ? "author-me" : "author-partner"}`;
+  div.dataset.animId = ev.id;
 
   const day = dateObj.getDate();
   const monthShort = dateObj.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "");
@@ -4541,3 +4612,145 @@ async function deleteEventFromModal() {
     alert("Ошибка удаления: " + e.message);
   }
 }
+/* ==========================================================
+   АНИМАЦИЯ ДИНАМИЧЕСКИХ КАРТОЧЕК (Задачи, Заметки, Календарь)
+   ========================================================== */
+
+function collectPrevIds(container) {
+  if (!container) return new Set();
+  const ids = new Set();
+  container.querySelectorAll("[data-anim-id]").forEach(el => {
+    ids.add(el.dataset.animId);
+  });
+  return ids;
+}
+
+function markForAnim(el, id, prevIds, index) {
+  el.dataset.animId = id;
+  if (!prevIds.has(id)) {
+    el.classList.add("fade-in-up");
+    el.style.setProperty("--i", Math.min(index || 0, 6));
+  }
+}
+/* ==========================================================
+   СЛОВО ДНЯ
+   ========================================================== */
+
+function getWordForDay(day) {
+  if (!words || words.length === 0) return null;
+  // Циклично: если день больше, чем слов — возвращаемся к началу
+  const index = ((day - 1) % words.length + words.length) % words.length;
+  return words[index];
+}
+
+function initWord() {
+  const card = $("word-card");
+  if (card) card.onclick = openWordModal;
+
+  const backdrop = $("word-backdrop");
+  if (backdrop) backdrop.onclick = closeWordModal;
+
+  renderWordCard();
+}
+
+function renderWordCard() {
+  const day = getCurrentDay();
+  const w = getWordForDay(day);
+  if (!w) return;
+
+  const wordEl = $("word-card-word");
+  const defEl = $("word-card-def");
+  if (wordEl) wordEl.textContent = w.word;
+  if (defEl) defEl.textContent = w.meaning || "";
+}
+
+function openWordModal() {
+  const day = getCurrentDay();
+  const w = getWordForDay(day);
+  if (!w) return;
+
+  const content = $("word-modal-content");
+  if (!content) return;
+
+  const synonymsHtml = (w.synonyms && w.synonyms.length)
+    ? `<div class="word-modal__section">
+         <div class="word-modal__section-label">Синонимы</div>
+         <div class="word-modal__chips">
+           ${w.synonyms.map(s => `<span class="word-modal__chip">${escapeHtml(s)}</span>`).join("")}
+         </div>
+       </div>`
+    : "";
+
+  const antonymsHtml = (w.antonyms && w.antonyms.length)
+    ? `<div class="word-modal__section">
+         <div class="word-modal__section-label">Антонимы</div>
+         <div class="word-modal__chips">
+           ${w.antonyms.map(a => `<span class="word-modal__chip word-modal__chip--ant">${escapeHtml(a)}</span>`).join("")}
+         </div>
+       </div>`
+    : "";
+
+  const exampleHtml = w.example
+    ? `<div class="word-modal__section">
+         <div class="word-modal__section-label">Пример</div>
+         <div class="word-modal__example">
+           ${escapeHtml(w.example)}
+           ${w.exampleAuthor ? `<span class="word-modal__example-author">${escapeHtml(w.exampleAuthor)}</span>` : ""}
+         </div>
+       </div>`
+    : "";
+
+  const etymologyHtml = w.etymology
+    ? `<div class="word-modal__section">
+         <div class="word-modal__section-label">Этимология</div>
+         <div class="word-modal__section-text">${escapeHtml(w.etymology)}</div>
+       </div>`
+    : "";
+
+  const factHtml = w.fact
+    ? `<div class="word-modal__section">
+         <div class="word-modal__section-label">Интересный факт</div>
+         <div class="word-modal__section-text">${escapeHtml(w.fact)}</div>
+       </div>`
+    : "";
+
+  content.innerHTML = `
+    <div class="word-modal__head">
+      <div class="word-modal__label">Слово дня</div>
+      <button class="word-modal__close" id="word-modal-close" aria-label="Закрыть">✕</button>
+    </div>
+
+    <div class="word-modal__word">${escapeHtml(w.word)}</div>
+    <div class="word-modal__part">${escapeHtml(w.part || "")}</div>
+
+    <div class="word-modal__section">
+      <div class="word-modal__section-label">Значение</div>
+      <div class="word-modal__section-text">${escapeHtml(w.meaning || "")}</div>
+    </div>
+
+    ${exampleHtml}
+    ${synonymsHtml}
+    ${antonymsHtml}
+    ${etymologyHtml}
+    ${factHtml}
+  `;
+
+  const closeBtn = $("word-modal-close");
+  if (closeBtn) closeBtn.onclick = closeWordModal;
+
+  $("word-modal").classList.remove("hidden");
+  vibrate(10);
+}
+
+function closeWordModal() {
+  const m = $("word-modal");
+  if (m) m.classList.add("hidden");
+}
+/* Страховка: блокировка прокрутки body при открытой модалке */
+const modalObserver = new MutationObserver(() => {
+  const hasOpenModal = document.querySelector(".modal:not(.hidden)");
+  document.body.style.overflow = hasOpenModal ? "hidden" : "";
+});
+document.querySelectorAll(".modal").forEach(m => {
+  modalObserver.observe(m, { attributes: true, attributeFilter: ["class"] });
+});

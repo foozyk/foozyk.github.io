@@ -134,6 +134,21 @@
         <span class="progress-row__num" id="progress-label">0%</span>
       </div>
 
+      <div class="word-card reveal" id="word-card">
+        <div class="word-card__icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/>
+            <path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/>
+          </svg>
+        </div>
+        <div class="word-card__body">
+          <div class="word-card__label">Слово дня</div>
+          <div class="word-card__word" id="word-card-word">—</div>
+          <div class="word-card__def" id="word-card-def">—</div>
+        </div>
+        <div class="word-card__arrow">›</div>
+      </div>
+
       <div class="question-card reveal stagger" style="--i: 0;">
         <div class="question-label">Вопрос дня</div>
         <h2 id="current-question">Загрузка...</h2>
@@ -751,6 +766,14 @@
       <button id="event-save-btn">Сохранить</button>
       <button id="event-delete-btn" class="link hidden" style="color: #ff8080;">🗑 Удалить событие</button>
       <button id="event-cancel-btn" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <!-- ===== МОДАЛКА «СЛОВО ДНЯ» ===== -->
+  <div id="word-modal" class="modal hidden">
+    <div class="modal-backdrop" id="word-backdrop"></div>
+    <div class="modal-content modal-wide" id="word-modal-content">
+      <!-- Заполняется из JS -->
     </div>
   </div>
 

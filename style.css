@@ -1386,7 +1386,12 @@ body.dark .modal-backdrop { background: rgba(0, 0, 0, 0.6); }
   border-radius: 26px;
   padding: 24px;
   max-width: 460px; width: 100%;
-  max-height: 88vh; overflow-y: auto;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  margin: auto;
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.25),
     0 0 0 1px var(--glass-border) inset;
@@ -3491,4 +3496,512 @@ body.dark #conversation-view,
 body.dark #plans-view,
 body.dark #about-view {
   background: transparent;
+}
+/* ===== КОНТРАСТ ПОВТОРА В МОДАЛКЕ СОБЫТИЯ ===== */
+body.dark .repeat-option {
+  background: rgba(70, 45, 55, 0.6);
+  color: #e8d0d0;
+  border-color: rgba(232, 160, 168, 0.25);
+}
+body.dark .repeat-option svg {
+  opacity: 0.85;
+}
+body.dark .repeat-option.active {
+  background: rgba(178, 90, 90, 0.3);
+  border-color: var(--accent);
+  color: var(--accent-alt);
+}
+body.dark .repeat-option.active svg {
+  opacity: 1;
+}
+
+body:not(.dark) .repeat-option {
+  background: rgba(255, 240, 235, 0.8);
+  color: #5a3a3a;
+  border-color: rgba(178, 90, 90, 0.2);
+}
+body:not(.dark) .repeat-option.active {
+  background: rgba(178, 90, 90, 0.18);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* ==========================================================
+   УНИВЕРСАЛЬНЫЙ КОНТРАСТ ДЛЯ КНОПОК-ОПЦИЙ В МОДАЛКАХ
+   Закрывает: who-option, repeat-option, type-option,
+   topic-option, scheme-option и любые похожие
+   ========================================================== */
+
+.who-option,
+.repeat-option,
+.type-option,
+.topic-option,
+.scheme-option {
+  background: rgba(255, 240, 235, 0.75);
+  color: #5a3a3a;
+  border: 1.5px solid rgba(178, 90, 90, 0.2);
+  transition: all 0.15s;
+}
+.who-option svg,
+.repeat-option svg,
+.type-option svg,
+.topic-option svg,
+.scheme-option svg {
+  opacity: 0.75;
+}
+
+/* Наведение */
+.who-option:hover,
+.repeat-option:hover,
+.type-option:hover,
+.topic-option:hover,
+.scheme-option:hover {
+  background: rgba(255, 240, 235, 0.95);
+  border-color: rgba(178, 90, 90, 0.4);
+  opacity: 1;
+}
+
+/* Тёмная тема — неактивное состояние */
+body.dark .who-option,
+body.dark .repeat-option,
+body.dark .type-option,
+body.dark .topic-option,
+body.dark .scheme-option {
+  background: rgba(70, 45, 55, 0.6);
+  color: #e8d0d0;
+  border-color: rgba(232, 160, 168, 0.25);
+}
+body.dark .who-option svg,
+body.dark .repeat-option svg,
+body.dark .type-option svg,
+body.dark .topic-option svg,
+body.dark .scheme-option svg {
+  opacity: 0.85;
+}
+body.dark .who-option:hover,
+body.dark .repeat-option:hover,
+body.dark .type-option:hover,
+body.dark .topic-option:hover,
+body.dark .scheme-option:hover {
+  background: rgba(70, 45, 55, 0.85);
+  border-color: rgba(232, 160, 168, 0.5);
+}
+
+/* ===== АКТИВНЫЕ СОСТОЯНИЯ (одинаковые для всех) ===== */
+
+/* Нейтральное активное (не привязано к роли) */
+.who-option.active,
+.repeat-option.active,
+.type-option.active,
+.topic-option.active,
+.scheme-option.active {
+  background: rgba(178, 90, 90, 0.22);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+body.dark .who-option.active,
+body.dark .repeat-option.active,
+body.dark .type-option.active,
+body.dark .topic-option.active,
+body.dark .scheme-option.active {
+  background: rgba(178, 90, 90, 0.3);
+  color: var(--accent-alt);
+}
+.who-option.active svg,
+.repeat-option.active svg,
+.type-option.active svg,
+.topic-option.active svg,
+.scheme-option.active svg {
+  opacity: 1;
+}
+
+/* ===== РОЛЕВЫЕ АКТИВНЫЕ (who-option в задачах) ===== */
+.who-option.active.me {
+  background: rgba(123, 168, 208, 0.25);
+  border-color: #7ba8d0;
+  color: #3a6a90;
+}
+body.dark .who-option.active.me {
+  background: rgba(123, 168, 208, 0.22);
+  color: #a8c8e8;
+}
+
+.who-option.active.partner {
+  background: rgba(178, 90, 90, 0.25);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+body.dark .who-option.active.partner {
+  color: var(--accent-alt);
+}
+
+.who-option.active.none {
+  background: rgba(232, 160, 168, 0.18);
+  border-color: rgba(232, 160, 168, 0.6);
+  color: var(--accent);
+}
+body.dark .who-option.active.none {
+  background: rgba(232, 160, 168, 0.15);
+  color: var(--accent-alt);
+}
+
+/* ===== СХЕМА ЦВЕТОВ — особая рамка ===== */
+.scheme-option.active {
+  border-width: 2px;
+}
+/* ==========================================================
+   УНИВЕРСАЛЬНЫЙ КОНТРАСТ ДЛЯ ЧИПОВ И ПОД-ТАБОВ
+   Закрывает: filter-chip, sub-tab, и любые похожие
+   ========================================================== */
+
+.filter-chip,
+.sub-tab {
+  background: rgba(255, 240, 235, 0.75);
+  color: #5a3a3a;
+  border: 1px solid rgba(178, 90, 90, 0.2);
+  transition: all 0.15s;
+}
+
+.filter-chip:hover,
+.sub-tab:hover {
+  background: rgba(255, 240, 235, 0.95);
+  border-color: rgba(178, 90, 90, 0.4);
+  opacity: 1;
+}
+
+/* Тёмная тема — неактивные */
+body.dark .filter-chip,
+body.dark .sub-tab {
+  background: rgba(70, 45, 55, 0.6);
+  color: #e8d0d0;
+  border-color: rgba(232, 160, 168, 0.25);
+}
+
+body.dark .filter-chip:hover,
+body.dark .sub-tab:hover {
+  background: rgba(70, 45, 55, 0.85);
+  border-color: rgba(232, 160, 168, 0.5);
+}
+
+/* ===== АКТИВНЫЕ (одинаково для всех) ===== */
+.filter-chip.active,
+.sub-tab.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 3px 10px rgba(178, 90, 90, 0.3);
+}
+
+body.dark .filter-chip.active,
+body.dark .sub-tab.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
+  color: #1a0a0e;
+  box-shadow: 0 3px 10px rgba(178, 90, 90, 0.5);
+}
+
+/* Под-табы внутри контейнера (sub-tabs) — активный выделяем
+   фоновым блоком, чтобы не сливался с общим pill-контейнером */
+.sub-tabs {
+  background: rgba(255, 240, 235, 0.5);
+  border: 1px solid rgba(178, 90, 90, 0.15);
+}
+body.dark .sub-tabs {
+  background: rgba(40, 25, 32, 0.7);
+  border-color: rgba(232, 160, 168, 0.15);
+}
+
+.sub-tabs .sub-tab {
+  background: transparent;
+  border-color: transparent;
+}
+.sub-tabs .sub-tab:hover {
+  background: rgba(178, 90, 90, 0.1);
+}
+body.dark .sub-tabs .sub-tab:hover {
+  background: rgba(232, 160, 168, 0.1);
+}
+.sub-tabs .sub-tab.active {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--accent);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+body.dark .sub-tabs .sub-tab.active {
+  background: rgba(50, 32, 42, 0.95);
+  color: var(--accent-alt);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+/* ==========================================================
+   ПОЯВЛЕНИЕ ДИНАМИЧЕСКИХ КАРТОЧЕК В «ПЛАНАХ»
+   ========================================================== */
+
+@keyframes plansFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: plansFadeIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-up {
+    animation: none;
+  }
+}
+/* ==========================================================
+   СЛОВО ДНЯ
+   ========================================================== */
+
+.word-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s;
+  margin-bottom: 16px;
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-sm);
+}
+.word-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.word-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(178, 90, 90, 0.3);
+}
+.word-card__icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+body.dark .word-card__icon { color: #1a0a0e; }
+
+.word-card__body {
+  flex: 1;
+  min-width: 0;
+}
+.word-card__label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+body.dark .word-card__label { color: var(--accent-alt); }
+.word-card__word {
+  font-family: 'Bodoni Moda', serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 20px;
+  color: var(--text);
+  line-height: 1.1;
+  letter-spacing: -0.2px;
+  margin-bottom: 2px;
+}
+.word-card__def {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.word-card__arrow {
+  font-size: 20px;
+  color: var(--accent);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+body.dark .word-card__arrow { color: var(--accent-alt); }
+
+/* Модалка слова дня */
+#word-modal .modal-content {
+  padding: 26px 22px 22px;
+  position: relative;
+}
+#word-modal .modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-alt), var(--accent-gold));
+}
+
+.word-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.word-modal__label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+body.dark .word-modal__label { color: var(--accent-alt); }
+.word-modal__close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(178, 90, 90, 0.12);
+  border: none;
+  color: var(--accent);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+body.dark .word-modal__close {
+  background: rgba(232, 160, 168, 0.15);
+  color: var(--accent-alt);
+}
+body.dark .word-modal__close { background: rgba(255,255,255,0.06); }
+.word-modal__close:hover { background: rgba(178, 90, 90, 0.15); transform: none; opacity: 1; }
+
+.word-modal__word {
+  font-family: 'Bodoni Moda', serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--text);
+  letter-spacing: -1px;
+  margin-bottom: 6px;
+}
+.word-modal__part {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.word-modal__section {
+  padding: 14px 0;
+  border-top: 1px solid var(--glass-border);
+}
+.word-modal__section:first-of-type { border-top: none; padding-top: 0; }
+.word-modal__section-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+body.dark .word-modal__section-label { color: var(--accent-alt); }
+.word-modal__section-text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.word-modal__example {
+  font-family: 'Bodoni Moda', serif;
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-soft);
+  padding: 12px 16px;
+  background: rgba(178, 90, 90, 0.08);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+}
+body.dark .word-modal__example { background: rgba(232, 160, 168, 0.08); }
+.word-modal__example-author {
+  display: block;
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.word-modal__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.word-modal__chip {
+  padding: 6px 12px;
+  background: rgba(232, 160, 168, 0.12);
+  border: 1px solid rgba(232, 160, 168, 0.3);
+  border-radius: 100px;
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 600;
+}
+.word-modal__chip--ant {
+  background: rgba(120, 120, 120, 0.1);
+  border-color: rgba(180, 180, 180, 0.2);
+  color: var(--muted);
+  font-style: italic;
+}
+/* Блокировка прокрутки фона, когда открыта любая модалка */
+body:has(.modal:not(.hidden)) {
+  overflow: hidden;
+}
+/* Крестик в модалке слова — перебиваем общее правило */
+#word-modal .word-modal__close {
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: rgba(178, 90, 90, 0.12);
+  border: none;
+  color: var(--accent);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+body.dark #word-modal .word-modal__close {
+  background: rgba(232, 160, 168, 0.15);
+  color: var(--accent-alt);
+}
+#word-modal .word-modal__close:hover {
+  background: rgba(178, 90, 90, 0.22);
+  transform: none;
+  opacity: 1;
 }
