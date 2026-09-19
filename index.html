@@ -97,8 +97,8 @@
           <div class="ornament-line"></div>
         </div>
 
-        <div class="header-days">
-          <span class="header-days-num">2</span>
+<div class="header-days">
+  <span class="header-days-num" id="header-day-num">—</span>
           <span class="header-days-slash">/</span>
           <span class="header-days-total">365</span>
           <span class="header-days-lbl">день вместе</span>
@@ -111,12 +111,12 @@
 
       <!-- Компактная инфо-строка: луна · погода · стрик -->
       <div class="info-strip">
-        <div class="info-item">
-          <span class="ico" id="moon-icon">🌓</span>
-          <span id="moon-day">7-й лунный день</span>
-        </div>
-        <div class="info-divider"></div>
-        <div class="info-item">
+  <div class="info-item" id="moon-info-item">
+    <span class="ico" id="moon-icon">🌓</span>
+    <span id="moon-day">7-й лунный день</span>
+  </div>
+  <div class="info-divider" id="moon-info-divider"></div>
+  <div class="info-item">
           <span class="ico" id="weather-icon">🌧</span>
           <span id="weather-temp">—</span>
         </div>
@@ -128,9 +128,9 @@
       </div>
 
       <!-- Тонкая строка совета дня -->
-      <div class="tip-line">
-        <span class="tip-emoji">💫</span><span id="moon-advice-text">—</span>
-      </div>
+     <div class="tip-line" id="moon-tip-line">
+  <span class="tip-emoji">💫</span><span id="moon-advice-text">—</span>
+</div>
 
       <!-- Плашки: тема + прогресс -->
       <div class="badges-row">
