@@ -48,6 +48,10 @@ let currentConversationId = null;
 let selectedTopic = null;
 let currentView = "today";
 let truthState = { level: null, round: 0, history: [] };
+let conversationsInitialized = false;
+let quizInitialized = false;
+let unsubSignals = null;
+let signalsInitialized = false;
 
 let lastSeenPartnerAnswerDay = null;
 let answersListenerInitialized = false;
@@ -421,6 +425,11 @@ function startMainApp() {
   renderToday();
   applySeasonTheme();
 
+  // Сбрасываем флаги — новые слушатели разговоров/квизов
+  // должны один раз «прогреться» без уведомлений
+  conversationsInitialized = false;
+  quizInitialized = false;
+
   renderMoonWidget();
   if (localStorage.getItem("moon-visible") === "0") hideMoonBlocks();
 
@@ -441,6 +450,8 @@ function startMainApp() {
   initDayView();
   initSchemeControls();
   initBottomNav();
+  initThinkButton();
+  initThinkSignals();
 
   startDayWatcher();
 
@@ -561,27 +572,21 @@ function listenForAnswers() {
 }
 
 function notifyPartnerAnswered(partnerAnswer) {
-  vibrate([30, 60, 30, 60, 30]);
-  showToast("❤️ Партнёр ответил!", "Откройте «Сегодня», чтобы прочитать.");
+  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
+  const letter = getInitials(partnerName).slice(0, 1);
+  const photoURL = partnerProfile?.photoURL?.trim() || "";
+
+  notifyUser(
+    `${partnerName} ответила на вопрос дня`,
+    "Откройте «Сегодня», чтобы прочитать.",
+    "today",
+    { avatar: { letter, photoURL } }
+  );
 
   const partnerSection = document.querySelector(".partner-section");
   if (partnerSection) {
     partnerSection.classList.add("pulse-highlight");
     setTimeout(() => partnerSection.classList.remove("pulse-highlight"), 3000);
-  }
-
-  if (
-    typeof Notification !== "undefined" &&
-    Notification.permission === "granted" &&
-    document.visibilityState === "hidden"
-  ) {
-    try {
-      new Notification("❤️ Партнёр ответил!", {
-        body: "Откройте «Наш год», чтобы прочитать.",
-        icon: "./icon-192.png",
-        tag: "partner-answered"
-      });
-    } catch (e) {}
   }
 }
 
@@ -1972,11 +1977,43 @@ function listenForQuiz() {
   unsubQuiz = onSnapshot(
     doc(db, "couples", currentCoupleId, "quiz", "results"),
     (snap) => {
+      const prevQuizData = quizData;
+
       quizData = snap.exists() ? snap.data() : {};
       if (!quizState) renderQuizMain();
       updateBadges();
+
+      if (quizInitialized) {
+        detectQuizEvents(prevQuizData);
+      } else {
+        quizInitialized = true;
+      }
     }
   );
+}
+
+function detectQuizEvents(prevData) {
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  if (!partnerUid) return;
+
+  const prevPartner = prevData[partnerUid] || {};
+  const currPartner = quizData[partnerUid] || {};
+
+  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
+  const avatar = {
+    letter: getInitials(partnerName).slice(0, 1),
+    photoURL: partnerProfile?.photoURL?.trim() || "",
+  };
+
+  // Партнёр создал квиз о себе (появилось поле answers)
+  if (!prevPartner.answers && currPartner.answers) {
+    notifyUser(
+      `${partnerName} создала квиз о себе`,
+      "Угадайте её ответы на 10 вопросов.",
+      "about",
+      { avatar }
+    );
+  }
 }
 function showQuizMain() {
   $("quiz-main").classList.remove("hidden");
@@ -2346,16 +2383,70 @@ function listenForConversations() {
   unsubConversations = onSnapshot(
     collection(db, "couples", currentCoupleId, "conversations"),
     (snap) => {
+      const prevConversations = conversations.slice();
+
       conversations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       conversations.sort((a, b) => {
         const at = a.createdAt?.toDate?.() || new Date(0);
         const bt = b.createdAt?.toDate?.() || new Date(0);
         return bt - at;
       });
+
       renderConversations();
       updateBadges();
+
+      if (conversationsInitialized) {
+        detectConversationEvents(prevConversations);
+      } else {
+        conversationsInitialized = true;
+      }
     }
   );
+}
+
+function detectConversationEvents(prevConversations) {
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  if (!partnerUid) return;
+
+  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
+  const avatar = {
+    letter: getInitials(partnerName).slice(0, 1),
+    photoURL: partnerProfile?.photoURL?.trim() || "",
+  };
+
+  // 1. Партнёр создал новый разговор
+  const prevIds = new Set(prevConversations.map(c => c.id));
+  for (const conv of conversations) {
+    if (prevIds.has(conv.id)) continue;
+    if (conv.createdBy === partnerUid) {
+      notifyUser(
+        `${partnerName} начал(а) разговор`,
+        `Тема: «${conv.topic || "без темы"}»`,
+        "conversation",
+        { avatar }
+      );
+    }
+  }
+
+  // 2. Партнёр написал в разговор впервые
+  const prevMap = new Map(prevConversations.map(c => [c.id, c]));
+  for (const conv of conversations) {
+    const prev = prevMap.get(conv.id);
+    const prevText = prev?.texts?.[partnerUid] || "";
+    const currText = conv.texts?.[partnerUid] || "";
+
+    if (!prevText && currText) {
+      // Не спамим, если пользователь уже в этом разговоре
+      if (currentView === "conversation" && currentConversationId === conv.id) continue;
+
+      notifyUser(
+        `Новое сообщение от ${partnerName}`,
+        conv.topic ? `Тема: «${conv.topic}»` : "Откройте раздел «Разговор»",
+        "conversation",
+        { avatar }
+      );
+    }
+  }
 }
 function renderConversations() {
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
@@ -2892,4 +2983,278 @@ function markTodaySeen() {
   if (!myAnswer) return;
   localStorage.setItem(todaySeenKey(day), "1");
   updateTodayBadge();
+}
+/* ==========================================================
+   IN-APP БАННЕР + СИСТЕМНЫЕ УВЕДОМЛЕНИЯ
+   ========================================================== */
+
+let _bannerEl = null;
+let _bannerTimer = null;
+
+function closeBanner() {
+  if (!_bannerEl) return;
+  clearTimeout(_bannerTimer);
+  _bannerEl.classList.remove("is-visible");
+  _bannerEl.classList.add("is-dismissed");
+  const el = _bannerEl;
+  _bannerEl = null;
+  setTimeout(() => el.remove(), 500);
+}
+
+/**
+ * Показывает баннер сверху экрана.
+ * @param {string} title   - заголовок
+ * @param {string} text    - подзаголовок / тело
+ * @param {string} view    - куда перейти по тапу: "today" | "conversation" | "about" | "archive" | null
+ * @param {Object} [opts]  - { avatar: {letter, photoURL} }
+ */
+function showBanner(title, text, view, opts = {}) {
+  if (_bannerEl) _bannerEl.remove();
+
+  const avatar = opts.avatar || {};
+  const letter = avatar.letter || "❤";
+  const photoURL = avatar.photoURL || "";
+
+  const avatarHtml = photoURL
+    ? `<img src="${escapeHtml(photoURL)}" alt="">`
+    : escapeHtml(letter);
+
+  const el = document.createElement("div");
+  el.className = "app-banner";
+  el.innerHTML = `
+    <div class="app-banner__avatar">${avatarHtml}</div>
+    <div class="app-banner__body">
+      <div class="app-banner__title">${escapeHtml(title)}</div>
+      <div class="app-banner__text">${escapeHtml(text || "")}</div>
+    </div>
+    <button class="app-banner__close" aria-label="Закрыть">✕</button>
+    <div class="app-banner__progress">
+      <div class="app-banner__progress-fill"></div>
+    </div>
+  `;
+  document.body.appendChild(el);
+  _bannerEl = el;
+
+  requestAnimationFrame(() => el.classList.add("is-visible"));
+
+  // Клик — переход в раздел
+  el.addEventListener("click", (e) => {
+    if (e.target.closest(".app-banner__close")) return;
+    if (view && typeof switchNav === "function") {
+      switchNav(view);
+    }
+    closeBanner();
+  });
+
+  // Крестик
+  el.querySelector(".app-banner__close").addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeBanner();
+  });
+
+  // Свайп вверх
+  let startY = null, dy = 0;
+  el.addEventListener("pointerdown", (e) => {
+    if (e.target.closest(".app-banner__close")) return;
+    startY = e.clientY;
+    el.setPointerCapture(e.pointerId);
+    el.style.transition = "none";
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (startY === null) return;
+    dy = e.clientY - startY;
+    if (dy < 0) {
+      el.style.transform = `translate(-50%, ${dy}px)`;
+      el.style.opacity = String(Math.max(0, 1 + dy / 150));
+    }
+  });
+  el.addEventListener("pointerup", () => {
+    if (startY === null) return;
+    el.style.transition = "";
+    el.style.transform = "";
+    el.style.opacity = "";
+    if (dy < -60) closeBanner();
+    startY = null;
+    dy = 0;
+  });
+
+  // Авто-скрытие
+  _bannerTimer = setTimeout(closeBanner, 5000);
+}
+
+/**
+ * Универсальная точка оповещения.
+ * Если вкладка видна — баннер, если скрыта — системное уведомление.
+ */
+function notifyUser(title, text, view, opts = {}) {
+  vibrate([30, 60, 30]);
+
+  if (document.visibilityState === "visible") {
+    showBanner(title, text, view, opts);
+    return;
+  }
+
+  if (typeof Notification === "undefined") return;
+  if (Notification.permission !== "granted") return;
+
+  try {
+    new Notification(title, {
+      body: text,
+      icon: "./icon-192.png",
+      tag: "partner-event-" + (view || "generic"),
+      renotify: true,
+    });
+  } catch (e) {
+    console.error("Notification error:", e);
+  }
+}
+/* ==========================================================
+   «ДУМАЮ О ТЕБЕ» — сигнал близости
+   ========================================================== */
+
+const THINK_COOLDOWN_MS = 60 * 60 * 1000; // 1 час
+
+function thinkCooldownKey() {
+  return `think-cooldown-${currentCoupleId}`;
+}
+
+function getThinkCooldownRemaining() {
+  const last = parseInt(localStorage.getItem(thinkCooldownKey()) || "0");
+  const remaining = last + THINK_COOLDOWN_MS - Date.now();
+  return remaining > 0 ? remaining : 0;
+}
+
+function updateThinkButtonState() {
+  const btn = $("think-btn");
+  if (!btn) return;
+
+  const remaining = getThinkCooldownRemaining();
+  if (remaining <= 0) {
+    btn.classList.remove("is-cooldown");
+    btn.innerHTML = `<span class="think-btn__emoji">❤️</span>`;
+  } else {
+    btn.classList.add("is-cooldown");
+    const min = Math.ceil(remaining / 60000);
+    const label = min >= 60 ? Math.ceil(min / 60) + "ч" : min + "м";
+    btn.innerHTML = `<span class="think-btn__cooldown">${label}</span>`;
+  }
+}
+
+function burstHearts() {
+  const btn = $("think-btn");
+  if (!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  for (let i = 0; i < 8; i++) {
+    const heart = document.createElement("div");
+    heart.className = "heart-burst";
+    heart.textContent = ["❤️", "💕", "💗", "💖"][i % 4];
+    const angle = (Math.PI * 2 * i) / 8 + Math.random() * 0.5;
+    const dist = 60 + Math.random() * 40;
+    heart.style.left = cx + "px";
+    heart.style.top = cy + "px";
+    heart.style.setProperty("--dx", Math.cos(angle) * dist + "px");
+    heart.style.setProperty("--dy", Math.sin(angle) * dist + "px");
+    document.body.appendChild(heart);
+    setTimeout(() => heart.remove(), 1200);
+  }
+}
+
+async function sendThinkSignal() {
+  if (!currentUser || !currentCoupleId) return;
+  if (getThinkCooldownRemaining() > 0) return;
+
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  if (!partnerUid) return;
+
+  // Визуально сразу откликаемся
+  burstHearts();
+  vibrate([15, 30, 15]);
+
+  // Оптимистично ставим кулдаун
+  localStorage.setItem(thinkCooldownKey(), String(Date.now()));
+  updateThinkButtonState();
+
+  try {
+    await addDoc(collection(db, "couples", currentCoupleId, "signals"), {
+      type: "think",
+      fromUserId: currentUser.uid,
+      toUserId: partnerUid,
+      ts: Date.now(),
+      createdAt: serverTimestamp()
+    });
+  } catch (e) {
+    console.error("Think signal error:", e);
+    // Откатываем кулдаун
+    localStorage.removeItem(thinkCooldownKey());
+    updateThinkButtonState();
+    alert("Не удалось отправить сигнал: " + e.message);
+  }
+}
+
+function initThinkButton() {
+  const btn = $("think-btn");
+  if (!btn) return;
+  btn.onclick = sendThinkSignal;
+  updateThinkButtonState();
+
+  // Обновляем отображение кулдауна раз в 30 секунд
+  setInterval(updateThinkButtonState, 30000);
+}
+
+function signalsProcessedKey() {
+  return `processed-signals-${currentCoupleId}`;
+}
+
+function initThinkSignals() {
+  if (unsubSignals) unsubSignals();
+  signalsInitialized = false;
+
+  const processed = new Set(
+    JSON.parse(localStorage.getItem(signalsProcessedKey()) || "[]")
+  );
+
+  unsubSignals = onSnapshot(
+    collection(db, "couples", currentCoupleId, "signals"),
+    (snap) => {
+      const signals = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Первый снапшот — просто запоминаем всё как обработанное
+      if (!signalsInitialized) {
+        signalsInitialized = true;
+        signals.forEach(s => processed.add(s.id));
+        const keep = [...processed].slice(-100);
+        localStorage.setItem(signalsProcessedKey(), JSON.stringify(keep));
+        return;
+      }
+
+      // Ищем новые сигналы, адресованные мне
+      const newForMe = signals.filter(s =>
+        s.toUserId === currentUser.uid && !processed.has(s.id)
+      );
+
+      if (newForMe.length === 0) return;
+
+      newForMe.forEach(s => processed.add(s.id));
+      const keep = [...processed].slice(-100);
+      localStorage.setItem(signalsProcessedKey(), JSON.stringify(keep));
+
+      const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
+      const avatar = {
+        letter: getInitials(partnerName).slice(0, 1),
+        photoURL: partnerProfile?.photoURL?.trim() || ""
+      };
+      const text = newForMe.length === 1
+        ? "Тёплый привет 💛"
+        : `×${newForMe.length} 💛`;
+
+      notifyUser(
+        `${partnerName} думает о тебе ❤️`,
+        text,
+        "today",
+        { avatar }
+      );
+    }
+  );
 }
