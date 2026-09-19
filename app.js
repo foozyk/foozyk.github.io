@@ -449,7 +449,9 @@ function renderToday() {
   $("current-day").textContent = day;
   const headerDayNum = $("header-day-num");
   if (headerDayNum) headerDayNum.textContent = day;
-
+const headerDayLabel = $("header-day-label");
+if (headerDayLabel) headerDayLabel.textContent = pluralDays(day) + " вместе";
+  
   $("current-theme").textContent = q.theme;
   $("current-question").textContent = q.text;
   const percent = Math.round((day / 365) * 100);
