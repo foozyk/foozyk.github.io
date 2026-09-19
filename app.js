@@ -1108,7 +1108,6 @@ async function renderHistory() {
     container.appendChild(div);
   }
 }
-
 /* ---------- ЗАПУСК ТЕМЫ И СХЕМЫ ---------- */
 initTheme();
 applySavedScheme();
