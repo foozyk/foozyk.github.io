@@ -436,7 +436,7 @@ function startDayWatcher() {
   }, 60000);
 }
 
-async function renderToday() {
+function renderToday() {
   const day = getCurrentDay();
 
   if (lastSeenPartnerAnswerDay !== null && lastSeenPartnerAnswerDay !== day) {
@@ -445,7 +445,11 @@ async function renderToday() {
 
   const q = getQuestionForDay(day);
   if (!q) return;
+
   $("current-day").textContent = day;
+  const headerDayNum = $("header-day-num");
+  if (headerDayNum) headerDayNum.textContent = day;
+
   $("current-theme").textContent = q.theme;
   $("current-question").textContent = q.text;
   const percent = Math.round((day / 365) * 100);
@@ -1207,21 +1211,19 @@ function initMoonToggle() {
     vibrate(10);
   };
 }
+const MOON_VISIBLE_IDS = ["moon-info-item", "moon-info-divider", "moon-tip-line"];
+
 function hideMoonBlocks() {
-  ["moon-widget", "moon-event", "moon-week"].forEach(id => {
+  MOON_VISIBLE_IDS.forEach(id => {
     const el = $(id);
     if (el) el.classList.add("hidden");
   });
-  const advice = document.querySelector(".moon-advice");
-  if (advice) advice.classList.add("hidden");
 }
 function showMoonBlocks() {
-  ["moon-widget", "moon-week"].forEach(id => {
+  MOON_VISIBLE_IDS.forEach(id => {
     const el = $(id);
     if (el) el.classList.remove("hidden");
   });
-  const advice = document.querySelector(".moon-advice");
-  if (advice) advice.classList.remove("hidden");
 }
 
 /* ---------- УВЕДОМЛЕНИЯ ---------- */
