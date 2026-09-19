@@ -61,7 +61,6 @@
 
   <div id="main-screen" class="screen has-bottom-nav">
 
-    <!-- ===== ШАПКА ===== -->
     <div class="header">
       <div class="header-top">
         <button class="gear-btn" id="gearBtn" title="Настройки">
@@ -103,10 +102,8 @@
       </div>
     </div>
 
-    <!-- Сегодня -->
     <section id="today-view">
 
-      <!-- Компактная инфо-строка: луна · погода · стрик -->
       <div class="info-strip">
         <div class="info-item">
           <span class="ico" id="moon-icon">🌓</span>
@@ -124,18 +121,15 @@
         </div>
       </div>
 
-      <!-- Тонкая строка совета дня -->
       <div class="tip-line">
         <span class="tip-emoji">💫</span><span id="moon-advice-text">—</span>
       </div>
 
-      <!-- Плашки: тема + прогресс -->
       <div class="badges-row">
         <div class="badge badge-accent" id="current-theme">—</div>
         <div class="badge" id="progress-label">Пройдено 0%</div>
       </div>
 
-      <!-- ВОПРОС ДНЯ -->
       <div class="question-card">
         <div class="question-label">Вопрос дня</div>
         <h2 id="current-question">Загрузка...</h2>
@@ -179,7 +173,6 @@
         </div>
       </div>
 
-      <!-- Скрытые элементы для совместимости с app.js -->
       <div style="display:none;">
         <span id="current-day">1</span>
         <div id="progress-bar"></div>
@@ -193,7 +186,6 @@
 
     </section>
 
-    <!-- Разговор -->
     <section id="conversation-view" class="hidden">
       <h2>Разговор</h2>
       <p class="hint">Поговорите о важном. Напишите своё — партнёр ответит своим. Потом договоритесь о чём-то конкретном.</p>
@@ -216,7 +208,6 @@
       </div>
     </section>
 
-    <!-- Мы -->
     <section id="about-view" class="hidden">
       <h2>Про нас</h2>
       <div class="sub-tabs">
@@ -322,7 +313,6 @@
       </div>
     </section>
 
-    <!-- Архив -->
     <section id="archive-view" class="hidden">
       <h2>Архив</h2>
 
@@ -416,7 +406,6 @@
       <div id="history-list"></div>
     </section>
 
-    <!-- Нижняя навигация -->
     <nav class="bottom-nav">
       <button class="bottom-nav-item active" data-view="today">
         <span class="nav-icon">
@@ -459,7 +448,6 @@
     </nav>
   </div>
 
-  <!-- ===== МЕНЮ ШЕСТЕРЁНКИ ===== -->
   <div class="backdrop" id="settingsBackdrop"></div>
   <div class="settings-menu" id="settingsMenu">
     <button class="settings-item" id="notif-btn">
@@ -481,13 +469,11 @@
     </button>
   </div>
 
-  <!-- ===== МОДАЛЬНЫЕ ОКНА ===== -->
   <div id="profile-modal" class="modal hidden">
     <div class="modal-backdrop" id="modal-backdrop"></div>
     <div class="modal-content">
       <h3>Ваш профиль</h3>
       <label class="field-label">Имя</label>
-
       <input type="text" id="profile-name" placeholder="Например, Руслан" maxlength="30">
       <label class="field-label">Ссылка на фото (необязательно)</label>
       <input type="url" id="profile-photo" placeholder="https://...">
