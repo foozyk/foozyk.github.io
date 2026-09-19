@@ -65,6 +65,48 @@ function vibrate(pattern) {
   try { navigator.vibrate(pattern); } catch (e) {}
 }
 
+/* ---------- ПОЯВЛЕНИЕ КАРТОЧЕК ПРИ СКРОЛЛЕ ---------- */
+let revealObserver = null;
+
+function initReveal() {
+  const els = document.querySelectorAll(".reveal:not(.is-visible)");
+  if (!els.length) return;
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    els.forEach(el => el.classList.add("is-visible"));
+    return;
+  }
+
+  if (revealObserver) revealObserver.disconnect();
+
+  revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        void el.offsetHeight;
+        el.classList.add("is-visible");
+        revealObserver.unobserve(el);
+      }
+    });
+  }, {
+    threshold: 0.08,
+    rootMargin: "0px 0px -30px 0px"
+  });
+
+  void document.body.offsetHeight;
+  els.forEach(el => revealObserver.observe(el));
+
+  // Страховка на всякий случай
+  setTimeout(() => {
+    document.querySelectorAll(".reveal:not(.is-visible)").forEach(el => {
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight && r.bottom > 0) {
+        el.classList.add("is-visible");
+      }
+    });
+  }, 900);
+}
+
 /* ---------- ПУСТЫЕ СОСТОЯНИЯ ---------- */
 function emptyStateHtml({ icon, title, text }) {
   return `
@@ -314,6 +356,11 @@ function switchNav(view) {
   document.querySelectorAll(".bottom-nav-item").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.view === view);
   });
+
+  // Зашли на «Сегодня» — отмечаем ответ партнёра как увиденный
+  if (view === "today") {
+    requestAnimationFrame(() => markTodaySeen());
+  }
   $("today-view").classList.toggle("hidden", view !== "today");
   $("conversation-view").classList.toggle("hidden", view !== "conversation");
   $("about-view").classList.toggle("hidden", view !== "about");
@@ -339,6 +386,12 @@ function switchNav(view) {
     renderHistory();
   }
   window.scrollTo({ top: 0, behavior: "smooth" });
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      initReveal();
+    });
+  });
 }
 
 /* ---------- ПОД-ТАБЫ «Мы» ---------- */
@@ -390,6 +443,12 @@ function startMainApp() {
   initBottomNav();
 
   startDayWatcher();
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      initReveal();
+    });
+  });
 }
 
 /* ---------- ПОДСЧЁТ ДНЯ ---------- */
@@ -435,6 +494,7 @@ function startDayWatcher() {
   }, 60000);
 }
 
+
 async function renderToday() {
   const day = getCurrentDay();
 
@@ -457,7 +517,7 @@ async function renderToday() {
   const pb = $("progress-bar");
   if (pb) pb.style.width = percent + "%";
   const pl = $("progress-label");
-  if (pl) pl.textContent = "Пройдено " + percent + "%";
+  if (pl) pl.textContent = percent + "%";
 }
 
 function listenForAnswers() {
@@ -565,52 +625,95 @@ function updateTodayView() {
   const myAnswer = todayAnswers.find(a => a.userId === currentUser.uid);
   const partnerAnswer = todayAnswers.find(a => a.userId !== currentUser.uid);
   const myTa = $("my-answer");
-  if (myTa) myTa.value = myAnswer ? (myAnswer.text || "") : "";
-  const sa = $("save-answer");
-  if (sa) sa.textContent = myAnswer ? "Обновить ответ" : "Сохранить ответ";
+  const savedText = myAnswer ? (myAnswer.text || "") : "";
+  if (myTa && !myTa.matches(":focus") && myTa.value !== savedText) {
+    myTa.value = savedText;
+  }
+  updateSaveButtonState();
+
   const partnerEl = $("partner-answer");
   const statusEl = $("answer-status");
+  const section = document.querySelector(".partner-section");
+
+  if (section) section.classList.remove("is-waiting", "is-locked", "is-open");
+
+  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
+  const safeName = `<span class="partner-answer__name">${escapeHtml(partnerName)}</span>`;
+
   if (partnerEl && statusEl) {
     if (myAnswer && partnerAnswer) {
+      if (section) section.classList.add("is-open");
       partnerEl.textContent = partnerAnswer.text || "(без текста)";
       statusEl.textContent = "✓ Оба ответили — ответы открыты!";
       statusEl.style.color = "#4a8b4a";
     } else if (myAnswer && !partnerAnswer) {
-      partnerEl.textContent = "Партнёр ещё не ответил. Ответ появится, когда он(а) напишет.";
+      if (section) section.classList.add("is-waiting");
+      partnerEl.innerHTML = `
+        <span class="partner-answer__icon">⏳</span>
+        <span class="partner-answer__text">
+          Ваш ответ сохранён.<br>
+          Как только ${safeName} ответит — увидите ответ здесь.
+        </span>
+      `;
       statusEl.textContent = "Ваш ответ сохранён. Ждём партнёра...";
       statusEl.style.color = "#999";
     } else if (!myAnswer && partnerAnswer) {
-      partnerEl.textContent = "Сначала напишите свой ответ, чтобы увидеть ответ партнёра.";
+      if (section) section.classList.add("is-locked");
+      partnerEl.innerHTML = `
+        <span class="partner-answer__icon">🔒</span>
+        <span class="partner-answer__text">
+          ${safeName} уже ответила.<br>
+          Напишите своё — и её ответ откроется.
+        </span>
+      `;
       statusEl.textContent = "";
+      statusEl.style.color = "";
     } else {
-      partnerEl.textContent = "Пока скрыт.";
+      if (section) section.classList.add("is-waiting");
+      partnerEl.innerHTML = `Пока пусто. Начните первым — или подождите партнёра ❤️`;
       statusEl.textContent = "";
+      statusEl.style.color = "";
     }
   }
+
   checkConfetti();
 }
 $("save-answer").onclick = async () => {
   const text = $("my-answer").value.trim();
   if (!text) return;
+
   const day = getCurrentDay();
   const existing = todayAnswers.find(a => a.userId === currentUser.uid);
-  $("save-answer").disabled = true;
+
+  if (existing && (existing.text || "").trim() === text) return;
+
+  const sa = $("save-answer");
+  sa.disabled = true;
+  sa.classList.remove("state-idle", "state-saved");
+  sa.classList.add("state-saving");
+  sa.textContent = "Сохраняем...";
+
   try {
     if (existing) {
       await updateDoc(doc(db, "couples", currentCoupleId, "answers", existing.id), {
         text, updatedAt: serverTimestamp()
       });
+      existing.text = text;
     } else {
-      await addDoc(collection(db, "couples", currentCoupleId, "answers"), {
+      const ref = await addDoc(collection(db, "couples", currentCoupleId, "answers"), {
         day, userId: currentUser.uid, text, createdAt: serverTimestamp()
       });
+      todayAnswers.push({ id: ref.id, day, userId: currentUser.uid, text });
     }
     vibrate(15);
   } catch (e) {
     console.error(e);
     alert("Ошибка сохранения: " + e.message);
   } finally {
-    $("save-answer").disabled = false;
+    sa.disabled = false;
+    sa.classList.remove("state-saving");
+    updateSaveButtonState();
+    updateBadges();
   }
 };
 
@@ -641,6 +744,9 @@ function updateBadges() {
   }
   setBadge("badge-about", aboutNew);
   setBadge("badge-archive", 0);
+
+  // Бейдж «Сегодня»
+  updateTodayBadge();
 }
 
 /* ---------- СТАТИСТИКА ---------- */
@@ -1121,6 +1227,7 @@ async function initProfile() {
   myProfile = mine.exists() ? mine.data() : { displayName: "", photoURL: "" };
   partnerProfile = partners.exists() ? partners.data() : { displayName: "", photoURL: "" };
   renderAvatars();
+  renderTodayMood();
   const personMe = $("person-me");
   if (personMe) personMe.onclick = openProfileModal;
   const backdrop = $("modal-backdrop");
@@ -1135,6 +1242,7 @@ async function initProfile() {
     if (snap.exists()) {
       partnerProfile = snap.data();
       renderAvatars();
+      renderTodayMood();
     }
   });
 }
@@ -1376,8 +1484,13 @@ function renderTodayMood() {
   if (noteEl && !noteEl.matches(":focus") && noteEl.value !== myNote) noteEl.value = myNote;
   const textEl = $("mood-partner-text");
   if (textEl) {
-    if (partnerMood) textEl.textContent = "Настроение партнёра сегодня: " + partnerMood;
-    else textEl.textContent = "Партнёр ещё не отметил настроение.";
+    const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
+    const safeName = `<strong class="mood-partner-name">${escapeHtml(partnerName)}</strong>`;
+    if (partnerMood) {
+      textEl.innerHTML = `${safeName} сегодня ${partnerMood}`;
+    } else {
+      textEl.innerHTML = `${safeName} пока без настроения`;
+    }
   }
   const noteTextEl = $("mood-partner-note");
   if (noteTextEl) noteTextEl.textContent = partnerNote ? "«" + partnerNote + "»" : "";
@@ -2689,4 +2802,94 @@ async function exportToPDF() {
   } finally {
     btn.disabled = false;
   }
+}
+
+/* ==========================================================
+   СОСТОЯНИЕ КНОПКИ «СОХРАНИТЬ ОТВЕТ»
+   ========================================================== */
+
+function updateSaveButtonState() {
+  const sa = $("save-answer");
+  const ta = $("my-answer");
+  if (!sa || !ta) return;
+
+  sa.classList.remove("state-idle", "state-saved", "state-saving");
+
+  if (!currentUser || !todayAnswers) {
+    sa.textContent = "Сохранить ответ";
+    sa.classList.add("state-idle");
+    return;
+  }
+
+  const myAnswer = todayAnswers.find(a => a.userId === currentUser.uid);
+  const savedText = myAnswer ? (myAnswer.text || "") : "";
+  const currentText = ta.value;
+  const hasChanges = currentText.trim() !== savedText.trim();
+
+  if (myAnswer && !hasChanges) {
+    sa.textContent = "✓ Ответ сохранён";
+    sa.classList.add("state-saved");
+    return;
+  }
+
+  sa.textContent = myAnswer ? "Обновить ответ" : "Сохранить ответ";
+  sa.classList.add("state-idle");
+}
+
+// Навешиваем обработчик ввода на textarea — чтобы кнопка
+// переключалась между «Сохранён» и «Обновить» при печати
+const myAnswerInput = $("my-answer");
+if (myAnswerInput) {
+  myAnswerInput.addEventListener("input", updateSaveButtonState);
+}
+/* ==========================================================
+   БЕЙДЖ «СЕГОДНЯ» В НИЖНЕМ БАРЕ
+   ========================================================== */
+
+function todaySeenKey(day) {
+  return `today-seen-${currentCoupleId}-${day}`;
+}
+
+function updateTodayBadge() {
+  if (!currentUser || !currentCoupleId) {
+    setBadge("badge-today", 0);
+    return;
+  }
+
+  const day = getCurrentDay();
+  const myAnswer = todayAnswers.find(a => a.userId === currentUser.uid);
+  const partnerAnswer = todayAnswers.find(a => a.userId !== currentUser.uid);
+
+  // 1. Партнёр ещё не ответил — нечего показывать
+  if (!partnerAnswer) {
+    setBadge("badge-today", 0);
+    return;
+  }
+
+  // 2. Партнёр ответил, я ещё нет — бейдж висит, пока не отвечу
+  if (!myAnswer) {
+    setBadge("badge-today", 1);
+    return;
+  }
+
+  // 3. Оба ответили. Если я прямо сейчас на «Сегодня» — считаем, что видел.
+  if (currentView === "today") {
+    localStorage.setItem(todaySeenKey(day), "1");
+    setBadge("badge-today", 0);
+    return;
+  }
+
+  // 4. Оба ответили, но я на другой вкладке
+  const seen = localStorage.getItem(todaySeenKey(day)) === "1";
+  setBadge("badge-today", seen ? 0 : 1);
+}
+
+function markTodaySeen() {
+  if (!currentCoupleId) return;
+  const day = getCurrentDay();
+  const myAnswer = todayAnswers.find(a => a.userId === currentUser.uid);
+  // Пока я не ответил — не сбрасываем бейдж (вариант 3 «надо ответить»)
+  if (!myAnswer) return;
+  localStorage.setItem(todaySeenKey(day), "1");
+  updateTodayBadge();
 }

@@ -66,7 +66,6 @@
       <div class="header-top">
         <button class="gear-btn" id="gearBtn" title="Настройки">
           ⚙
-          <span class="dot" id="gear-dot"></span>
         </button>
       </div>
 
@@ -106,7 +105,7 @@
     <!-- Сегодня -->
     <section id="today-view">
 
-      <div class="info-strip">
+      <div class="info-strip reveal">
         <div class="info-item" id="moon-info-item">
           <span class="ico" id="moon-icon">🌓</span>
           <span id="moon-day">7-й лунный день</span>
@@ -123,30 +122,33 @@
         </div>
       </div>
 
-      <div class="tip-line" id="moon-tip-line">
+      <div class="tip-line reveal" id="moon-tip-line">
         <span class="tip-emoji">💫</span><span id="moon-advice-text">—</span>
       </div>
 
-      <div class="badges-row">
-        <div class="badge badge-accent" id="current-theme">—</div>
-        <div class="badge" id="progress-label">Пройдено 0%</div>
+      <div class="progress-row reveal">
+        <span class="progress-row__theme" id="current-theme">—</span>
+        <div class="progress-row__bar">
+          <div class="progress-row__fill" id="progress-bar"></div>
+        </div>
+        <span class="progress-row__num" id="progress-label">0%</span>
       </div>
 
-      <div class="question-card">
+      <div class="question-card reveal stagger" style="--i: 0;">
         <div class="question-label">Вопрос дня</div>
         <h2 id="current-question">Загрузка...</h2>
       </div>
 
-      <textarea id="my-answer" placeholder="Напишите свой ответ..." rows="6"></textarea>
-      <button id="save-answer">Сохранить ответ</button>
+      <textarea id="my-answer" class="reveal stagger" style="--i: 1;" placeholder="Напишите свой ответ..." rows="6"></textarea>
+      <button id="save-answer" class="reveal stagger" style="--i: 2;">Сохранить ответ</button>
       <p id="answer-status" class="hint"></p>
 
-      <div class="partner-section">
+      <div class="partner-section reveal stagger" style="--i: 0;">
         <h3>Ответ партнёра</h3>
         <div id="partner-answer" class="partner-answer">Пока скрыт.</div>
       </div>
 
-      <div class="mood-today">
+      <div class="mood-today reveal stagger" style="--i: 1;">
         <h3>Как вы себя чувствуете?</h3>
         <div class="mood-picker" id="mood-picker">
           <button data-mood="😍">😍</button>
@@ -166,7 +168,6 @@
 
       <div style="display:none;">
         <span id="current-day">1</span>
-        <div id="progress-bar"></div>
         <span id="moon-phase"></span>
         <div id="moon-event"></div>
         <div id="moon-week"></div>
@@ -310,7 +311,7 @@
     <section id="archive-view" class="hidden">
       <h2>Архив</h2>
 
-      <div class="heatmap-card">
+      <div class="heatmap-card reveal">
         <div class="hm-header">
           <div>
             <div class="hm-title">Активность года</div>
@@ -363,7 +364,7 @@
       </div>
 
       <h3 class="conv-section-title">Статистика</h3>
-      <div class="stats-grid" id="stats-grid">
+      <div class="stats-grid reveal" id="stats-grid">
         <div class="stat-card">
           <div class="stat-value" id="stat-answers">0</div>
           <div class="stat-label">ответов всего</div>
@@ -392,12 +393,12 @@
 
       <h3 class="conv-section-title">Дневник настроения</h3>
       <p class="hint">Последние 30 дней</p>
-      <div id="mood-grid" class="mood-grid"></div>
+      <div id="mood-grid" class="mood-grid reveal"></div>
 
       <h3 class="conv-section-title">История ответов</h3>
-      <button id="retro-btn" class="retro-btn">📊 Итоги года</button>
-      <button id="export-pdf-btn" class="export-pdf-btn">📄 Скачать год в PDF</button>
-      <div id="history-list"></div>
+      <button id="retro-btn" class="retro-btn reveal stagger" style="--i: 0;">📊 Итоги года</button>
+      <button id="export-pdf-btn" class="export-pdf-btn reveal stagger" style="--i: 1;">📄 Скачать год в PDF</button>
+      <div id="history-list" class="reveal"></div>
     </section>
 
     <!-- Нижняя навигация -->
@@ -410,6 +411,7 @@
           </svg>
         </span>
         <span class="nav-label">Сегодня</span>
+        <span class="nav-badge hidden" id="badge-today">0</span>
       </button>
       <button class="bottom-nav-item" data-view="conversation">
         <span class="nav-icon">
