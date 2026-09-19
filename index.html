@@ -490,3 +490,185 @@
     <div class="modal-content">
       <h3>Ваш профиль</h3>
       <label class="field-label">Имя</label>
+
+      <input type="text" id="profile-name" placeholder="Например, Руслан" maxlength="30">
+      <label class="field-label">Ссылка на фото (необязательно)</label>
+      <input type="url" id="profile-photo" placeholder="https://...">
+      <p class="hint" style="text-align:left;">Можно вставить ссылку на любое фото из интернета или из облака.</p>
+
+      <div id="lovelang-info" class="hidden">
+        <label class="field-label" style="margin-top:16px;">Язык любви</label>
+        <p class="lovelang-line"><strong>Ваш:</strong> <span id="my-lovelang">—</span></p>
+        <p class="lovelang-line"><strong>Партнёра:</strong> <span id="partner-lovelang">—</span></p>
+      </div>
+
+      <label class="field-label" style="margin-top:16px;">Время напоминания</label>
+      <input type="time" id="notif-time" value="21:00">
+      <p class="hint" style="text-align:left; margin-top:-6px; margin-bottom:14px;">Мы напомним, если вы ещё не ответили.</p>
+
+      <label class="field-label" style="margin-top:16px;">Лунный календарь</label>
+      <label class="toggle-row">
+        <input type="checkbox" id="moon-toggle">
+        <span>Показывать фазу луны и совет дня</span>
+      </label>
+
+      <button id="save-profile">Сохранить</button>
+      <button id="close-profile" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <div id="scheme-modal" class="modal hidden">
+    <div class="modal-backdrop" id="scheme-backdrop"></div>
+    <div class="modal-content">
+      <h3>Цветовая схема</h3>
+      <div class="scheme-grid">
+        <button class="scheme-option" data-scheme="classic">
+          <span class="scheme-dot" style="background: linear-gradient(135deg, #b25a5a, #8b3a3a)"></span>
+          <span class="scheme-name">Классика</span>
+        </button>
+        <button class="scheme-option" data-scheme="autumn">
+          <span class="scheme-dot" style="background: linear-gradient(135deg, #d97706, #b45309)"></span>
+          <span class="scheme-name">Осень</span>
+        </button>
+        <button class="scheme-option" data-scheme="spring">
+          <span class="scheme-dot" style="background: linear-gradient(135deg, #d4708c, #a64563)"></span>
+          <span class="scheme-name">Весна</span>
+        </button>
+        <button class="scheme-option" data-scheme="ocean">
+          <span class="scheme-dot" style="background: linear-gradient(135deg, #2a7d9c, #1a5570)"></span>
+          <span class="scheme-name">Океан</span>
+        </button>
+      </div>
+      <button id="close-scheme" class="link">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="topic-modal" class="modal hidden">
+    <div class="modal-backdrop" id="topic-backdrop"></div>
+    <div class="modal-content modal-wide">
+      <h3>О чём поговорить?</h3>
+      <div id="topic-list" class="topic-list"></div>
+      <label class="field-label" style="margin-top:16px;">Или своя тема</label>
+      <input type="text" id="topic-custom" placeholder="Например: «Планы на лето»" maxlength="80">
+      <label class="toggle-row" style="margin-top:0;">
+        <input type="checkbox" id="topic-save-custom">
+        <span>Сохранить как свою тему</span>
+      </label>
+      <button id="topic-confirm">Начать разговор</button>
+      <button id="topic-cancel" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <div id="conversation-modal" class="modal hidden">
+    <div class="modal-backdrop" id="conversation-backdrop"></div>
+    <div class="modal-content modal-wide">
+      <h3 id="conversation-title">—</h3>
+      <p class="hint conv-date" id="conversation-date">—</p>
+      <label class="field-label">Что важно для меня</label>
+      <textarea id="conversation-my-text" rows="5" maxlength="2000" placeholder="Напишите своё..."></textarea>
+      <button id="conversation-save-my">Сохранить</button>
+      <label class="field-label" style="margin-top:20px;">Что важно для партнёра</label>
+      <div id="conversation-partner-text" class="conversation-partner-text">Пока скрыт.</div>
+      <button id="conversation-make-agreement" class="make-agreement-btn">🤝 Договориться</button>
+      <button id="conversation-close" class="link">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="agreement-modal" class="modal hidden">
+    <div class="modal-backdrop" id="agreement-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="agreement-modal-title">Новая договорённость</h3>
+      <label class="field-label">О чём договорились</label>
+      <input type="text" id="agreement-title-input" placeholder="Например: «Гулять по субботам»" maxlength="80">
+      <label class="field-label">Детали</label>
+      <textarea id="agreement-text-input" placeholder="Что именно решили, как часто, с какого момента..." rows="5" maxlength="1000"></textarea>
+      <button id="save-agreement">Сохранить</button>
+      <button id="close-agreement" class="link">Отмена</button>
+    </div>
+  </div>
+
+  <div id="retro-modal" class="modal hidden">
+    <div class="modal-backdrop" id="retro-backdrop"></div>
+    <div class="modal-content modal-wide">
+      <h3>Наш год</h3>
+      <div id="retro-content">
+        <p class="hint">Загрузка...</p>
+      </div>
+      <button id="retro-close" class="link">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="day-view-modal" class="modal hidden">
+    <div class="modal-backdrop" id="day-view-backdrop"></div>
+    <div class="modal-content modal-wide">
+      <h3 id="day-view-title">День 1</h3>
+      <p class="hint" id="day-view-date">—</p>
+      <div class="day-view-question" id="day-view-question">—</div>
+      <div class="day-view-answers">
+        <div class="day-view-answer">
+          <div class="day-view-answer-label" id="day-view-label-me">Вы</div>
+          <div class="day-view-answer-text" id="day-view-answer-me">—</div>
+        </div>
+        <div class="day-view-answer partner">
+          <div class="day-view-answer-label" id="day-view-label-partner">Партнёр</div>
+          <div class="day-view-answer-text" id="day-view-answer-partner">—</div>
+        </div>
+      </div>
+      <button id="day-view-close" class="link">Закрыть</button>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
+      });
+    }
+  </script>
+
+  <script>
+    (function() {
+      function setHeaderDate() {
+        const el = document.getElementById('header-date');
+        if (!el) return;
+        const now = new Date();
+        const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+        el.textContent = now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+      }
+      setHeaderDate();
+
+      const gearBtn = document.getElementById('gearBtn');
+      const menu = document.getElementById('settingsMenu');
+      const backdrop = document.getElementById('settingsBackdrop');
+
+      function toggleMenu() {
+        if (!menu) return;
+        const isOpen = menu.classList.contains('open');
+        menu.classList.toggle('open', !isOpen);
+        if (gearBtn) gearBtn.classList.toggle('open', !isOpen);
+        if (backdrop) backdrop.classList.toggle('open', !isOpen);
+      }
+
+      if (gearBtn) {
+        gearBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleMenu();
+        });
+      }
+      if (backdrop) backdrop.addEventListener('click', toggleMenu);
+
+      document.querySelectorAll('.settings-item').forEach(item => {
+        item.addEventListener('click', () => {
+          setTimeout(() => {
+            if (menu) menu.classList.remove('open');
+            if (gearBtn) gearBtn.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('open');
+          }, 150);
+        });
+      });
+    })();
+  </script>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
