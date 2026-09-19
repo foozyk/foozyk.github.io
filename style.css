@@ -7,7 +7,7 @@
   --accent: #b25a5a;
   --accent-dark: #8b3a3a;
   --accent-soft: #f5d9d3;
-  --accent-alt: #e8a0a8;
+  --accent-alt: #e8a0a8;а
   --accent-gold: #c9a961;
 
   --text: #3a2a2a;
@@ -334,19 +334,12 @@ body.dark .error { color: #ff8080; }
 
 .header-top {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   position: relative;
   z-index: 2;
   margin-bottom: 14px;
-}
-.header-date {
-  font-family: 'Caveat', cursive;
-  font-size: 21px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.95);
-  transform: rotate(-2deg);
-  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  min-height: 40px;
 }
 
 /* Шестерёнка */
@@ -491,40 +484,27 @@ body.dark .error { color: #ff8080; }
 
 .header-days {
   display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: 8px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 .header-days-num {
   font-family: 'Bodoni Moda', serif;
   font-style: italic;
   font-weight: 500;
-  font-size: 34px;
+  font-size: 44px;
   color: #fff;
   line-height: 1;
   text-shadow: 0 0 20px rgba(255, 220, 200, 0.4);
-}
-.header-days-slash {
-  font-family: 'Bodoni Moda', serif;
-  font-size: 22px;
-  color: rgba(255,255,255,0.5);
-  margin: 0 2px;
-}
-.header-days-total {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-weight: 400;
-  font-size: 22px;
-  color: rgba(255,255,255,0.7);
 }
 .header-days-lbl {
   font-family: 'Manrope', sans-serif;
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255,255,255,0.75);
+  color: rgba(255, 255, 255, 0.75);
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  margin-left: 8px;
+  margin-left: 0;
 }
 
 /* Меню шестерёнки */
@@ -2048,7 +2028,7 @@ body.dark .scheme-option { color: #e8d4d8; }
 
 /* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
 @media (max-width: 380px) {
-  .header-headline { font-size: 48px; }
+  .header-headline { font-size: 48px; } .header-days-num { font-size: 38px; }
   .header-polaroids .polaroid-img { width: 104px; height: 104px; font-size: 48px; }
   .invite-code { font-size: 36px; letter-spacing: 5px; }
   h1 { font-size: 28px; }
