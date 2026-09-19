@@ -644,6 +644,7 @@ function updateBadges() {
   setBadge("badge-about", aboutNew);
   setBadge("badge-archive", 0);
 }
+
 /* ---------- СТАТИСТИКА ---------- */
 async function renderStats() {
   try {
@@ -1264,14 +1265,11 @@ async function toggleNotifications() {
   localStorage.setItem("notif-enabled", "1");
   updateNotifButton();
   try {
-    new Notification
-    updateNotifButton();
-    try {
-      new Notification("Уведомления включены 💛", {
-        body: "Мы напомним вам вечером, если вы ещё не ответили на вопрос дня.",
-        icon: "./icon-192.png"
-      });
-    } catch (e) { console.log("Notif error:", e); }
+    new Notification("Уведомления включены 💛", {
+      body: "Мы напомним вам вечером, если вы ещё не ответили на вопрос дня.",
+      icon: "./icon-192.png"
+    });
+  } catch (e) { console.log("Notif error:", e); }
 }
 function checkReminder() {
   if (!currentUser) return;
@@ -1497,7 +1495,7 @@ async function renderMoodHistory() {
     container.innerHTML = "<p class='hint'>Ошибка загрузки.</p>";
   }
 }
-// ===== КОНЕЦ ЧАСТИ 2 (доклейка) =====
+
 /* ---------- ЛУННЫЙ КАЛЕНДАРЬ ---------- */
 function getMoonData(date) {
   const knownNewMoon = Date.UTC(2000, 0, 6, 18, 14, 0);
@@ -2729,4 +2727,3 @@ async function exportToPDF() {
     btn.disabled = false;
   }
 }
-// ===== КОНЕЦ ФАЙЛА =====
