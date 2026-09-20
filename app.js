@@ -4919,8 +4919,9 @@ function initDialogue() {
         case "submit-feeling":   submitDialogueFeeling(); break;
         case "cancel-dialogue":  cancelDialogue(id); break;
         case "accept":           acceptDialogue(id); break;
-        case "save-text":        saveDialogueText(id); break;
-        case "open-agreement":   openDialogueAgreement(id); break;
+        case "save-text":            saveDialogueText(id); break;
+        case "open-agreement":       openDialogueAgreement(id); break;
+        case "save-agreement":       saveDialogueAgreement(id); break;
         case "sign":             signDialogue(id); break;
         case "sign-for-partner": signForPartner(id); break;
         case "open-modal":       openDialogueModal(id); break;
@@ -5253,7 +5254,38 @@ function renderDialogueTalking(conv) {
     ${proceedBtnHtml}
   `;
 }
+async function saveDialogueAgreement(convId) {
+  const title = ($("dlg-agr-title")?.value || "").trim();
+  const text = ($("dlg-agr-text")?.value || "").trim();
+  if (!title) { alert("Введите название договора"); return; }
 
+  const btn = document.querySelector('[data-dlg-action="save-agreement"]');
+  if (btn) btn.disabled = true;
+
+  try {
+    const ref = await addDoc(collection(db, "couples", currentCoupleId, "agreements"), {
+      title,
+      text,
+      createdBy: currentUser.uid,
+      createdAt: serverTimestamp(),
+      done: false,
+      fromDialogue: true,
+      fromConversation: convId
+    });
+
+    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), {
+      phase: "signing",
+      agreementId: ref.id
+    });
+
+    vibrate(15);
+    // Не закрываем модалку — onSnapshot перерисует её на фазу signing
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+    if (btn) btn.disabled = false;
+  }
+}
 async function saveDialogueText(convId) {
   const ta = $("dialogue-my-text");
   if (!ta) return;
@@ -5274,15 +5306,32 @@ async function saveDialogueText(convId) {
 }
 
 function openDialogueAgreement(convId) {
-  // Скрываем модалку примирения, чтобы agreement-modal не оказалась под ней
-  $("dialogue-modal").classList.add("hidden");
+  const conv = conversations.find(c => c.id === convId);
+  if (!conv) return;
 
-  $("agreement-modal-title").textContent = "Новый договор";
-  $("agreement-title-input").value = "";
-  $("agreement-text-input").value = "";
-  $("agreement-modal").dataset.fromConversation = convId;
-  $("agreement-modal").dataset.fromDialogue = convId;
-  $("agreement-modal").classList.remove("hidden");
+  const f = getDialogueFeelingInfo(conv.feeling);
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div style="text-align:center;">
+      <div class="dialogue__context">
+        <span class="dialogue__context-icon">${getFeelingIcon(conv.feeling)}</span>
+        <span>${escapeHtml(f.label)}</span>
+      </div>
+    </div>
+
+    <div class="dialogue__subtitle">Что мы решили вместе</div>
+
+    <label class="field-label">О чём договорились</label>
+    <input type="text" id="dlg-agr-title" placeholder="Например: «Прощаемся перед уходом»" maxlength="80">
+
+    <label class="field-label">Детали</label>
+    <textarea id="dlg-agr-text" rows="4" placeholder="Что именно решили, как часто, с какого момента..." maxlength="1000"></textarea>
+
+    <button class="dialogue-btn" data-dlg-action="save-agreement" data-dlg-id="${convId}">Сохранить и подписать</button>
+    <button class="dialogue-link" data-dlg-action="open-modal" data-dlg-id="${convId}">Назад</button>
+  `;
+
   vibrate(10);
 }
 

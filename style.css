@@ -4612,6 +4612,16 @@ body.dark .dialogue__partner-box {
   font-style: normal;
   text-align: left;
 }
+/* Поля ввода в модалке примирения — холодная палитра */
+#dialogue-modal-content input[type="text"],
+#dialogue-modal-content textarea {
+  border-color: rgba(74, 122, 156, 0.25);
+}
+#dialogue-modal-content input[type="text"]:focus,
+#dialogue-modal-content textarea:focus {
+  border-color: var(--dialogue-accent);
+  box-shadow: 0 0 0 3px rgba(74, 122, 156, 0.15);
+}
 body.dark .dialogue__partner-box--open {
   background: rgba(178, 90, 90, 0.15);
   color: var(--text);
