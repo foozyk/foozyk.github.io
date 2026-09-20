@@ -2824,7 +2824,19 @@ function initAgreements() {
   $("save-agreement").onclick = saveAgreement;
   listenForAgreements();
 }
-function closeAgreementModal() { $("agreement-modal").classList.add("hidden"); }
+function closeAgreementModal() {
+  $("agreement-modal").classList.add("hidden");
+
+  // Если договор открывался из примирения — возвращаем диалоговую модалку
+  const fromDialogue = $("agreement-modal").dataset.fromDialogue || "";
+  if (fromDialogue) {
+    $("agreement-modal").dataset.fromDialogue = "";
+    setTimeout(() => {
+      const conv = conversations.find(c => c.id === fromDialogue);
+      if (conv) openDialogueModal(fromDialogue);
+    }, 300);
+  }
+}
 function listenForAgreements() {
   if (unsubAgreements) unsubAgreements();
   unsubAgreements = onSnapshot(
@@ -5262,7 +5274,10 @@ async function saveDialogueText(convId) {
 }
 
 function openDialogueAgreement(convId) {
-  $("agreement-modal-title").textContent = "Новая договорённость";
+  // Скрываем модалку примирения, чтобы agreement-modal не оказалась под ней
+  $("dialogue-modal").classList.add("hidden");
+
+  $("agreement-modal-title").textContent = "Новый договор";
   $("agreement-title-input").value = "";
   $("agreement-text-input").value = "";
   $("agreement-modal").dataset.fromConversation = convId;
