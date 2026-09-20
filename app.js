@@ -4883,6 +4883,39 @@ function initDialogue() {
   if (btn) btn.onclick = onReconcileClick;
   const backdrop = $("dialogue-backdrop");
   if (backdrop) backdrop.onclick = closeDialogueModal;
+
+  // Один слушатель на весь контент модалки — работает всегда,
+  // не зависит от inline onclick и window-экспорта
+  const content = $("dialogue-modal-content");
+  if (content && content.dataset.dlgBound !== "1") {
+    content.dataset.dlgBound = "1";
+    content.addEventListener("click", (e) => {
+      const el = e.target.closest("[data-dlg-action]");
+      if (!el) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const action = el.dataset.dlgAction;
+      const id = el.dataset.dlgId;
+      const key = el.dataset.dlgKey;
+
+      console.log("[dialogue] action:", action, id, key);
+
+      switch (action) {
+        case "close":            closeDialogueModal(); break;
+        case "pick-feeling":     pickDialogueFeeling(key); break;
+        case "submit-feeling":   submitDialogueFeeling(); break;
+        case "cancel-dialogue":  cancelDialogue(id); break;
+        case "accept":           acceptDialogue(id); break;
+        case "save-text":        saveDialogueText(id); break;
+        case "open-agreement":   openDialogueAgreement(id); break;
+        case "sign":             signDialogue(id); break;
+        case "sign-for-partner": signForPartner(id); break;
+        case "open-modal":       openDialogueModal(id); break;
+        case "cancel-old-new":   cancelOldDialogueAndStartNew(id); break;
+      }
+    });
+  }
 }
 
 function onReconcileClick() {
@@ -4915,15 +4948,15 @@ function openDialogueBlockModal(conv) {
 
   const actionsHtml = iAmInitiator
     ? `
-      <button class="dialogue-btn dialogue-btn--danger" onclick="cancelOldDialogueAndStartNew('${conv.id}')">Отменить старое</button>
+      <button class="dialogue-btn dialogue-btn--danger" data-dlg-action="cancel-old-new" data-dlg-id="${conv.id}">Отменить старое</button>
       <span class="dialogue-btn__sub">Сможешь создать новое</span>
-      <button class="dialogue-link dialogue-link--muted" onclick="closeDialogueModal()">Отмена</button>
+      <button class="dialogue-link dialogue-link--muted" data-dlg-action="close">Отмена</button>
     `
     : `
       <div class="dialogue__block-footer">
         Закрыть это примирение может только <strong>${escapeHtml(partnerName)}</strong>
       </div>
-      <button class="dialogue-link dialogue-link--muted" style="margin-top:12px;" onclick="closeDialogueModal()">Отмена</button>
+      <button class="dialogue-link dialogue-link--muted" style="margin-top:12px;" data-dlg-action="close">Отмена</button>
     `;
 
   const content = $("dialogue-modal-content");
@@ -4937,7 +4970,7 @@ function openDialogueBlockModal(conv) {
     </div>
     <div class="dialogue__block-meta">${meta}</div>
 
-    <button class="dialogue-btn" onclick="openDialogueModal('${conv.id}')">Открыть его</button>
+    <button class="dialogue-btn" data-dlg-action="open-modal" data-dlg-id="${conv.id}">Открыть его</button>
     ${actionsHtml}
   `;
 
@@ -4968,7 +5001,7 @@ function openFeelingPicker() {
   const partnerName = getPartnerNameForDialogue();
 
   const moodsHtml = DIALOGUE_FEELINGS.map(f => `
-    <button class="dialogue-mood" data-key="${f.key}" onclick="pickDialogueFeeling('${f.key}')">
+    <button class="dialogue-mood" data-dlg-action="pick-feeling" data-dlg-key="${f.key}" data-key="${f.key}">
       <span class="dialogue-mood__icon">${DIALOGUE_ICONS[f.icon]}</span>
       <span>${escapeHtml(f.label)}</span>
     </button>
@@ -4978,7 +5011,7 @@ function openFeelingPicker() {
   content.innerHTML = `
     <div class="dialogue__head">
       <div class="dialogue__label">Примирение</div>
-      <button class="dialogue__close" onclick="closeDialogueModal()">✕</button>
+      <button class="dialogue__close" data-dlg-action="close">✕</button>
     </div>
 
     <div class="dialogue__subtitle">Что сейчас между вами?</div>
@@ -4990,8 +5023,8 @@ function openFeelingPicker() {
     <label class="field-label">Что случилось? <span class="optional">(необязательно)</span></label>
     <textarea id="dialogue-reason-input" rows="2" placeholder="Коротко, чтобы ${escapeHtml(partnerName)} понял..."></textarea>
 
-    <button class="dialogue-btn" id="dialogue-submit-btn" disabled onclick="submitDialogueFeeling()">Предложить примирение</button>
-    <button class="dialogue-link" onclick="closeDialogueModal()">Отмена</button>
+    <button class="dialogue-btn" id="dialogue-submit-btn" disabled data-dlg-action="submit-feeling">Предложить примирение</button>
+    <button class="dialogue-link" data-dlg-action="close">Отмена</button>
   `;
 
   const ta = $("dialogue-reason-input");
@@ -5090,8 +5123,8 @@ function renderDialogueWaiting(conv) {
         Как только ${escapeHtml(partnerName)} откроет — начнём.
       </div>
 
-      <button class="dialogue-btn" onclick="closeDialogueModal()">Понятно</button>
-      <button class="dialogue-link dialogue-link--muted" onclick="cancelDialogue('${conv.id}')">Отменить предложение</button>
+      <button class="dialogue-btn" data-dlg-action="close">Понятно</button>
+      <button class="dialogue-link dialogue-link--muted" data-dlg-action="cancel-dialogue" data-dlg-id="${conv.id}">Отменить предложение</button>
     </div>
   `;
 }
@@ -5143,8 +5176,8 @@ function renderDialoguePartnerScreen(conv) {
       ${reasonHtml}
       <div class="dialogue__partner-hint">${escapeHtml(partnerName)} предлагает перейти к договору</div>
 
-      <button class="dialogue-btn" onclick="acceptDialogue('${conv.id}')">К договору</button>
-      <button class="dialogue__secondary-link" onclick="closeDialogueModal()">Не сейчас</button>
+      <button class="dialogue-btn" data-dlg-action="accept" data-dlg-id="${conv.id}">К договору</button>
+      <button class="dialogue__secondary-link" data-dlg-action="close">Не сейчас</button>
 
       <div class="dialogue__partner-footer">
         Режим завершится, когда вы оба подпишете договор.
@@ -5179,11 +5212,11 @@ function renderDialogueTalking(conv) {
     : `<div class="dialogue__partner-box">${escapeHtml(partnerName)} ещё не написал.<br>Мы скажем, когда он ответит.</div>`;
 
   const saveBtnHtml = !bothWrote
-    ? `<button class="dialogue-btn" onclick="saveDialogueText('${conv.id}')">Сохранить</button>`
+    ? `<button class="dialogue-btn" data-dlg-action="save-text" data-dlg-id="${conv.id}">Сохранить</button>`
     : "";
 
   const proceedBtnHtml = bothWrote
-    ? `<button class="dialogue-btn" style="margin-top:6px;" onclick="openDialogueAgreement('${conv.id}')">К договору</button>`
+    ? `<button class="dialogue-btn" style="margin-top:6px;" data-dlg-action="open-agreement" data-dlg-id="${conv.id}">К договору</button>`
     : "";
 
   const content = $("dialogue-modal-content");
@@ -5257,7 +5290,7 @@ function renderDialogueSigning(conv) {
   `;
 
   const previewSignPartner = iSigned && !partnerSigned
-    ? `<button class="dialogue-btn" style="margin-top:14px;background:linear-gradient(135deg,#8ab4d4,#4a7a9c);" onclick="signForPartner('${conv.id}')">👁 Подписать за ${escapeHtml(partnerName)}</button>`
+    ? `<button class="dialogue-btn" style="margin-top:14px;background:linear-gradient(135deg,#8ab4d4,#4a7a9c);" data-dlg-action="sign-for-partner" data-dlg-id="${conv.id}">👁 Подписать за ${escapeHtml(partnerName)}</button>`
     : "";
 
   const footerHtml = (!iSigned && !partnerSigned)
@@ -5280,7 +5313,7 @@ function renderDialogueSigning(conv) {
       <div class="dialogue__agreement-text">${escapeHtml(agreement.text || "")}</div>
     </div>
 
-    <button class="dialogue-btn" ${iSigned ? 'disabled' : ''} onclick="signDialogue('${conv.id}')">
+    <button class="dialogue-btn" ${iSigned ? 'disabled' : ''} data-dlg-action="sign" data-dlg-id="${conv.id}">
       ${iSigned ? '✓ Подписано' : 'Подписываю'}
     </button>
 
@@ -5355,7 +5388,7 @@ function renderDialogueDone(conv) {
       <div class="dialogue__done-title">Мир</div>
       <div class="dialogue__done-text">Спасибо, что услышали друг друга.</div>
     </div>
-    <button class="dialogue-link" style="margin-top:20px;" onclick="closeDialogueModal()">Закрыть</button>
+    <button class="dialogue-link" style="margin-top:20px;" data-dlg-action="close">Закрыть</button>
     <div class="dialogue__heart-burst" id="dialogue-heart-burst"></div>
   `;
   setTimeout(() => burstDialogueHearts(), 150);
