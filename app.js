@@ -2478,6 +2478,19 @@ function listenForConversations() {
       renderConversations();
       updateBadges();
 
+      // Если открыта модалка примирения — перерисовываем её
+      if (_currentDialogueId) {
+        const fresh = conversations.find(c => c.id === _currentDialogueId);
+        const modal = $("dialogue-modal");
+        if (fresh && modal && !modal.classList.contains("hidden")) {
+          renderDialogueContent(fresh);
+          // Если завершилось — запускаем сердечки
+          if (fresh.phase === "done") {
+            setTimeout(() => burstDialogueHearts(), 150);
+          }
+        }
+      }
+
       if (conversationsInitialized) {
         detectConversationEvents(prevConversations);
       } else {
@@ -4946,6 +4959,7 @@ async function cancelOldDialogueAndStartNew(convId) {
 /* ---- Выбор чувства ---- */
 let _tmpDialogueFeeling = null;
 let _tmpDialogueReason = "";
+let _currentDialogueId = null;
 
 function openFeelingPicker() {
   _tmpDialogueFeeling = null;
@@ -5026,6 +5040,14 @@ function openDialogueModal(convId) {
   const conv = conversations.find(c => c.id === convId);
   if (!conv) return;
 
+  _currentDialogueId = convId;
+  renderDialogueContent(conv);
+
+  $("dialogue-modal").classList.remove("hidden");
+  vibrate(10);
+}
+
+function renderDialogueContent(conv) {
   if (conv.phase === "done") {
     renderDialogueDone(conv);
   } else if (conv.phase === "invite") {
@@ -5036,14 +5058,12 @@ function openDialogueModal(convId) {
   } else if (conv.phase === "signing") {
     renderDialogueSigning(conv);
   }
-
-  $("dialogue-modal").classList.remove("hidden");
-  vibrate(10);
 }
 
 function closeDialogueModal() {
   const m = $("dialogue-modal");
   if (m) m.classList.add("hidden");
+  _currentDialogueId = null;
 }
 
 /* ---- Ждём партнёра ---- */
