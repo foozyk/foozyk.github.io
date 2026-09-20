@@ -72,13 +72,42 @@
           <div class="tape"></div>
           <div class="polaroid-img" id="polaroid-me" style="background: linear-gradient(135deg, #5a3a2a, #8b5a3a);">?</div>
           <div class="polaroid-caption" id="polaroid-name-me">Вы</div>
-          <span class="person-mood hidden" id="mood-me"></span>
+          <button class="pulse-dot pulse-dot--empty" id="pulse-me" type="button" aria-label="Пульс дня">+</button>
         </div>
         <div class="polaroid">
           <div class="tape"></div>
           <div class="polaroid-img" id="polaroid-partner" style="background: linear-gradient(135deg, #c9a961, #b25a5a);">?</div>
           <div class="polaroid-caption" id="polaroid-name-partner">Партнёр</div>
-          <span class="person-mood hidden" id="mood-partner"></span>
+          <button class="pulse-dot pulse-dot--empty" id="pulse-partner" type="button" aria-label="Пульс партнёра" disabled>+</button>
+          <div class="polaroid-badge hidden" id="pulse-badge-partner">грустит</div>
+
+          <!-- Кнопки заботы — появляются, если партнёр грустит -->
+          <div class="care-actions hidden" id="care-actions">
+            <div class="care-label">позаботься</div>
+
+            <button class="care-btn" data-care="hug" type="button" aria-label="Обнять" title="Обнять">
+              <svg viewBox="0 0 24 24">
+                <circle cx="9" cy="7" r="3"/>
+                <circle cx="15" cy="7" r="3"/>
+                <path d="M3.5 17 C3.5 13.5 6 11.5 9 11.5 C10.3 11.5 11.5 12 12 13"/>
+                <path d="M20.5 17 C20.5 13.5 18 11.5 15 11.5 C13.7 11.5 12.5 12 12 13"/>
+                <path d="M12 13 C12 15 11 17 9 18"/>
+              </svg>
+            </button>
+
+            <button class="care-btn" data-care="support" type="button" aria-label="Я рядом" title="Я рядом">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 20 C12 20 3 14 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 11.5 4 12 5 C12.5 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 14 12 20 12 20 Z"/>
+                <path d="M8 11 L10 11 L11 9 L12.5 13 L14 11 L16 11"/>
+              </svg>
+            </button>
+
+            <button class="care-btn care-btn--love" data-care="love" type="button" aria-label="Люблю" title="Люблю">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 20 C12 20 3 14 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 11.5 4 12 5 C12.5 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 14 12 20 12 20 Z"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -153,24 +182,6 @@
         <div id="partner-answer" class="partner-answer">Пока скрыт.</div>
       </div>
 
-      <div class="mood-today reveal stagger" style="--i: 1;">
-        <h3>Как вы себя чувствуете?</h3>
-        <div class="mood-picker" id="mood-picker">
-          <button data-mood="😍">😍</button>
-          <button data-mood="😊">😊</button>
-          <button data-mood="😐">😐</button>
-          <button data-mood="😔">😔</button>
-          <button data-mood="😡">😡</button>
-          <button data-mood="😴">😴</button>
-        </div>
-        <textarea id="mood-note" class="mood-note" placeholder="Почему так? (необязательно)" rows="2" maxlength="200"></textarea>
-        <button id="save-mood-note" class="mood-note-btn" type="button">Сохранить заметку</button>
-        <div class="mood-partner-block">
-          <p class="hint" id="mood-partner-text">Партнёр ещё не отметил настроение.</p>
-          <p class="hint mood-partner-note" id="mood-partner-note"></p>
-        </div>
-      </div>
-
       <div style="display:none;">
         <span id="current-day">1</span>
         <div id="moon-widget"></div>
@@ -184,7 +195,15 @@
       <h2>Разговор</h2>
       <p class="hint">Поговорите о важном. Или начните примирение, если между вами что-то не так.</p>
 
-      <button id="new-conversation-btn" class="add-agreement-btn">💬 Начать разговор</button>
+      <button id="new-conversation-btn" class="dialogue-start-btn dialogue-start-btn--normal" type="button">
+        <span class="dialogue-start-btn__title">
+          <svg class="dialogue-icon dialogue-icon--20" viewBox="0 0 24 24">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+          <span>Начать разговор</span>
+        </span>
+        <span class="dialogue-start-btn__sub">Поговорим о важном</span>
+      </button>
 
       <button id="reconcile-btn" class="dialogue-start-btn" type="button">
         <span class="dialogue-start-btn__title">
@@ -416,7 +435,7 @@
           <div class="stat-card"><div class="stat-value" id="stat-agreements">0</div><div class="stat-label">договорённостей</div></div>
         </div>
 
-        <h3 class="conv-section-title">Дневник настроения</h3>
+        <h3 class="conv-section-title">Пульс месяца</h3>
         <p class="hint">Последние 30 дней</p>
         <div id="mood-grid" class="mood-grid reveal"></div>
 
@@ -696,6 +715,33 @@
   <div id="word-modal" class="modal hidden">
     <div class="modal-backdrop" id="word-backdrop"></div>
     <div class="modal-content modal-wide" id="word-modal-content"></div>
+  </div>
+
+  <!-- ===== МОДАЛКА «ПУЛЬС ДНЯ» ===== -->
+  <div id="pulse-modal" class="modal hidden">
+    <div class="modal-backdrop" id="pulse-backdrop"></div>
+    <div class="modal-content">
+      <h3 class="pulse-modal__title">Как ты себя чувствуешь?</h3>
+
+      <div class="pulse-modal__emojis" id="pulse-emojis">
+        <button type="button" class="pulse-emoji" data-emoji="😍">😍</button>
+        <button type="button" class="pulse-emoji" data-emoji="😊">😊</button>
+        <button type="button" class="pulse-emoji" data-emoji="😐">😐</button>
+        <button type="button" class="pulse-emoji" data-emoji="😔">😔</button>
+        <button type="button" class="pulse-emoji" data-emoji="😡">😡</button>
+        <button type="button" class="pulse-emoji" data-emoji="😴">😴</button>
+      </div>
+
+      <button type="button" class="pulse-modal__add-note" id="pulse-add-note">+ добавить пояснение</button>
+
+      <div class="pulse-modal__note-wrap hidden" id="pulse-note-wrap">
+        <label class="field-label">Что-то ещё? <span class="optional">(необязательно)</span></label>
+        <textarea id="pulse-note-input" rows="2" maxlength="200" placeholder="Например: устал, но в целом хорошо"></textarea>
+        <button type="button" class="pulse-modal__save" id="pulse-save-btn">Сохранить</button>
+      </div>
+
+      <button type="button" class="link" id="pulse-cancel-btn">Отмена</button>
+    </div>
   </div>
 
   <!-- ===== МОДАЛКА «ЛУННЫЙ КАЛЕНДАРЬ» ===== -->

@@ -4226,6 +4226,29 @@ body.dark .moon-modal__section-label { color: var(--accent-alt); }
   transition: all 0.15s;
   box-shadow: none;
 }
+
+/* «Начать разговор» — тёплая версия (жёстко по id) */
+#new-conversation-btn {
+  background: linear-gradient(180deg, #fce9e4 0%, #f5d0c8 100%) !important;
+  border-color: rgba(178, 90, 90, 0.3) !important;
+  color: #8b3a3a !important;
+}
+#new-conversation-btn .dialogue-start-btn__sub {
+  color: #b25a5a !important;
+  opacity: 0.9;
+}
+#new-conversation-btn:hover {
+  box-shadow: 0 6px 20px rgba(178, 90, 90, 0.2);
+}
+body.dark #new-conversation-btn {
+  background: linear-gradient(180deg, #3d2229 0%, #2a1720 100%) !important;
+  border-color: rgba(232, 160, 168, 0.3) !important;
+  color: var(--accent-alt) !important;
+}
+body.dark #new-conversation-btn .dialogue-start-btn__sub {
+  color: var(--accent-alt) !important;
+  opacity: 0.85;
+}
 body.dark .dialogue-start-btn {
   background: linear-gradient(180deg, #1f3444 0%, #162835 100%);
   border-color: rgba(138, 180, 212, 0.25);
@@ -4885,4 +4908,521 @@ body.dark .conv-card--reconcile .conv-card__feeling { color: #8ab4d4; }
 .dialogue-icon--fill {
   fill: currentColor;
   stroke: none;
+}
+/* ==========================================================
+   ПУЛЬС ДНЯ — кружок на полароиде + модалка
+   ========================================================== */
+
+/* ---- Кружок пульса в углу полароида ---- */
+.pulse-dot {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 36px;
+  height: 36px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+  font-family: 'Manrope', sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 2px solid #faf5ea;
+  z-index: 10;
+  cursor: pointer;
+  transition: transform 0.2s;
+  padding: 0;
+  color: #3a2a2a;
+}
+.pulse-dot:hover { transform: scale(1.1); }
+.pulse-dot:active { transform: scale(0.95); }
+.pulse-dot:disabled {
+  cursor: default;
+  opacity: 1;
+  transform: none;
+}
+.pulse-dot--empty {
+  background: #f0ebe3;
+  color: #b0a89e;
+  font-size: 22px;
+  font-weight: 300;
+}
+.pulse-dot--pulse {
+  animation: pulseDotGlow 2.4s ease-in-out infinite;
+}
+@keyframes pulseDotGlow {
+  0%, 100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+  50% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 5px rgba(232, 160, 168, 0.35); }
+}
+
+/* ---- Бейдж «грустит» под полароидом партнёра ---- */
+.polaroid-badge {
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #8b3a3a 0%, #b25a5a 100%);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 100px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  z-index: 5;
+  text-transform: uppercase;
+  transition: opacity 0.25s;
+}
+.polaroid-badge::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 9px;
+  height: 9px;
+  background: #8b3a3a;
+}
+.polaroid-badge.hidden { display: none !important; }
+
+/* ---- Модалка пульса ---- */
+#pulse-modal .modal-content {
+  padding: 24px 22px;
+}
+
+.pulse-modal__title {
+  font-family: 'Bodoni Moda', serif;
+  font-style: italic;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: center;
+  margin: 0 0 20px;
+  line-height: 1.3;
+}
+
+.pulse-modal__emojis {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.pulse-emoji {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1.5px solid rgba(178, 90, 90, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  padding: 0;
+  line-height: 1;
+  box-shadow: none;
+}
+body.dark .pulse-emoji {
+  background: rgba(70, 45, 55, 0.5);
+  border-color: rgba(232, 160, 168, 0.2);
+}
+.pulse-emoji:hover {
+  transform: scale(1.1);
+  border-color: var(--accent);
+  background: rgba(178, 90, 90, 0.08);
+  opacity: 1;
+}
+.pulse-emoji.selected {
+  background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(232, 160, 168, 0.5) 100%);
+  border-color: var(--accent);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(178, 90, 90, 0.25);
+}
+body.dark .pulse-emoji.selected {
+  background: rgba(178, 90, 90, 0.35);
+  border-color: var(--accent-alt);
+}
+
+.pulse-modal__add-note {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+  box-shadow: none;
+}
+body.dark .pulse-modal__add-note { color: var(--accent-alt); }
+.pulse-modal__add-note:hover { opacity: 0.8; transform: none; }
+
+.pulse-modal__note-wrap {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(178, 90, 90, 0.15);
+}
+body.dark .pulse-modal__note-wrap {
+  border-top-color: rgba(232, 160, 168, 0.15);
+}
+
+#pulse-note-input {
+  min-height: 60px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.pulse-modal__save {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent-alt) 100%);
+  box-shadow: 0 8px 24px rgba(178, 90, 90, 0.3);
+  margin-top: 4px;
+}
+body.dark .pulse-modal__save { color: #1a0a0e; }
+.pulse-modal__save:hover { opacity: 0.95; }
+/* ==========================================================
+   ПУЛЬС ДНЯ — кружок на полароиде + модалка
+   ========================================================== */
+
+/* ---- Кружок пульса в углу полароида ---- */
+.pulse-dot {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 36px;
+  height: 36px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+  font-family: 'Manrope', sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 2px solid #faf5ea;
+  z-index: 10;
+  cursor: pointer;
+  transition: transform 0.2s;
+  padding: 0;
+  color: #3a2a2a;
+}
+.pulse-dot:hover { transform: scale(1.1); }
+.pulse-dot:active { transform: scale(0.95); }
+.pulse-dot:disabled { cursor: default; opacity: 1; transform: none; }
+.pulse-dot--empty { background: #f0ebe3; color: #b0a89e; font-size: 22px; font-weight: 300; }
+.pulse-dot--pulse { animation: pulseDotGlow 2.4s ease-in-out infinite; }
+@keyframes pulseDotGlow {
+  0%, 100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+  50% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 5px rgba(232, 160, 168, 0.35); }
+}
+
+/* ---- Бейдж «грустит» под полароидом партнёра ---- */
+.polaroid-badge {
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #8b3a3a 0%, #b25a5a 100%);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 100px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  z-index: 5;
+  text-transform: uppercase;
+  transition: opacity 0.25s;
+}
+.polaroid-badge::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 9px;
+  height: 9px;
+  background: #8b3a3a;
+}
+.polaroid-badge.hidden { display: none !important; }
+
+/* ---- Модалка пульса (жёсткая привязка по id) ---- */
+
+#pulse-modal .modal-content {
+  padding: 24px 22px;
+}
+
+#pulse-modal .pulse-modal__title {
+  font-family: 'Bodoni Moda', serif;
+  font-style: italic;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: center;
+  margin: 0 0 20px;
+  line-height: 1.3;
+}
+
+#pulse-modal .pulse-modal__emojis {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center !important;
+  align-items: center;
+  gap: 8px !important;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+#pulse-modal .pulse-emoji {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  max-width: 48px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1.5px solid rgba(178, 90, 90, 0.15);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  padding: 0 !important;
+  line-height: 1;
+  box-shadow: none;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+body.dark #pulse-modal .pulse-emoji {
+  background: rgba(70, 45, 55, 0.5);
+  border-color: rgba(232, 160, 168, 0.2);
+}
+
+#pulse-modal .pulse-emoji:hover {
+  transform: scale(1.1);
+  border-color: var(--accent);
+  background: rgba(178, 90, 90, 0.08);
+  opacity: 1;
+}
+
+#pulse-modal .pulse-emoji.selected {
+  background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(232, 160, 168, 0.5) 100%);
+  border-color: var(--accent);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(178, 90, 90, 0.25);
+}
+
+body.dark #pulse-modal .pulse-emoji.selected {
+  background: rgba(178, 90, 90, 0.35);
+  border-color: var(--accent-alt);
+}
+
+#pulse-modal .pulse-modal__add-note {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+  box-shadow: none;
+  margin-top: 4px;
+}
+
+body.dark #pulse-modal .pulse-modal__add-note { color: var(--accent-alt); }
+
+#pulse-modal .pulse-modal__add-note:hover { opacity: 0.8; transform: none; }
+
+#pulse-modal .pulse-modal__note-wrap {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(178, 90, 90, 0.15);
+}
+
+body.dark #pulse-modal .pulse-modal__note-wrap {
+  border-top-color: rgba(232, 160, 168, 0.15);
+}
+
+#pulse-modal #pulse-note-input {
+  min-height: 60px;
+  font-size: 14px;
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+#pulse-modal .pulse-modal__save {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent-alt) 100%);
+  box-shadow: 0 8px 24px rgba(178, 90, 90, 0.3);
+  margin-top: 4px;
+}
+
+body.dark #pulse-modal .pulse-modal__save { color: #1a0a0e; }
+#pulse-modal .pulse-modal__save:hover { opacity: 0.95; }
+
+#pulse-modal #pulse-cancel-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  text-align: center;
+}
+/* ==========================================================
+   ЗАБОТА РЯДОМ — кнопки под полароидом партнёра
+   ========================================================== */
+
+.care-actions {
+  position: absolute;
+  bottom: -68px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(250, 245, 234, 0.97);
+  border-radius: 100px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  z-index: 20;
+  align-items: center;
+  animation: carePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+body.dark .care-actions {
+  background: rgba(42, 28, 36, 0.97);
+  border-color: rgba(232, 160, 168, 0.25);
+}
+@keyframes carePop {
+  from { opacity: 0; transform: translateX(-50%) scale(0.7); }
+  to { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+.care-actions.hidden { display: none !important; }
+
+.care-label {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #fff;
+  background: linear-gradient(135deg, #8b3a3a 0%, #b25a5a 100%);
+  padding: 3px 10px;
+  border-radius: 100px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+
+.care-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid rgba(178, 90, 90, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
+  font-family: inherit;
+  padding: 0;
+  position: relative;
+  color: var(--accent);
+  box-shadow: none;
+}
+body.dark .care-btn {
+  background: rgba(70, 45, 55, 0.7);
+  border-color: rgba(232, 160, 168, 0.2);
+}
+.care-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  transition: opacity 0.2s;
+}
+.care-btn--love svg {
+  fill: currentColor;
+  stroke: none;
+}
+.care-btn:hover {
+  transform: scale(1.15) translateY(-2px);
+  border-color: var(--accent);
+  background: rgba(178, 90, 90, 0.08);
+  box-shadow: 0 6px 16px rgba(178, 90, 90, 0.2);
+  opacity: 1;
+}
+body.dark .care-btn:hover { background: rgba(178, 90, 90, 0.2); }
+.care-btn:active { transform: scale(0.92); }
+
+.care-btn.sent {
+  background: linear-gradient(135deg, #f5d9d3 0%, rgba(232, 160, 168, 0.6) 100%);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  pointer-events: none;
+}
+body.dark .care-btn.sent {
+  background: rgba(178, 90, 90, 0.35);
+  border-color: var(--accent-alt);
+  color: #1a0a0e;
+}
+.care-btn.sent svg { opacity: 0; }
+.care-btn.sent::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b3a3a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12l5 5L20 7'/></svg>");
+  background-size: 18px 18px;
+  background-repeat: no-repeat;
+  background-position: center;
+  animation: careSentPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+body.dark .care-btn.sent::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5d9d3' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12l5 5L20 7'/></svg>");
+}
+@keyframes careSentPop {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }

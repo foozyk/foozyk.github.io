@@ -1509,18 +1509,38 @@ function initNotifTime() {
 
 /* ---------- НАСТРОЕНИЕ ---------- */
 function initMood() {
-  document.querySelectorAll("#mood-picker button").forEach(btn => {
-    btn.onclick = () => selectMood(btn.dataset.mood);
+  // Кружок моего пульса — stopPropagation, чтобы не сработал профиль
+  const meDot = $("pulse-me");
+  if (meDot) meDot.onclick = (e) => {
+    e.stopPropagation();
+    openPulseModal();
+  };
+
+  // Модалка
+  const backdrop = $("pulse-backdrop");
+  if (backdrop) backdrop.onclick = closePulseModal;
+
+  const cancelBtn = $("pulse-cancel-btn");
+  if (cancelBtn) cancelBtn.onclick = closePulseModal;
+
+  const addNoteBtn = $("pulse-add-note");
+  if (addNoteBtn) addNoteBtn.onclick = expandPulseNote;
+
+  const saveBtn = $("pulse-save-btn");
+  if (saveBtn) saveBtn.onclick = savePulseWithNote;
+
+  document.querySelectorAll("#pulse-emojis .pulse-emoji").forEach(btn => {
+    btn.onclick = () => selectPulse(btn.dataset.emoji);
   });
-  const saveBtn = $("save-mood-note");
-  if (saveBtn) saveBtn.onclick = saveMoodNote;
-  const moodNote = $("mood-note");
-  if (moodNote) {
-    moodNote.addEventListener("input", () => {
-      clearTimeout(moodNoteTimer);
-      moodNoteTimer = setTimeout(saveMoodNote, 1200);
-    });
-  }
+
+  // Кнопки заботы
+  document.querySelectorAll("#care-actions .care-btn").forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      sendCareSignal(btn.dataset.care, btn);
+    };
+  });
+
   listenForMood();
 }
 function listenForMood() {
@@ -1540,37 +1560,58 @@ function renderTodayMood() {
   const myMood = moods[currentUser.uid] || null;
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
   const partnerMood = moods[partnerUid] || null;
-  const partnerNote = notes[partnerUid] || "";
-  document.querySelectorAll("#mood-picker button").forEach(btn => {
-    btn.classList.toggle("selected", btn.dataset.mood === myMood);
-  });
-  const myMoodEl = $("mood-me");
-  if (myMoodEl) {
-    if (myMood) { myMoodEl.textContent = myMood; myMoodEl.classList.remove("hidden"); }
-    else myMoodEl.classList.add("hidden");
-  }
-  const partnerMoodEl = $("mood-partner");
-  if (partnerMoodEl) {
-    if (partnerMood) { partnerMoodEl.textContent = partnerMood; partnerMoodEl.classList.remove("hidden"); }
-    else partnerMoodEl.classList.add("hidden");
-  }
-  const noteEl = $("mood-note");
-  const myNote = notes[currentUser.uid] || "";
-  if (noteEl && !noteEl.matches(":focus") && noteEl.value !== myNote) noteEl.value = myNote;
-  const textEl = $("mood-partner-text");
-  if (textEl) {
-    const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
-    const safeName = `<strong class="mood-partner-name">${escapeHtml(partnerName)}</strong>`;
-    if (partnerMood) {
-      textEl.innerHTML = `${safeName} сегодня ${partnerMood}`;
+
+  // Кружок моего пульса
+  const meDot = $("pulse-me");
+  if (meDot) {
+    if (myMood) {
+      meDot.textContent = myMood;
+      meDot.classList.remove("pulse-dot--empty");
+      meDot.classList.add("pulse-dot--pulse");
     } else {
-      textEl.innerHTML = `${safeName} пока без настроения`;
+      meDot.textContent = "+";
+      meDot.classList.add("pulse-dot--empty");
+      meDot.classList.remove("pulse-dot--pulse");
     }
   }
-  const noteTextEl = $("mood-partner-note");
-  if (noteTextEl) noteTextEl.textContent = partnerNote ? "«" + partnerNote + "»" : "";
+
+  // Кружок пульса партнёра
+  const partnerDot = $("pulse-partner");
+  if (partnerDot) {
+    if (partnerMood) {
+      partnerDot.textContent = partnerMood;
+      partnerDot.classList.remove("pulse-dot--empty");
+      partnerDot.classList.add("pulse-dot--pulse");
+    } else {
+      partnerDot.textContent = "+";
+      partnerDot.classList.add("pulse-dot--empty");
+      partnerDot.classList.remove("pulse-dot--pulse");
+    }
+  }
+
+  // Бейдж «грустит» + кнопки заботы — только если 😔 / 😡 / 😢
+  const sadEmojis = ["😔", "😡", "😢"];
+  const partnerSad = partnerMood && sadEmojis.includes(partnerMood);
+
+  const badge = $("pulse-badge-partner");
+  if (badge) badge.classList.toggle("hidden", !partnerSad);
+
+  const careActions = $("care-actions");
+  if (careActions) careActions.classList.toggle("hidden", !partnerSad);
+
+  // Модалка — подсветка текущего выбора (если открыта)
+  document.querySelectorAll("#pulse-emojis .pulse-emoji").forEach(btn => {
+    btn.classList.toggle("selected", btn.dataset.emoji === myMood);
+  });
+
+  // Текст заметки в модалке — если открыта и фокуса нет
+  const noteInput = $("pulse-note-input");
+  const myNote = notes[currentUser.uid] || "";
+  if (noteInput && !noteInput.matches(":focus") && noteInput.value !== myNote) {
+    noteInput.value = myNote;
+  }
 }
-async function selectMood(emoji) {
+async function selectPulse(emoji) {
   const day = getCurrentDay();
   const docRef = doc(db, "couples", currentCoupleId, "moods", String(day));
   try {
@@ -1580,15 +1621,46 @@ async function selectMood(emoji) {
     const notes = { ...(data.notes || {}) };
     moods[currentUser.uid] = emoji;
     await setDoc(docRef, { day, moods, notes }, { merge: true });
+
     vibrate(10);
+
+    // Если поле для заметки не раскрыто — закрываем сразу
+    const noteWrap = $("pulse-note-wrap");
+    if (!noteWrap || noteWrap.classList.contains("hidden")) {
+      closePulseModal();
+    }
   } catch (e) {
     console.error(e);
-    alert("Не удалось сохранить настроение: " + e.message);
+    alert("Не удалось сохранить пульс: " + e.message);
   }
+}
+
+function openPulseModal() {
+  const noteWrap = $("pulse-note-wrap");
+  const addNoteBtn = $("pulse-add-note");
+  if (noteWrap) noteWrap.classList.add("hidden");
+  if (addNoteBtn) addNoteBtn.style.display = "";
+  const input = $("pulse-note-input");
+  if (input) input.value = "";
+  $("pulse-modal").classList.remove("hidden");
+  vibrate(10);
+}
+
+function closePulseModal() {
+  const m = $("pulse-modal");
+  if (m) m.classList.add("hidden");
+}
+
+function expandPulseNote() {
+  const noteWrap = $("pulse-note-wrap");
+  const addNoteBtn = $("pulse-add-note");
+  if (noteWrap) noteWrap.classList.remove("hidden");
+  if (addNoteBtn) addNoteBtn.style.display = "none";
+  setTimeout(() => $("pulse-note-input")?.focus(), 100);
 }
 async function saveMoodNote() {
   const day = getCurrentDay();
-  const text = $("mood-note").value.trim();
+  const text = ($("pulse-note-input")?.value || "").trim();
   const docRef = doc(db, "couples", currentCoupleId, "moods", String(day));
   try {
     const snap = await getDoc(docRef);
@@ -1597,11 +1669,59 @@ async function saveMoodNote() {
     const notes = { ...(data.notes || {}) };
     notes[currentUser.uid] = text;
     await setDoc(docRef, { day, moods, notes }, { merge: true });
-    $("save-mood-note").textContent = "Сохранено ✓";
-    setTimeout(() => { $("save-mood-note").textContent = "Сохранить заметку"; }, 1500);
+    vibrate(15);
+    closePulseModal();
   } catch (e) {
     console.error(e);
-    alert("Не удалось сохранить заметку: " + e.message);
+    alert("Не удалось сохранить: " + e.message);
+  }
+}
+
+function savePulseWithNote() {
+  // Если эмодзи не выбран — предупреждаем
+  const moods = todayMoods.moods || {};
+  if (!moods[currentUser.uid]) {
+    alert("Сначала выбери, как ты себя чувствуешь");
+    return;
+  }
+  saveMoodNote();
+}
+/* ==========================================================
+   ЗАБОТА РЯДОМ — сигналы «обнять / я рядом / люблю»
+   ========================================================== */
+
+const CARE_TEXTS = {
+  hug:     { title: "обнимает тебя",     icon: "🫂" },
+  support: { title: "рядом с тобой",     icon: "💛" },
+  love:    { title: "любит тебя",        icon: "❤️" },
+};
+
+async function sendCareSignal(kind, btnEl) {
+  if (!currentUser || !currentCoupleId) return;
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  if (!partnerUid) return;
+
+  // Показать ✓ на кнопке
+  if (btnEl) {
+    btnEl.classList.add("sent");
+    setTimeout(() => btnEl.classList.remove("sent"), 1500);
+  }
+
+  vibrate(15);
+
+  try {
+    await addDoc(collection(db, "couples", currentCoupleId, "signals"), {
+      type: "care",
+      kind,
+      fromUserId: currentUser.uid,
+      toUserId: partnerUid,
+      ts: Date.now(),
+      createdAt: serverTimestamp()
+    });
+  } catch (e) {
+    console.error("Care signal error:", e);
+    if (btnEl) btnEl.classList.remove("sent");
+    alert("Не удалось отправить: " + e.message);
   }
 }
 async function renderMoodHistory() {
@@ -3406,16 +3526,34 @@ function initThinkSignals() {
         letter: getInitials(partnerName).slice(0, 1),
         photoURL: partnerProfile?.photoURL?.trim() || ""
       };
-      const text = newForMe.length === 1
-        ? "Тёплый привет 💛"
-        : `×${newForMe.length} 💛`;
 
-      notifyUser(
-        `${partnerName} думает о тебе ❤️`,
-        text,
-        "today",
-        { avatar }
-      );
+      // Разделяем по типу
+      const thinkSignals = newForMe.filter(s => s.type === "think" || !s.type);
+      const careSignals  = newForMe.filter(s => s.type === "care");
+
+      if (thinkSignals.length > 0) {
+        const text = thinkSignals.length === 1
+          ? "Тёплый привет 💛"
+          : `×${thinkSignals.length} 💛`;
+        notifyUser(
+          `${partnerName} думает о тебе ❤️`,
+          text,
+          "today",
+          { avatar }
+        );
+      }
+
+      if (careSignals.length > 0) {
+        // Показываем последний по времени — не спамим, если прилетело несколько
+        const last = careSignals[careSignals.length - 1];
+        const care = CARE_TEXTS[last.kind] || CARE_TEXTS.support;
+        notifyUser(
+          `${partnerName} ${care.title} ${care.icon}`,
+          "Тёплый привет от близкого человека",
+          "today",
+          { avatar }
+        );
+      }
     }
   );
 }
