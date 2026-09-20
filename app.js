@@ -504,6 +504,7 @@ function startMainApp() {
   initNotes();
   initEvents();
   initWord();
+  initMoonModal();
   initTruthOrDare();
   initConversations();
   initAgreements();
@@ -1411,7 +1412,7 @@ function initMoonToggle() {
     vibrate(10);
   };
 }
-const MOON_VISIBLE_IDS = ["moon-info-item", "moon-info-divider", "moon-tip-line"];
+const MOON_VISIBLE_IDS = ["moon-info-item", "moon-info-divider"];
 
 function hideMoonBlocks() {
   MOON_VISIBLE_IDS.forEach(id => {
@@ -1722,14 +1723,23 @@ function renderMoonWidget() {
   const widget = $("moon-widget");
   if (!widget) return;
   const data = getMoonData(new Date());
+
+  // Инфо-строка в шапке
   const iconEl = $("moon-icon");
   if (iconEl) iconEl.textContent = data.phase.icon;
-  const phaseEl = $("moon-phase");
-  if (phaseEl) phaseEl.textContent = data.phase.name;
   const dayEl = $("moon-day");
   if (dayEl) dayEl.textContent = data.lunarDay + "-й лунный день";
+
+  // Модалка луны
+  const modalIconEl = $("moon-icon-modal");
+  if (modalIconEl) modalIconEl.textContent = data.phase.icon;
+  const phaseEl = $("moon-phase");
+  if (phaseEl) phaseEl.textContent = data.phase.name;
+  const modalDayEl = $("moon-day-modal");
+  if (modalDayEl) modalDayEl.textContent = data.lunarDay + "-й лунный день";
   const adviceEl = $("moon-advice-text");
   if (adviceEl) adviceEl.textContent = MOON_ADVICE[data.phase.name] || "";
+
   const eventEl = $("moon-event");
   if (eventEl) {
     const event = getMoonEvent(new Date());
@@ -4657,11 +4667,8 @@ function renderWordCard() {
   const day = getCurrentDay();
   const w = getWordForDay(day);
   if (!w) return;
-
   const wordEl = $("word-card-word");
-  const defEl = $("word-card-def");
   if (wordEl) wordEl.textContent = w.word;
-  if (defEl) defEl.textContent = w.meaning || "";
 }
 
 function openWordModal() {
@@ -4744,6 +4751,35 @@ function openWordModal() {
 
 function closeWordModal() {
   const m = $("word-modal");
+  if (m) m.classList.add("hidden");
+}
+/* ==========================================================
+   МОДАЛКА «ЛУННЫЙ КАЛЕНДАРЬ»
+   ========================================================== */
+
+function initMoonModal() {
+  const item = $("moon-info-item");
+  if (item) item.onclick = openMoonModal;
+
+  const backdrop = $("moon-backdrop");
+  if (backdrop) backdrop.onclick = closeMoonModal;
+
+  const closeBtn = $("moon-modal-close");
+  if (closeBtn) closeBtn.onclick = closeMoonModal;
+
+  const closeBtn2 = $("moon-modal-close-btn");
+  if (closeBtn2) closeBtn2.onclick = closeMoonModal;
+}
+
+function openMoonModal() {
+  const m = $("moon-modal");
+  if (!m) return;
+  m.classList.remove("hidden");
+  vibrate(10);
+}
+
+function closeMoonModal() {
+  const m = $("moon-modal");
   if (m) m.classList.add("hidden");
 }
 /* Страховка: блокировка прокрутки body при открытой модалке */
