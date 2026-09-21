@@ -31,7 +31,6 @@ let partnerProfile = null;
 let myProfile = null;
 let todayMoods = {};
 let unsubMood = null;
-let moodNoteTimer = null;
 let loveTestState = null;
 let myLoveLang = null;
 let partnerLoveLang = null;
@@ -51,27 +50,14 @@ let currentView = "today";
 let truthState = { level: null, round: 0, history: [] };
 let conversationsInitialized = false;
 let quizInitialized = false;
-let tasks = [];
-let unsubTasks = null;
-let tasksInitialized = false;
-let currentTasksFilter = "active";
-let editingTaskId = null;
-let selectedTaskWho = "none";
-let notes = [];
-let unsubNotes = null;
-let notesInitialized = false;
-let editingNoteId = null;
-let selectedStickerColor = 0;
-let events = [];
-let unsubEvents = null;
-let eventsInitialized = false;
-let editingEventId = null;
-let selectedEventRepeat = "none";
-let currentCalYear = new Date().getFullYear();
-let currentCalMonth = new Date().getMonth();
-let selectedCalDate = null;
 let unsubSignals = null;
 let signalsInitialized = false;
+
+let journalNotes = {};
+let unsubJournalNotes = null;
+let rhythmFilter = "all";
+let _noteDayKey = null;
+let _rhythmCache = { moods: {}, answers: {}, conversations: [], agreements: [], loadedAt: 0 };
 
 let lastSeenPartnerAnswerDay = null;
 let answersListenerInitialized = false;
@@ -91,6 +77,13 @@ function vibrate(pattern) {
 
 /* ---------- ПОЯВЛЕНИЕ КАРТОЧЕК ПРИ СКРОЛЛЕ ---------- */
 let revealObserver = null;
+
+function resetReveal(container) {
+  if (!container) return;
+  container.querySelectorAll(".reveal.is-visible").forEach(el => {
+    el.classList.remove("is-visible");
+  });
+}
 
 function initReveal() {
   const els = document.querySelectorAll(".reveal:not(.is-visible)");
@@ -120,7 +113,6 @@ function initReveal() {
   void document.body.offsetHeight;
   els.forEach(el => revealObserver.observe(el));
 
-  // Страховка на всякий случай
   setTimeout(() => {
     document.querySelectorAll(".reveal:not(.is-visible)").forEach(el => {
       const r = el.getBoundingClientRect();
@@ -363,7 +355,7 @@ function generateCode() {
 }
 
 /* ---------- НИЖНЯЯ НАВИГАЦИЯ ---------- */
-const VIEW_ORDER = ["today", "conversation", "plans", "about"];
+const VIEW_ORDER = ["today", "conversation", "rhythm", "about"];
 
 function initBottomNav() {
   document.querySelectorAll(".bottom-nav-item").forEach(btn => {
@@ -381,19 +373,18 @@ function switchNav(view) {
     btn.classList.toggle("active", btn.dataset.view === view);
   });
 
-  // Зашли на «Сегодня» — отмечаем ответ партнёра как увиденный
   if (view === "today") {
     requestAnimationFrame(() => markTodaySeen());
   }
   $("today-view").classList.toggle("hidden", view !== "today");
   $("conversation-view").classList.toggle("hidden", view !== "conversation");
-  $("plans-view").classList.toggle("hidden", view !== "plans");
+  $("rhythm-view").classList.toggle("hidden", view !== "rhythm");
   $("about-view").classList.toggle("hidden", view !== "about");
 
   const activeSection = $(
     view === "today" ? "today-view" :
     view === "conversation" ? "conversation-view" :
-    view === "plans" ? "plans-view" : "about-view"
+    view === "rhythm" ? "rhythm-view" : "about-view"
   );
   if (activeSection) {
     activeSection.classList.remove("view-enter-right", "view-enter-left");
@@ -402,10 +393,61 @@ function switchNav(view) {
   }
 
   if (view === "conversation") renderConversations();
-  if (view === "plans") renderPlansSubTab();
   if (view === "about") renderAboutSubTab();
   window.scrollTo({ top: 0, behavior: "smooth" });
 
+  if (activeSection) resetReveal(activeSection);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (view === "rhythm") {
+        renderRhythm();
+      } else {
+        initReveal();
+      }
+    });
+  });
+}
+
+/* ---------- ПОД-ТАБЫ «Мы» ---------- */
+let currentAboutSubTab = "archive";       // "games" | "archive"
+let currentAboutGamesSubTab = "quiz";     // "quiz" | "lovelang" | "truth"
+
+function initAboutSubTabs() {
+  const g = $("sub-games");
+  const a = $("sub-archive");
+  if (g) g.onclick = () => { vibrate(10); setAboutSubTab("games"); };
+  if (a) a.onclick = () => { vibrate(10); setAboutSubTab("archive"); };
+
+  const q = $("sub-quiz");
+  const l = $("sub-lovelang");
+  const t = $("sub-truth");
+  if (q) q.onclick = () => { vibrate(10); setAboutGamesSubTab("quiz"); };
+  if (l) l.onclick = () => { vibrate(10); setAboutGamesSubTab("lovelang"); };
+  if (t) t.onclick = () => { vibrate(10); setAboutGamesSubTab("truth"); };
+}
+
+function setAboutSubTab(tab) {
+  currentAboutSubTab = tab;
+  const g = $("sub-games");
+  const a = $("sub-archive");
+  if (g) g.classList.toggle("active", tab === "games");
+  if (a) a.classList.toggle("active", tab === "archive");
+  const gamesBox = $("about-games");
+  const archiveBox = $("about-archive");
+  gamesBox?.classList.toggle("hidden", tab !== "games");
+  archiveBox?.classList.toggle("hidden", tab !== "archive");
+
+  if (tab === "games") {
+    setAboutGamesSubTab(currentAboutGamesSubTab);
+  } else if (tab === "archive") {
+    renderStats();
+    renderHeatmap();
+    renderHistory();
+  }
+
+  const active = tab === "games" ? gamesBox : archiveBox;
+  resetReveal(active);
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       initReveal();
@@ -413,68 +455,34 @@ function switchNav(view) {
   });
 }
 
-/* ---------- ПОД-ТАБЫ «Мы» ---------- */
-let currentAboutSubTab = "quiz";
-function initAboutSubTabs() {
-  $("sub-quiz").onclick = () => { vibrate(10); setAboutSubTab("quiz"); };
-  $("sub-lovelang").onclick = () => { vibrate(10); setAboutSubTab("lovelang"); };
-  $("sub-truth").onclick = () => { vibrate(10); setAboutSubTab("truth"); };
-  $("sub-archive").onclick = () => { vibrate(10); setAboutSubTab("archive"); };
-}
-function setAboutSubTab(tab) {
-  currentAboutSubTab = tab;
-  $("sub-quiz").classList.toggle("active", tab === "quiz");
-  $("sub-lovelang").classList.toggle("active", tab === "lovelang");
-  $("sub-truth").classList.toggle("active", tab === "truth");
-  $("sub-archive").classList.toggle("active", tab === "archive");
-  $("about-quiz").classList.toggle("hidden", tab !== "quiz");
-  $("about-lovelang").classList.toggle("hidden", tab !== "lovelang");
-  $("about-truth").classList.toggle("hidden", tab !== "truth");
-  $("about-archive").classList.toggle("hidden", tab !== "archive");
+function setAboutGamesSubTab(tab) {
+  currentAboutGamesSubTab = tab;
+  const q = $("sub-quiz");
+  const l = $("sub-lovelang");
+  const t = $("sub-truth");
+  if (q) q.classList.toggle("active", tab === "quiz");
+  if (l) l.classList.toggle("active", tab === "lovelang");
+  if (t) t.classList.toggle("active", tab === "truth");
+  const quizBox = $("about-quiz");
+  const lovelangBox = $("about-lovelang");
+  const truthBox = $("about-truth");
+  quizBox?.classList.toggle("hidden", tab !== "quiz");
+  lovelangBox?.classList.toggle("hidden", tab !== "lovelang");
+  truthBox?.classList.toggle("hidden", tab !== "truth");
 
-  // Ленивая загрузка данных архива — только когда открыли под-таб
-  if (tab === "archive") {
-    renderStats();
-    renderHeatmap();
-    renderMoodHistory();
-    renderHistory();
-  }
+  if (tab === "quiz") renderQuizMain();
+
+  const active = tab === "quiz" ? quizBox : tab === "lovelang" ? lovelangBox : truthBox;
+  resetReveal(active);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      initReveal();
+    });
+  });
 }
+
 function renderAboutSubTab() {
   setAboutSubTab(currentAboutSubTab);
-  if (currentAboutSubTab === "quiz") renderQuizMain();
-  if (currentAboutSubTab === "archive") {
-    renderStats();
-    renderHeatmap();
-    renderMoodHistory();
-    renderHistory();
-  }
-}
-
-/* ---------- ПОД-ТАБЫ «Планы» ---------- */
-let currentPlansSubTab = "tasks";
-function initPlansSubTabs() {
-  $("sub-tasks").onclick = () => { vibrate(10); setPlansSubTab("tasks"); };
-  $("sub-notes").onclick = () => { vibrate(10); setPlansSubTab("notes"); };
-  $("sub-calendar").onclick = () => { vibrate(10); setPlansSubTab("calendar"); };
-}
-function setPlansSubTab(tab) {
-  currentPlansSubTab = tab;
-  $("sub-tasks").classList.toggle("active", tab === "tasks");
-  $("sub-notes").classList.toggle("active", tab === "notes");
-  $("sub-calendar").classList.toggle("active", tab === "calendar");
-  $("plans-tasks").classList.toggle("hidden", tab !== "tasks");
-  $("plans-notes").classList.toggle("hidden", tab !== "notes");
-  $("plans-calendar").classList.toggle("hidden", tab !== "calendar");
-}
-function renderPlansSubTab() {
-  setPlansSubTab(currentPlansSubTab);
-  if (currentPlansSubTab === "tasks") renderTasks();
-  if (currentPlansSubTab === "notes") renderNotes();
-  if (currentPlansSubTab === "calendar") {
-    renderCalendar();
-    renderEventsList();
-  }
 }
 
 /* ---------- MAIN APP ---------- */
@@ -483,8 +491,6 @@ function startMainApp() {
   renderToday();
   applySeasonTheme();
 
-  // Сбрасываем флаги — новые слушатели разговоров/квизов
-  // должны один раз «прогреться» без уведомлений
   conversationsInitialized = false;
   quizInitialized = false;
 
@@ -499,10 +505,6 @@ function startMainApp() {
   initLoveLang();
   initQuiz();
   initAboutSubTabs();
-  initPlansSubTabs();
-  initTasks();
-  initNotes();
-  initEvents();
   initWord();
   initMoonModal();
   initTruthOrDare();
@@ -514,8 +516,9 @@ function startMainApp() {
   initDayView();
   initSchemeControls();
   initBottomNav();
-  initThinkButton();
+  initQuickReactions();
   initThinkSignals();
+  initRhythm();
 
   startDayWatcher();
 
@@ -570,7 +573,6 @@ function startDayWatcher() {
   }, 60000);
 }
 
-
 async function renderToday() {
   const day = getCurrentDay();
 
@@ -581,11 +583,12 @@ async function renderToday() {
   const q = getQuestionForDay(day);
   if (!q) return;
 
-  $("current-day").textContent = day;
+  const currentDayEl = $("current-day");
+  if (currentDayEl) currentDayEl.textContent = day;
   const headerDayNum = $("header-day-num");
   if (headerDayNum) headerDayNum.textContent = day;
   const headerDayLabel = $("header-day-label");
-  if (headerDayLabel) headerDayLabel.textContent = pluralDays(day) + " вместе";
+  if (headerDayLabel) headerDayLabel.textContent = "день из 365";
 
   $("current-theme").textContent = q.theme;
   $("current-question").textContent = q.text;
@@ -661,16 +664,12 @@ function updateStreak(allAnswers) {
     if (!byDay[a.day]) byDay[a.day] = new Set();
     byDay[a.day].add(a.userId);
   });
-  const day = getCurrentDay();
-  let start = day;
-  if (!(byDay[day] && byDay[day].size >= 2)) start = day - 1;
-  let streak = 0;
-  for (let d = start; d >= 1; d--) {
-    if (byDay[d] && byDay[d].size >= 2) streak++;
-    else break;
+  let totalBoth = 0;
+  for (const d in byDay) {
+    if (byDay[d].size >= 2) totalBoth++;
   }
   const el = $("streak-count");
-  if (el) el.textContent = streak;
+  if (el) el.textContent = totalBoth;
 }
 function checkConfetti() {
   const myAnswer = todayAnswers.find(a => a.userId === currentUser.uid);
@@ -814,10 +813,6 @@ function updateBadges() {
   }
   setBadge("badge-about", aboutNew);
 
-  // Бейдж «Планы» — задачи
-  updateTasksBadge();
-
-  // Бейдж «Сегодня»
   updateTodayBadge();
 }
 
@@ -829,9 +824,11 @@ async function renderStats() {
       getDocs(collection(db, "couples", currentCoupleId, "moods"))
     ]);
 
-    $("stat-answers").textContent = answersSnap.size;
+    const statAnswers = $("stat-answers");
+    if (statAnswers) statAnswers.textContent = answersSnap.size;
     const daysTogether = getCurrentDay();
-    $("stat-days").textContent = daysTogether;
+    const statDays = $("stat-days");
+    if (statDays) statDays.textContent = daysTogether;
 
     const byDay = {};
     answersSnap.docs.forEach(d => {
@@ -843,7 +840,8 @@ async function renderStats() {
     for (let d = 1; d <= daysTogether; d++) {
       if (byDay[d] && byDay[d].size >= 2) activeDays++;
     }
-    $("stat-active-days").textContent = activeDays;
+    const statActive = $("stat-active-days");
+    if (statActive) statActive.textContent = activeDays;
 
     const themeCount = {};
     answersSnap.docs.forEach(d => {
@@ -860,8 +858,10 @@ async function renderStats() {
       }
     }
     const themeEl = $("stat-favorite");
-    themeEl.textContent = favoriteTheme;
-    themeEl.classList.add("text");
+    if (themeEl) {
+      themeEl.textContent = favoriteTheme;
+      themeEl.classList.add("text");
+    }
 
     const moodCount = {};
     moodsSnap.docs.forEach(d => {
@@ -879,10 +879,13 @@ async function renderStats() {
       }
     }
     const moodEl = $("stat-mood");
-    moodEl.textContent = favoriteMood;
-    moodEl.classList.add("text");
+    if (moodEl) {
+      moodEl.textContent = favoriteMood;
+      moodEl.classList.add("text");
+    }
 
-    $("stat-agreements").textContent = agreements.length;
+    const statAgr = $("stat-agreements");
+    if (statAgr) statAgr.textContent = agreements.length;
   } catch (e) {
     console.error("Stats error:", e);
   }
@@ -1412,7 +1415,7 @@ function initMoonToggle() {
     vibrate(10);
   };
 }
-const MOON_VISIBLE_IDS = ["moon-info-item", "moon-info-divider"];
+const MOON_VISIBLE_IDS = ["moon-info-item"];
 
 function hideMoonBlocks() {
   MOON_VISIBLE_IDS.forEach(id => {
@@ -1507,38 +1510,22 @@ function initNotifTime() {
   };
 }
 
-/* ---------- НАСТРОЕНИЕ ---------- */
+/* ---------- ПУЛЬС ДНЯ ---------- */
 function initMood() {
-  // Кружок моего пульса — stopPropagation, чтобы не сработал профиль
   const meDot = $("pulse-me");
   if (meDot) meDot.onclick = (e) => {
     e.stopPropagation();
     openPulseModal();
   };
 
-  // Модалка
   const backdrop = $("pulse-backdrop");
   if (backdrop) backdrop.onclick = closePulseModal;
 
   const cancelBtn = $("pulse-cancel-btn");
   if (cancelBtn) cancelBtn.onclick = closePulseModal;
 
-  const addNoteBtn = $("pulse-add-note");
-  if (addNoteBtn) addNoteBtn.onclick = expandPulseNote;
-
-  const saveBtn = $("pulse-save-btn");
-  if (saveBtn) saveBtn.onclick = savePulseWithNote;
-
   document.querySelectorAll("#pulse-emojis .pulse-emoji").forEach(btn => {
     btn.onclick = () => selectPulse(btn.dataset.emoji);
-  });
-
-  // Кнопки заботы
-  document.querySelectorAll("#care-actions .care-btn").forEach(btn => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      sendCareSignal(btn.dataset.care, btn);
-    };
   });
 
   listenForMood();
@@ -1556,12 +1543,10 @@ function listenForMood() {
 }
 function renderTodayMood() {
   const moods = todayMoods.moods || {};
-  const notes = todayMoods.notes || {};
   const myMood = moods[currentUser.uid] || null;
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
   const partnerMood = moods[partnerUid] || null;
 
-  // Кружок моего пульса
   const meDot = $("pulse-me");
   if (meDot) {
     if (myMood) {
@@ -1575,7 +1560,6 @@ function renderTodayMood() {
     }
   }
 
-  // Кружок пульса партнёра
   const partnerDot = $("pulse-partner");
   if (partnerDot) {
     if (partnerMood) {
@@ -1589,27 +1573,15 @@ function renderTodayMood() {
     }
   }
 
-  // Бейдж «грустит» + кнопки заботы — только если 😔 / 😡 / 😢
   const sadEmojis = ["😔", "😡", "😢"];
   const partnerSad = partnerMood && sadEmojis.includes(partnerMood);
 
   const badge = $("pulse-badge-partner");
   if (badge) badge.classList.toggle("hidden", !partnerSad);
 
-  const careActions = $("care-actions");
-  if (careActions) careActions.classList.toggle("hidden", !partnerSad);
-
-  // Модалка — подсветка текущего выбора (если открыта)
   document.querySelectorAll("#pulse-emojis .pulse-emoji").forEach(btn => {
     btn.classList.toggle("selected", btn.dataset.emoji === myMood);
   });
-
-  // Текст заметки в модалке — если открыта и фокуса нет
-  const noteInput = $("pulse-note-input");
-  const myNote = notes[currentUser.uid] || "";
-  if (noteInput && !noteInput.matches(":focus") && noteInput.value !== myNote) {
-    noteInput.value = myNote;
-  }
 }
 async function selectPulse(emoji) {
   const day = getCurrentDay();
@@ -1621,27 +1593,15 @@ async function selectPulse(emoji) {
     const notes = { ...(data.notes || {}) };
     moods[currentUser.uid] = emoji;
     await setDoc(docRef, { day, moods, notes }, { merge: true });
-
     vibrate(10);
-
-    // Если поле для заметки не раскрыто — закрываем сразу
-    const noteWrap = $("pulse-note-wrap");
-    if (!noteWrap || noteWrap.classList.contains("hidden")) {
-      closePulseModal();
-    }
   } catch (e) {
     console.error(e);
     alert("Не удалось сохранить пульс: " + e.message);
   }
+  closePulseModal();
 }
 
 function openPulseModal() {
-  const noteWrap = $("pulse-note-wrap");
-  const addNoteBtn = $("pulse-add-note");
-  if (noteWrap) noteWrap.classList.add("hidden");
-  if (addNoteBtn) addNoteBtn.style.display = "";
-  const input = $("pulse-note-input");
-  if (input) input.value = "";
   $("pulse-modal").classList.remove("hidden");
   vibrate(10);
 }
@@ -1649,125 +1609,6 @@ function openPulseModal() {
 function closePulseModal() {
   const m = $("pulse-modal");
   if (m) m.classList.add("hidden");
-}
-
-function expandPulseNote() {
-  const noteWrap = $("pulse-note-wrap");
-  const addNoteBtn = $("pulse-add-note");
-  if (noteWrap) noteWrap.classList.remove("hidden");
-  if (addNoteBtn) addNoteBtn.style.display = "none";
-  setTimeout(() => $("pulse-note-input")?.focus(), 100);
-}
-async function saveMoodNote() {
-  const day = getCurrentDay();
-  const text = ($("pulse-note-input")?.value || "").trim();
-  const docRef = doc(db, "couples", currentCoupleId, "moods", String(day));
-  try {
-    const snap = await getDoc(docRef);
-    const data = snap.exists() ? snap.data() : {};
-    const moods = { ...(data.moods || {}) };
-    const notes = { ...(data.notes || {}) };
-    notes[currentUser.uid] = text;
-    await setDoc(docRef, { day, moods, notes }, { merge: true });
-    vibrate(15);
-    closePulseModal();
-  } catch (e) {
-    console.error(e);
-    alert("Не удалось сохранить: " + e.message);
-  }
-}
-
-function savePulseWithNote() {
-  // Если эмодзи не выбран — предупреждаем
-  const moods = todayMoods.moods || {};
-  if (!moods[currentUser.uid]) {
-    alert("Сначала выбери, как ты себя чувствуешь");
-    return;
-  }
-  saveMoodNote();
-}
-/* ==========================================================
-   ЗАБОТА РЯДОМ — сигналы «обнять / я рядом / люблю»
-   ========================================================== */
-
-const CARE_TEXTS = {
-  hug:     { title: "обнимает тебя",     icon: "🫂" },
-  support: { title: "рядом с тобой",     icon: "💛" },
-  love:    { title: "любит тебя",        icon: "❤️" },
-};
-
-async function sendCareSignal(kind, btnEl) {
-  if (!currentUser || !currentCoupleId) return;
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-  if (!partnerUid) return;
-
-  // Показать ✓ на кнопке
-  if (btnEl) {
-    btnEl.classList.add("sent");
-    setTimeout(() => btnEl.classList.remove("sent"), 1500);
-  }
-
-  vibrate(15);
-
-  try {
-    await addDoc(collection(db, "couples", currentCoupleId, "signals"), {
-      type: "care",
-      kind,
-      fromUserId: currentUser.uid,
-      toUserId: partnerUid,
-      ts: Date.now(),
-      createdAt: serverTimestamp()
-    });
-  } catch (e) {
-    console.error("Care signal error:", e);
-    if (btnEl) btnEl.classList.remove("sent");
-    alert("Не удалось отправить: " + e.message);
-  }
-}
-async function renderMoodHistory() {
-  const container = $("mood-grid");
-  if (!container) return;
-  const prevIds = collectPrevIds(container);
-  container.innerHTML = "";
-  try {
-    const snap = await getDocs(collection(db, "couples", currentCoupleId, "moods"));
-    const byDay = {};
-    snap.docs.forEach(d => {
-      const data = d.data();
-      byDay[data.day] = data.moods || {};
-    });
-    const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-    const today = getCurrentDay();
-    const start = Math.max(1, today - 29);
-    let hasAny = false;
-    let idx = 0;
-    for (let d = today; d >= start; d--) {
-      const moods = byDay[d] || {};
-      const myMood = moods[currentUser.uid] || null;
-      const partnerMood = moods[partnerUid] || null;
-      if (myMood || partnerMood) hasAny = true;
-      const div = document.createElement("div");
-      div.className = "mood-day";
-      div.dataset.animId = "day-" + d;
-      div.innerHTML = `
-        <div class="mood-day-num">День ${d}</div>
-        <div class="mood-day-emoji">${myMood || '<span class="mood-day-empty">·</span>'}</div>
-        <div class="mood-day-partner">${partnerMood || '<span class="mood-day-empty">·</span>'}</div>
-      `;
-      markForAnim(div, "day-" + d, prevIds, idx++);
-      container.appendChild(div);
-    }
-    if (!hasAny) {
-      container.innerHTML = emptyStateHtml({
-        icon: ICONS.calendar,
-        title: "Дневник пока пуст",
-        text: "Отмечайте настроение каждый день — через месяц увидите красивую картину."
-      });
-    }
-  } catch (e) {
-    console.error(e);
-    container.innerHTML = "<p class='hint'>Ошибка загрузки.</p>";
-  }
 }
 
 /* ---------- ЛУННЫЙ КАЛЕНДАРЬ ---------- */
@@ -1844,13 +1685,11 @@ function renderMoonWidget() {
   if (!widget) return;
   const data = getMoonData(new Date());
 
-  // Инфо-строка в шапке
   const iconEl = $("moon-icon");
   if (iconEl) iconEl.textContent = data.phase.icon;
   const dayEl = $("moon-day");
   if (dayEl) dayEl.textContent = data.lunarDay + "-й лунный день";
 
-  // Модалка луны
   const modalIconEl = $("moon-icon-modal");
   if (modalIconEl) modalIconEl.textContent = data.phase.icon;
   const phaseEl = $("moon-phase");
@@ -1969,9 +1808,15 @@ function renderWeather(data) {
   const iconCode = data.weather[0].icon;
   const desc = data.weather[0].description;
   const city = data.name;
-  $("weather-icon").textContent = weatherEmoji(iconCode);
-  $("weather-temp").textContent = temp + "°C";
-  $("weather-desc").textContent = capitalize(desc) + (city ? " · " + city : "");
+
+  const iconEl = $("weather-icon");
+  if (iconEl) iconEl.textContent = weatherEmoji(iconCode);
+  const tempEl = $("weather-temp");
+  if (tempEl) tempEl.textContent = temp + "° · " + desc;
+
+  const descHidden = $("weather-desc");
+  if (descHidden) descHidden.textContent = capitalize(desc) + (city ? " · " + city : "");
+
   applyWeatherTheme(iconCode);
 }
 function weatherEmoji(code) {
@@ -2207,7 +2052,6 @@ function detectQuizEvents(prevData) {
     photoURL: partnerProfile?.photoURL?.trim() || "",
   };
 
-  // Партнёр создал квиз о себе (появилось поле answers)
   if (!prevPartner.answers && currPartner.answers) {
     notifyUser(
       `${partnerName} создала квиз о себе`,
@@ -2598,13 +2442,11 @@ function listenForConversations() {
       renderConversations();
       updateBadges();
 
-      // Если открыта модалка примирения — перерисовываем её
       if (_currentDialogueId) {
         const fresh = conversations.find(c => c.id === _currentDialogueId);
         const modal = $("dialogue-modal");
         if (fresh && modal && !modal.classList.contains("hidden")) {
           renderDialogueContent(fresh);
-          // Если завершилось — запускаем сердечки
           if (fresh.phase === "done") {
             setTimeout(() => burstDialogueHearts(), 150);
           }
@@ -2630,7 +2472,6 @@ function detectConversationEvents(prevConversations) {
     photoURL: partnerProfile?.photoURL?.trim() || "",
   };
 
-  // 1. Партнёр создал новый разговор / предложил примирение
   const prevIds = new Set(prevConversations.map(c => c.id));
   for (const conv of conversations) {
     if (prevIds.has(conv.id)) continue;
@@ -2639,7 +2480,7 @@ function detectConversationEvents(prevConversations) {
         const f = getDialogueFeelingInfo(conv.feeling);
         notifyUser(
           `${partnerName} предлагает примирение`,
-          `${f.emoji} ${f.label}`,
+          `${f.label}`,
           "conversation",
           { avatar }
         );
@@ -2654,7 +2495,6 @@ function detectConversationEvents(prevConversations) {
     }
   }
 
-  // 2. Партнёр написал в разговор впервые
   const prevMap = new Map(prevConversations.map(c => [c.id, c]));
   for (const conv of conversations) {
     const prev = prevMap.get(conv.id);
@@ -2662,7 +2502,6 @@ function detectConversationEvents(prevConversations) {
     const currText = conv.texts?.[partnerUid] || "";
 
     if (!prevText && currText) {
-      // Не спамим, если пользователь уже в этом разговоре
       if (currentView === "conversation" && currentConversationId === conv.id) continue;
 
       notifyUser(
@@ -2947,7 +2786,6 @@ function initAgreements() {
 function closeAgreementModal() {
   $("agreement-modal").classList.add("hidden");
 
-  // Если договор открывался из примирения — возвращаем диалоговую модалку
   const fromDialogue = $("agreement-modal").dataset.fromDialogue || "";
   if (fromDialogue) {
     $("agreement-modal").dataset.fromDialogue = "";
@@ -3049,7 +2887,6 @@ async function saveAgreement() {
     closeAgreementModal();
     if (fromConversation && !fromDialogue) closeConversationModal();
     if (fromDialogue) {
-      // переводим разговор в фазу подписи
       await updateDoc(doc(db, "couples", currentCoupleId, "conversations", fromDialogue), {
         phase: "signing",
         agreementId: ref.id
@@ -3208,8 +3045,6 @@ function updateSaveButtonState() {
   sa.classList.add("state-idle");
 }
 
-// Навешиваем обработчик ввода на textarea — чтобы кнопка
-// переключалась между «Сохранён» и «Обновить» при печати
 const myAnswerInput = $("my-answer");
 if (myAnswerInput) {
   myAnswerInput.addEventListener("input", updateSaveButtonState);
@@ -3232,26 +3067,22 @@ function updateTodayBadge() {
   const myAnswer = todayAnswers.find(a => a.userId === currentUser.uid);
   const partnerAnswer = todayAnswers.find(a => a.userId !== currentUser.uid);
 
-  // 1. Партнёр ещё не ответил — нечего показывать
   if (!partnerAnswer) {
     setBadge("badge-today", 0);
     return;
   }
 
-  // 2. Партнёр ответил, я ещё нет — бейдж висит, пока не отвечу
   if (!myAnswer) {
     setBadge("badge-today", 1);
     return;
   }
 
-  // 3. Оба ответили. Если я прямо сейчас на «Сегодня» — считаем, что видел.
   if (currentView === "today") {
     localStorage.setItem(todaySeenKey(day), "1");
     setBadge("badge-today", 0);
     return;
   }
 
-  // 4. Оба ответили, но я на другой вкладке
   const seen = localStorage.getItem(todaySeenKey(day)) === "1";
   setBadge("badge-today", seen ? 0 : 1);
 }
@@ -3260,7 +3091,6 @@ function markTodaySeen() {
   if (!currentCoupleId) return;
   const day = getCurrentDay();
   const myAnswer = todayAnswers.find(a => a.userId === currentUser.uid);
-  // Пока я не ответил — не сбрасываем бейдж (вариант 3 «надо ответить»)
   if (!myAnswer) return;
   localStorage.setItem(todaySeenKey(day), "1");
   updateTodayBadge();
@@ -3282,13 +3112,6 @@ function closeBanner() {
   setTimeout(() => el.remove(), 500);
 }
 
-/**
- * Показывает баннер сверху экрана.
- * @param {string} title   - заголовок
- * @param {string} text    - подзаголовок / тело
- * @param {string} view    - куда перейти по тапу: "today" | "conversation" | "about" | "archive" | null
- * @param {Object} [opts]  - { avatar: {letter, photoURL} }
- */
 function showBanner(title, text, view, opts = {}) {
   if (_bannerEl) _bannerEl.remove();
 
@@ -3318,7 +3141,6 @@ function showBanner(title, text, view, opts = {}) {
 
   requestAnimationFrame(() => el.classList.add("is-visible"));
 
-  // Клик — переход в раздел
   el.addEventListener("click", (e) => {
     if (e.target.closest(".app-banner__close")) return;
     if (view && typeof switchNav === "function") {
@@ -3327,13 +3149,11 @@ function showBanner(title, text, view, opts = {}) {
     closeBanner();
   });
 
-  // Крестик
   el.querySelector(".app-banner__close").addEventListener("click", (e) => {
     e.stopPropagation();
     closeBanner();
   });
 
-  // Свайп вверх
   let startY = null, dy = 0;
   el.addEventListener("pointerdown", (e) => {
     if (e.target.closest(".app-banner__close")) return;
@@ -3359,14 +3179,9 @@ function showBanner(title, text, view, opts = {}) {
     dy = 0;
   });
 
-  // Авто-скрытие
   _bannerTimer = setTimeout(closeBanner, 5000);
 }
 
-/**
- * Универсальная точка оповещения.
- * Если вкладка видна — баннер, если скрыта — системное уведомление.
- */
 function notifyUser(title, text, view, opts = {}) {
   vibrate([30, 60, 30]);
 
@@ -3393,7 +3208,7 @@ function notifyUser(title, text, view, opts = {}) {
    «ДУМАЮ О ТЕБЕ» — сигнал близости
    ========================================================== */
 
-const THINK_COOLDOWN_MS = 60 * 60 * 1000; // 1 час
+const THINK_COOLDOWN_MS = 60 * 60 * 1000;
 
 function thinkCooldownKey() {
   return `think-cooldown-${currentCoupleId}`;
@@ -3422,7 +3237,7 @@ function updateThinkButtonState() {
 }
 
 function burstHearts() {
-  const btn = $("think-btn");
+  const btn = $("partner-polaroid") || $("think-btn");
   if (!btn) return;
   const rect = btn.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
@@ -3442,46 +3257,70 @@ function burstHearts() {
   }
 }
 
-async function sendThinkSignal() {
+async function sendThinkSignal(thought) {
   if (!currentUser || !currentCoupleId) return;
   if (getThinkCooldownRemaining() > 0) return;
 
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
   if (!partnerUid) return;
 
-  // Визуально сразу откликаемся
   burstHearts();
   vibrate([15, 30, 15]);
 
-  // Оптимистично ставим кулдаун
   localStorage.setItem(thinkCooldownKey(), String(Date.now()));
-  updateThinkButtonState();
 
   try {
     await addDoc(collection(db, "couples", currentCoupleId, "signals"), {
       type: "think",
+      thought: thought || "думаю",
       fromUserId: currentUser.uid,
       toUserId: partnerUid,
       ts: Date.now(),
       createdAt: serverTimestamp()
     });
+    showToast("Отправлено", thought || "думаю о тебе");
   } catch (e) {
     console.error("Think signal error:", e);
-    // Откатываем кулдаун
     localStorage.removeItem(thinkCooldownKey());
-    updateThinkButtonState();
     alert("Не удалось отправить сигнал: " + e.message);
   }
 }
 
-function initThinkButton() {
-  const btn = $("think-btn");
-  if (!btn) return;
-  btn.onclick = sendThinkSignal;
-  updateThinkButtonState();
+function initQuickReactions() {
+  const polaroid = $("partner-polaroid");
+  const ring = $("quick-ring");
+  if (!polaroid || !ring) return;
 
-  // Обновляем отображение кулдауна раз в 30 секунд
-  setInterval(updateThinkButtonState, 30000);
+  polaroid.addEventListener("click", (e) => {
+    if (e.target.closest(".q-btn")) return;
+    if (e.target.closest("#pulse-partner")) return;
+
+    const remaining = getThinkCooldownRemaining();
+    if (remaining > 0) {
+      const min = Math.ceil(remaining / 60000);
+      const label = min >= 60 ? Math.ceil(min / 60) + "ч" : min + "м";
+      showToast("Подожди", `Следующий сигнал через ${label}`);
+      return;
+    }
+
+    ring.classList.toggle("open");
+    vibrate(10);
+  });
+
+  ring.querySelectorAll(".q-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const th = btn.dataset.th;
+      ring.classList.remove("open");
+      sendThinkSignal(th);
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!ring.classList.contains("open")) return;
+    if (e.target.closest("#partner-polaroid")) return;
+    ring.classList.remove("open");
+  });
 }
 
 function signalsProcessedKey() {
@@ -3501,7 +3340,6 @@ function initThinkSignals() {
     (snap) => {
       const signals = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // Первый снапшот — просто запоминаем всё как обработанное
       if (!signalsInitialized) {
         signalsInitialized = true;
         signals.forEach(s => processed.add(s.id));
@@ -3510,7 +3348,6 @@ function initThinkSignals() {
         return;
       }
 
-      // Ищем новые сигналы, адресованные мне
       const newForMe = signals.filter(s =>
         s.toUserId === currentUser.uid && !processed.has(s.id)
       );
@@ -3527,14 +3364,13 @@ function initThinkSignals() {
         photoURL: partnerProfile?.photoURL?.trim() || ""
       };
 
-      // Разделяем по типу
       const thinkSignals = newForMe.filter(s => s.type === "think" || !s.type);
-      const careSignals  = newForMe.filter(s => s.type === "care");
 
       if (thinkSignals.length > 0) {
+        const th = thinkSignals[0].thought || "думаю о тебе";
         const text = thinkSignals.length === 1
-          ? "Тёплый привет 💛"
-          : `×${thinkSignals.length} 💛`;
+          ? th
+          : `${th} ×${thinkSignals.length}`;
         notifyUser(
           `${partnerName} думает о тебе ❤️`,
           text,
@@ -3542,1282 +3378,12 @@ function initThinkSignals() {
           { avatar }
         );
       }
-
-      if (careSignals.length > 0) {
-        // Показываем последний по времени — не спамим, если прилетело несколько
-        const last = careSignals[careSignals.length - 1];
-        const care = CARE_TEXTS[last.kind] || CARE_TEXTS.support;
-        notifyUser(
-          `${partnerName} ${care.title} ${care.icon}`,
-          "Тёплый привет от близкого человека",
-          "today",
-          { avatar }
-        );
-      }
-    }
-  );
-}
-/* ==========================================================
-   ПЛАГИНЫ «ПЛАНЫ» → ЗАДАЧИ
-   ========================================================== */
-
-function todayISO() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function formatTaskDue(dueDate, dueTime) {
-  if (!dueDate) return null;
-  const today = todayISO();
-  const tomorrow = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  })();
-
-  let label;
-  let cls = "";
-  if (dueDate < today) {
-    const days = Math.round((new Date(today) - new Date(dueDate)) / 86400000);
-    label = `просрочено (${days} ${plural(days, "день", "дня", "дней")})`;
-    cls = "overdue";
-  } else if (dueDate === today) {
-    label = "сегодня";
-    cls = "soon";
-  } else if (dueDate === tomorrow) {
-    label = "завтра";
-  } else {
-    const [y, m, d] = dueDate.split("-").map(Number);
-    const dt = new Date(y, m - 1, d);
-    label = dt.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
-  }
-
-  const time = dueTime ? ` <span class="time">${dueTime}</span>` : "";
-  return { html: `📅 ${label}${time}`, cls };
-}
-
-function initTasks() {
-  $("add-task-btn").onclick = () => openTaskModal(null);
-  $("task-backdrop").onclick = closeTaskModal;
-  $("task-cancel-btn").onclick = closeTaskModal;
-  $("task-save-btn").onclick = saveTask;
-  $("task-delete-btn").onclick = deleteTaskFromModal;
-
-  document.querySelectorAll("#task-who-picker .who-option").forEach(btn => {
-    btn.onclick = () => {
-      vibrate(10);
-      selectedTaskWho = btn.dataset.who;
-      document.querySelectorAll("#task-who-picker .who-option").forEach(b => {
-        b.classList.remove("active", "me", "partner", "none");
-      });
-      btn.classList.add("active", selectedTaskWho);
-    };
-  });
-
-  document.querySelectorAll("#tasks-filters .filter-chip").forEach(chip => {
-    chip.onclick = () => {
-      vibrate(10);
-      currentTasksFilter = chip.dataset.filter;
-      document.querySelectorAll("#tasks-filters .filter-chip").forEach(c => {
-        c.classList.toggle("active", c.dataset.filter === currentTasksFilter);
-      });
-      renderTasks();
-    };
-  });
-
-  listenForTasks();
-}
-
-function listenForTasks() {
-  if (unsubTasks) unsubTasks();
-  tasksInitialized = false;
-
-  unsubTasks = onSnapshot(
-    collection(db, "couples", currentCoupleId, "tasks"),
-    (snap) => {
-      const prevTasks = tasks.slice();
-      tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      renderTasks();
-      updateBadges();
-
-      if (tasksInitialized) {
-        detectTaskEvents(prevTasks);
-      } else {
-        tasksInitialized = true;
-      }
     }
   );
 }
 
-function detectTaskEvents(prevTasks) {
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-  if (!partnerUid) return;
-
-  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
-  const avatar = {
-    letter: getInitials(partnerName).slice(0, 1),
-    photoURL: partnerProfile?.photoURL?.trim() || ""
-  };
-
-  const prevMap = new Map(prevTasks.map(t => [t.id, t]));
-
-  for (const task of tasks) {
-    const prev = prevMap.get(task.id);
-    if (!prev) {
-      // Новая задача
-      if (task.createdBy === partnerUid && task.assignee === currentUser.uid) {
-        notifyUser(
-          `${partnerName} назначила тебе задачу`,
-          `«${task.title}»`,
-          "plans",
-          { avatar }
-        );
-      } else if (task.createdBy === partnerUid && !task.assignee) {
-        notifyUser(
-          `${partnerName} добавила задачу`,
-          `«${task.title}»`,
-          "plans",
-          { avatar }
-        );
-      }
-    } else {
-      // Изменение существующей
-      // Партнёр взял свободную задачу, которую создал я
-      if (!prev.assignee && task.assignee === partnerUid && task.createdBy === currentUser.uid) {
-        notifyUser(
-          `${partnerName} взяла задачу`,
-          `«${task.title}»`,
-          "plans",
-          { avatar }
-        );
-      }
-      // Партнёр выполнил задачу, которую создал я
-      if (!prev.done && task.done && task.createdBy === currentUser.uid && task.doneBy === partnerUid) {
-        notifyUser(
-          `${partnerName} выполнила задачу`,
-          `«${task.title}»`,
-          "plans",
-          { avatar }
-        );
-      }
-    }
-  }
-}
-
-function sortTasks(arr) {
-  const today = todayISO();
-  return arr.sort((a, b) => {
-    // Выполненные — всегда вниз (сортируются отдельно)
-    if (a.done !== b.done) return a.done ? 1 : -1;
-
-    const aDate = a.dueDate || "";
-    const bDate = b.dueDate || "";
-
-    // Просроченные — вверх
-    const aOverdue = aDate && aDate < today;
-    const bOverdue = bDate && bDate < today;
-    if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
-
-    // С датой — раньше по дате
-    if (aDate && !bDate) return -1;
-    if (!aDate && bDate) return 1;
-    if (aDate && bDate && aDate !== bDate) return aDate < bDate ? -1 : 1;
-
-    // Одинаковая дата — по времени
-    const aTime = a.dueTime || "99:99";
-    const bTime = b.dueTime || "99:99";
-    if (aTime !== bTime) return aTime < bTime ? -1 : 1;
-
-    // Иначе по createdAt (свежие сверху)
-    const at = a.createdAt?.toDate?.()?.getTime?.() || 0;
-    const bt = b.createdAt?.toDate?.()?.getTime?.() || 0;
-    return bt - at;
-  });
-}
-
-function renderTasks() {
-  const container = $("tasks-active-list");
-  const doneBlock = $("tasks-done-block");
-  const doneList = $("tasks-done-list");
-  if (!container || !doneBlock || !doneList) return;
-
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-
-  let filtered = tasks.filter(t => {
-    if (currentTasksFilter === "active") return !t.done;
-    if (currentTasksFilter === "mine") return !t.done && t.assignee === currentUser.uid;
-    if (currentTasksFilter === "partner") return !t.done && t.assignee === partnerUid;
-    if (currentTasksFilter === "free") return !t.done && !t.assignee;
-    return true;
-  });
-
-  const active = sortTasks(filtered.filter(t => !t.done));
-  const done = sortTasks(tasks.filter(t => t.done));
-
-  const prevActiveIds = collectPrevIds(container);
-  const prevDoneIds = collectPrevIds(doneList);
-
-  container.innerHTML = "";
-  doneList.innerHTML = "";
-
-  // Пустое состояние
-  if (active.length === 0) {
-    const emptyText = currentTasksFilter === "mine"
-      ? "У вас пока нет задач"
-      : currentTasksFilter === "partner"
-      ? "У партнёра пока нет задач"
-      : currentTasksFilter === "free"
-      ? "Нет свободных задач"
-      : "Активных задач нет — можно отдохнуть 💛";
-    container.innerHTML = emptyStateHtml({
-      icon: ICONS.book,
-      title: "Пусто",
-      text: emptyText
-    });
-  } else {
-    active.forEach((t, i) => {
-      const el = buildTaskItem(t);
-      markForAnim(el, t.id, prevActiveIds, i);
-      container.appendChild(el);
-    });
-  }
-
-  if (done.length === 0) {
-    doneBlock.classList.add("hidden");
-  } else {
-    doneBlock.classList.remove("hidden");
-    done.forEach((t, i) => {
-      const el = buildTaskItem(t);
-      markForAnim(el, t.id, prevDoneIds, i);
-      doneList.appendChild(el);
-    });
-  }
-}
-
-function buildTaskItem(task) {
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-  const div = document.createElement("div");
-  div.className = "task-item";
-  div.dataset.animId = task.id;
-  if (task.done) div.classList.add("done");
-  if (task.assignee === currentUser.uid) div.classList.add("who-me");
-  else if (task.assignee === partnerUid) div.classList.add("who-partner");
-  else div.classList.add("who-none");
-
-  const whoLabel = task.assignee === currentUser.uid ? "Я"
-                  : task.assignee === partnerUid ? (partnerProfile?.displayName?.trim() || "Партнёр")
-                  : "Свободная";
-
-  const due = formatTaskDue(task.dueDate, task.dueTime);
-  const dueHtml = due
-    ? `<span class="due ${due.cls}">${due.html}</span>`
-    : (task.done && task.doneAt?.toDate
-        ? `<span class="due">📅 выполнено</span>`
-        : "");
-
-  div.innerHTML = `
-    <button class="task-check" data-action="toggle">${task.done ? "✓" : ""}</button>
-    <div class="task-body" data-action="edit">
-      <div class="task-title">${escapeHtml(task.title)}</div>
-      <div class="task-meta">
-        <span class="who"><span class="dot"></span> ${escapeHtml(whoLabel)}</span>
-        ${dueHtml}
-      </div>
-    </div>
-    ${!task.assignee && !task.done ? `<button class="take-btn" data-action="take">Беру</button>` : ""}
-  `;
-
-  const checkBtn = div.querySelector('[data-action="toggle"]');
-  if (checkBtn) {
-    checkBtn.onclick = (e) => {
-      e.stopPropagation();
-      toggleTaskDone(task.id, !task.done);
-    };
-  }
-
-  const takeBtn = div.querySelector('[data-action="take"]');
-  if (takeBtn) {
-    takeBtn.onclick = (e) => {
-      e.stopPropagation();
-      takeTask(task.id);
-    };
-  }
-
-  const body = div.querySelector('[data-action="edit"]');
-  if (body) {
-    body.onclick = () => openTaskModal(task.id);
-  }
-
-  return div;
-}
-
-async function toggleTaskDone(taskId, done) {
-  vibrate(done ? 15 : 10);
-  try {
-    const update = {
-      done,
-      doneAt: done ? serverTimestamp() : null,
-      doneBy: done ? currentUser.uid : null,
-      updatedAt: serverTimestamp()
-    };
-    await updateDoc(doc(db, "couples", currentCoupleId, "tasks", taskId), update);
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка: " + e.message);
-  }
-}
-
-async function takeTask(taskId) {
-  vibrate(15);
-  try {
-    await updateDoc(doc(db, "couples", currentCoupleId, "tasks", taskId), {
-      assignee: currentUser.uid,
-      updatedAt: serverTimestamp()
-    });
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка: " + e.message);
-  }
-}
-
-function openTaskModal(taskId) {
-  editingTaskId = taskId;
-  const isEdit = !!taskId;
-
-  const titleEl = $("task-modal-title");
-  titleEl.textContent = isEdit ? "Редактировать задачу" : "Новая задача";
-
-  const deleteBtn = $("task-delete-btn");
-  deleteBtn.classList.toggle("hidden", !isEdit);
-
-  if (isEdit) {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-    $("task-title-input").value = task.title || "";
-    $("task-due-date").value = task.dueDate || "";
-    $("task-due-time").value = task.dueTime || "";
-    $("task-note-input").value = task.note || "";
-
-    const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-    if (task.assignee === currentUser.uid) selectedTaskWho = "me";
-    else if (task.assignee === partnerUid) selectedTaskWho = "partner";
-    else selectedTaskWho = "none";
-  } else {
-    $("task-title-input").value = "";
-    $("task-due-date").value = "";
-    $("task-due-time").value = "";
-    $("task-note-input").value = "";
-    selectedTaskWho = "none";
-  }
-
-  document.querySelectorAll("#task-who-picker .who-option").forEach(b => {
-    b.classList.remove("active", "me", "partner", "none");
-    if (b.dataset.who === selectedTaskWho) {
-      b.classList.add("active", selectedTaskWho);
-    }
-  });
-
-  $("task-modal").classList.remove("hidden");
-  setTimeout(() => $("task-title-input").focus(), 100);
-}
-
-function closeTaskModal() {
-  $("task-modal").classList.add("hidden");
-  editingTaskId = null;
-}
-
-async function saveTask() {
-  const title = $("task-title-input").value.trim();
-  if (!title) { alert("Введите название задачи"); return; }
-
-  const dueDate = $("task-due-date").value || null;
-  const dueTime = $("task-due-time").value || null;
-  const note = $("task-note-input").value.trim();
-
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-  let assignee = null;
-  if (selectedTaskWho === "me") assignee = currentUser.uid;
-  else if (selectedTaskWho === "partner") assignee = partnerUid;
-
-  const btn = $("task-save-btn");
-  btn.disabled = true;
-
-  try {
-    if (editingTaskId) {
-      await updateDoc(doc(db, "couples", currentCoupleId, "tasks", editingTaskId), {
-        title, assignee, dueDate, dueTime, note,
-        updatedAt: serverTimestamp()
-      });
-    } else {
-      await addDoc(collection(db, "couples", currentCoupleId, "tasks"), {
-        title,
-        assignee,
-        dueDate,
-        dueTime,
-        note,
-        done: false,
-        doneAt: null,
-        doneBy: null,
-        createdBy: currentUser.uid,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-    }
-    vibrate(15);
-    closeTaskModal();
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка сохранения: " + e.message);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function deleteTaskFromModal() {
-  if (!editingTaskId) return;
-  if (!confirm("Удалить задачу? Это действие нельзя отменить.")) return;
-  try {
-    await deleteDoc(doc(db, "couples", currentCoupleId, "tasks", editingTaskId));
-    vibrate(15);
-    closeTaskModal();
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка удаления: " + e.message);
-  }
-}
-
-function updateTasksBadge() {
-  if (!currentUser || !currentCoupleId) {
-    setBadge("badge-plans", 0);
-    return;
-  }
-  // Считаем: сколько задач на мне + сколько свободных
-  const activeMineOrFree = tasks.filter(t => !t.done && (!t.assignee || t.assignee === currentUser.uid)).length;
-  setBadge("badge-plans", activeMineOrFree);
-}
 /* ==========================================================
-   ПЛАГИНЫ «ПЛАНЫ» → ЗАМЕТКИ
-   ========================================================== */
-
-function formatNoteTimeShort(ts) {
-  if (!ts) return "";
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  const now = new Date();
-  const diffMs = now - d;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "сейчас";
-  if (diffMin < 60) return diffMin + "м";
-  const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return diffH + "ч";
-  const diffD = Math.floor(diffH / 24);
-  if (diffD === 1) return "вчера";
-  if (diffD < 7) return diffD + "д";
-  if (diffD < 14) return "неделю";
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
-}
-
-function formatNoteTimeFull(ts) {
-  if (!ts) return "";
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  const now = new Date();
-  const isToday = d.toDateString() === now.toDateString();
-  const y = new Date(now); y.setDate(y.getDate() - 1);
-  const isYesterday = d.toDateString() === y.toDateString();
-  const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-  if (isToday) return `сегодня, ${time}`;
-  if (isYesterday) return `вчера, ${time}`;
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
-}
-
-function initNotes() {
-  $("add-sticker-btn").onclick = () => openStickerModal(null);
-  $("add-note-btn").onclick = () => openNoteModal(null);
-
-  $("sticker-backdrop").onclick = closeNoteModals;
-  $("sticker-cancel-btn").onclick = closeNoteModals;
-  $("sticker-save-btn").onclick = saveSticker;
-  $("sticker-delete-btn").onclick = deleteNoteFromModal;
-
-  $("note-backdrop").onclick = closeNoteModals;
-  $("note-cancel-btn").onclick = closeNoteModals;
-  $("note-save-btn").onclick = saveNote;
-  $("note-delete-btn").onclick = deleteNoteFromModal;
-
-  document.querySelectorAll("#sticker-color-picker .color-dot").forEach(dot => {
-    dot.onclick = () => {
-      vibrate(10);
-      selectedStickerColor = Number(dot.dataset.color);
-      document.querySelectorAll("#sticker-color-picker .color-dot").forEach(d => {
-        d.classList.toggle("active", Number(d.dataset.color) === selectedStickerColor);
-      });
-    };
-  });
-
-  listenForNotes();
-}
-
-function listenForNotes() {
-  if (unsubNotes) unsubNotes();
-  notesInitialized = false;
-
-  unsubNotes = onSnapshot(
-    collection(db, "couples", currentCoupleId, "notes"),
-    (snap) => {
-      const prevNotes = notes.slice();
-      notes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      renderNotes();
-
-      if (notesInitialized) {
-        detectNoteEvents(prevNotes);
-      } else {
-        notesInitialized = true;
-      }
-    }
-  );
-}
-
-function detectNoteEvents(prevNotes) {
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-  if (!partnerUid) return;
-
-  const prevIds = new Set(prevNotes.map(n => n.id));
-  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
-  const avatar = {
-    letter: getInitials(partnerName).slice(0, 1),
-    photoURL: partnerProfile?.photoURL?.trim() || ""
-  };
-
-  for (const note of notes) {
-    if (prevIds.has(note.id)) continue;
-    if (note.createdBy !== partnerUid) continue;
-
-    const typeLabel = note.type === "sticker" ? "стикер" : "заметку";
-    const preview = (note.text || "").slice(0, 60);
-    notifyUser(
-      `${partnerName} оставила ${typeLabel}`,
-      preview + ((note.text || "").length > 60 ? "…" : ""),
-      "plans",
-      { avatar }
-    );
-  }
-}
-
-function renderNotes() {
-  const stickerContainer = $("stickers-container");
-  const notesContainer = $("notes-container");
-  if (!stickerContainer || !notesContainer) return;
-
-  const sortFn = (a, b) => {
-    const at = a.createdAt?.toDate?.()?.getTime?.() || 0;
-    const bt = b.createdAt?.toDate?.()?.getTime?.() || 0;
-    return bt - at;
-  };
-  const stickers = notes.filter(n => n.type === "sticker").sort(sortFn);
-  const longNotes = notes.filter(n => n.type === "long").sort(sortFn);
-
-  const prevStickerIds = collectPrevIds(stickerContainer);
-  const prevNoteIds = collectPrevIds(notesContainer);
-
-  stickerContainer.innerHTML = "";
-  notesContainer.innerHTML = "";
-
-  if (stickers.length === 0 && longNotes.length === 0) {
-    stickerContainer.innerHTML = emptyStateHtml({
-      icon: ICONS.book,
-      title: "Пока пусто",
-      text: "Стикеры — для быстрых мыслей. Заметки — для длинных записей. Оба типа видны вам двоим."
-    });
-    return;
-  }
-
-  if (stickers.length > 0) {
-    const grid = document.createElement("div");
-    grid.className = "sticker-grid";
-    stickers.forEach((s, i) => {
-      const el = buildStickerCard(s);
-      markForAnim(el, s.id, prevStickerIds, i);
-      grid.appendChild(el);
-    });
-    stickerContainer.appendChild(grid);
-  }
-
-  if (longNotes.length > 0) {
-    if (stickers.length > 0) {
-      const divider = document.createElement("div");
-      divider.className = "section-divider";
-      divider.textContent = "Заметки";
-      notesContainer.appendChild(divider);
-    }
-    longNotes.forEach((n, i) => {
-      const el = buildLongNoteCard(n);
-      markForAnim(el, n.id, prevNoteIds, i);
-      notesContainer.appendChild(el);
-    });
-  }
-}
-
-function buildStickerCard(note) {
-  const isMine = note.createdBy === currentUser.uid;
-  const authorName = isMine
-    ? (myProfile?.displayName?.trim() || "Я")
-    : (partnerProfile?.displayName?.trim() || "Партнёр");
-  const colorIdx = (typeof note.color === "number" && note.color >= 0 && note.color <= 5)
-    ? note.color : 0;
-
-  const div = document.createElement("div");
-  div.className = `sticker color-${colorIdx}`;
-  div.dataset.animId = note.id;
-  div.innerHTML = `
-    <div class="sticker-text">${escapeHtml(note.text || "")}</div>
-    <div class="sticker-meta">
-      <span class="sticker-author">${escapeHtml(authorName)}</span>
-      <span class="sticker-time">${formatNoteTimeShort(note.createdAt)}</span>
-    </div>
-  `;
-  div.onclick = () => openStickerModal(note.id);
-  return div;
-}
-
-function buildLongNoteCard(note) {
-  const isMine = note.createdBy === currentUser.uid;
-  const authorName = isMine
-    ? (myProfile?.displayName?.trim() || "Я")
-    : (partnerProfile?.displayName?.trim() || "Партнёр");
-
-  const div = document.createElement("div");
-  div.className = `long-note ${isMine ? "author-me" : "author-partner"}`;
-  div.dataset.animId = note.id;
-  div.innerHTML = `
-    <div class="long-note-text">${escapeHtml(note.text || "")}</div>
-    <div class="long-note-meta">
-      <span class="long-note-author"><span class="dot"></span> ${escapeHtml(authorName)}</span>
-      <span>${formatNoteTimeFull(note.createdAt)}</span>
-    </div>
-  `;
-  div.onclick = () => openNoteModal(note.id);
-  return div;
-}
-
-function openStickerModal(noteId) {
-  editingNoteId = noteId;
-  const isEdit = !!noteId;
-  const titleEl = $("sticker-modal-title");
-  const deleteBtn = $("sticker-delete-btn");
-  const saveBtn = $("sticker-save-btn");
-  const ta = $("sticker-text-input");
-
-  if (isEdit) {
-    const note = notes.find(n => n.id === noteId);
-    if (!note) return;
-    const isMine = note.createdBy === currentUser.uid;
-
-    ta.value = note.text || "";
-    ta.readOnly = !isMine;
-    selectedStickerColor = (typeof note.color === "number") ? note.color : 0;
-    titleEl.textContent = isMine ? "Редактировать стикер" : "Стикер партнёра";
-    saveBtn.classList.toggle("hidden", !isMine);
-    deleteBtn.classList.toggle("hidden", !isMine);
-  } else {
-    ta.value = "";
-    ta.readOnly = false;
-    selectedStickerColor = 0;
-    titleEl.textContent = "Новый стикер";
-    saveBtn.classList.remove("hidden");
-    deleteBtn.classList.add("hidden");
-  }
-
-  document.querySelectorAll("#sticker-color-picker .color-dot").forEach(d => {
-    d.classList.toggle("active", Number(d.dataset.color) === selectedStickerColor);
-  });
-
-  $("sticker-modal").classList.remove("hidden");
-  setTimeout(() => { if (!ta.readOnly) ta.focus(); }, 100);
-}
-
-function openNoteModal(noteId) {
-  editingNoteId = noteId;
-  const isEdit = !!noteId;
-  const titleEl = $("note-modal-title");
-  const deleteBtn = $("note-delete-btn");
-  const saveBtn = $("note-save-btn");
-  const ta = $("note-text-input");
-
-  if (isEdit) {
-    const note = notes.find(n => n.id === noteId);
-    if (!note) return;
-    const isMine = note.createdBy === currentUser.uid;
-
-    ta.value = note.text || "";
-    ta.readOnly = !isMine;
-    titleEl.textContent = isMine ? "Редактировать заметку" : "Заметка партнёра";
-    saveBtn.classList.toggle("hidden", !isMine);
-    deleteBtn.classList.toggle("hidden", !isMine);
-  } else {
-    ta.value = "";
-    ta.readOnly = false;
-    titleEl.textContent = "Новая заметка";
-    saveBtn.classList.remove("hidden");
-    deleteBtn.classList.add("hidden");
-  }
-
-  $("note-modal").classList.remove("hidden");
-  setTimeout(() => { if (!ta.readOnly) ta.focus(); }, 100);
-}
-
-function closeNoteModals() {
-  $("sticker-modal").classList.add("hidden");
-  $("note-modal").classList.add("hidden");
-  editingNoteId = null;
-}
-
-async function saveSticker() {
-  const text = $("sticker-text-input").value.trim();
-  if (!text) { alert("Введите текст стикера"); return; }
-
-  const btn = $("sticker-save-btn");
-  btn.disabled = true;
-  try {
-    if (editingNoteId) {
-      await updateDoc(doc(db, "couples", currentCoupleId, "notes", editingNoteId), {
-        text,
-        color: selectedStickerColor,
-        updatedAt: serverTimestamp()
-      });
-    } else {
-      await addDoc(collection(db, "couples", currentCoupleId, "notes"), {
-        type: "sticker",
-        text,
-        color: selectedStickerColor,
-        createdBy: currentUser.uid,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-    }
-    vibrate(15);
-    closeNoteModals();
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка: " + e.message);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function saveNote() {
-  const text = $("note-text-input").value.trim();
-  if (!text) { alert("Введите текст заметки"); return; }
-
-  const btn = $("note-save-btn");
-  btn.disabled = true;
-  try {
-    if (editingNoteId) {
-      await updateDoc(doc(db, "couples", currentCoupleId, "notes", editingNoteId), {
-        text,
-        updatedAt: serverTimestamp()
-      });
-    } else {
-      await addDoc(collection(db, "couples", currentCoupleId, "notes"), {
-        type: "long",
-        text,
-        createdBy: currentUser.uid,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-    }
-    vibrate(15);
-    closeNoteModals();
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка: " + e.message);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function deleteNoteFromModal() {
-  if (!editingNoteId) return;
-  if (!confirm("Удалить? Это действие нельзя отменить.")) return;
-  try {
-    await deleteDoc(doc(db, "couples", currentCoupleId, "notes", editingNoteId));
-    vibrate(15);
-    closeNoteModals();
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка удаления: " + e.message);
-  }
-}
-/* ==========================================================
-   ПЛАГИНЫ «ПЛАНЫ» → КАЛЕНДАРЬ
-   ========================================================== */
-
-function pad2(n) { return String(n).padStart(2, "0"); }
-
-function toISODate(d) {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-function parseISODate(iso) {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
-/* Проверяет, попадает ли событие в указанную дату (учитывая повторы) */
-function eventMatchesDate(ev, targetDate) {
-  if (!ev.date) return false;
-  const start = parseISODate(ev.date);
-  const target = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-  const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-
-  // Событие не может быть раньше даты старта
-  if (target < startDay) return false;
-
-  if (ev.repeat === "year") {
-    return target.getMonth() === start.getMonth() && target.getDate() === start.getDate();
-  }
-  if (ev.repeat === "month") {
-    return target.getDate() === start.getDate();
-  }
-  if (ev.repeat === "week") {
-    return target.getDay() === start.getDay();
-  }
-  // none
-  return target.getTime() === startDay.getTime();
-}
-
-/* Возвращает события на конкретную дату, отсортированные */
-function getEventsForDate(date, eventsArr) {
-  const result = eventsArr.filter(ev => eventMatchesDate(ev, date));
-  return sortEvents(result);
-}
-
-/* Сортировка событий: по времени, потом по названию */
-function sortEvents(arr) {
-  return arr.slice().sort((a, b) => {
-    const at = a.time || "99:99";
-    const bt = b.time || "99:99";
-    if (at !== bt) return at < bt ? -1 : 1;
-    return (a.title || "").localeCompare(b.title || "");
-  });
-}
-
-function initEvents() {
-  $("cal-prev").onclick = () => {
-    vibrate(10);
-    currentCalMonth--;
-    if (currentCalMonth < 0) { currentCalMonth = 11; currentCalYear--; }
-    selectedCalDate = null;
-    renderCalendar();
-    renderEventsList();
-  };
-  $("cal-next").onclick = () => {
-    vibrate(10);
-    currentCalMonth++;
-    if (currentCalMonth > 11) { currentCalMonth = 0; currentCalYear++; }
-    selectedCalDate = null;
-    renderCalendar();
-    renderEventsList();
-  };
-
-  $("add-event-btn").onclick = () => openEventModal(null);
-  $("event-backdrop").onclick = closeEventModal;
-  $("event-cancel-btn").onclick = closeEventModal;
-  $("event-save-btn").onclick = saveEvent;
-  $("event-delete-btn").onclick = deleteEventFromModal;
-
-  document.querySelectorAll("#event-repeat-picker .repeat-option").forEach(btn => {
-    btn.onclick = () => {
-      vibrate(10);
-      selectedEventRepeat = btn.dataset.repeat;
-      document.querySelectorAll("#event-repeat-picker .repeat-option").forEach(b => {
-        b.classList.toggle("active", b.dataset.repeat === selectedEventRepeat);
-      });
-    };
-  });
-
-  listenForEvents();
-}
-
-function listenForEvents() {
-  if (unsubEvents) unsubEvents();
-  eventsInitialized = false;
-
-  unsubEvents = onSnapshot(
-    collection(db, "couples", currentCoupleId, "events"),
-    (snap) => {
-      const prevEvents = events.slice();
-      events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      renderCalendar();
-      renderEventsList();
-
-      if (eventsInitialized) {
-        detectEventChanges(prevEvents);
-      } else {
-        eventsInitialized = true;
-      }
-    }
-  );
-}
-
-function detectEventChanges(prevEvents) {
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-  if (!partnerUid) return;
-
-  const prevIds = new Set(prevEvents.map(e => e.id));
-  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
-  const avatar = {
-    letter: getInitials(partnerName).slice(0, 1),
-    photoURL: partnerProfile?.photoURL?.trim() || ""
-  };
-
-  for (const ev of events) {
-    if (prevIds.has(ev.id)) continue;
-    if (ev.createdBy !== partnerUid) continue;
-
-    notifyUser(
-      `${partnerName} добавила событие`,
-      ev.title || "Без названия",
-      "plans",
-      { avatar }
-    );
-  }
-}
-
-function renderCalendar() {
-  const grid = $("cal-grid");
-  const label = $("cal-month-label");
-  if (!grid || !label) return;
-
-  const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-                      "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-  label.textContent = `${monthNames[currentCalMonth]} ${currentCalYear}`;
-
-  // Первый день месяца
-  const firstDay = new Date(currentCalYear, currentCalMonth, 1);
-  // День недели первого дня: 0 = Пн по нашей сетке
-  const startDow = (firstDay.getDay() + 6) % 7;
-
-  const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
-  const prevMonthDays = new Date(currentCalYear, currentCalMonth, 0).getDate();
-
-  const todayISOStr = todayISO();
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-
-  grid.innerHTML = "";
-
-  // Заголовки дней
-  ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].forEach(d => {
-    const el = document.createElement("div");
-    el.className = "cal-dayname";
-    el.textContent = d;
-    grid.appendChild(el);
-  });
-
-  // Ячейки
-  const totalCells = 42;
-  for (let i = 0; i < totalCells; i++) {
-    const cell = document.createElement("div");
-    cell.className = "cal-day";
-
-    let dateObj;
-    let isOtherMonth = false;
-
-    if (i < startDow) {
-      // Прошлый месяц
-      const dayNum = prevMonthDays - (startDow - i) + 1;
-      dateObj = new Date(currentCalYear, currentCalMonth - 1, dayNum);
-      isOtherMonth = true;
-    } else if (i >= startDow + daysInMonth) {
-      // Следующий месяц
-      const dayNum = i - (startDow + daysInMonth) + 1;
-      dateObj = new Date(currentCalYear, currentCalMonth + 1, dayNum);
-      isOtherMonth = true;
-    } else {
-      const dayNum = i - startDow + 1;
-      dateObj = new Date(currentCalYear, currentCalMonth, dayNum);
-    }
-
-    const iso = toISODate(dateObj);
-    cell.textContent = dateObj.getDate();
-
-    if (isOtherMonth) {
-      cell.classList.add("other-month");
-    } else {
-      // Проверяем события
-      const dayEvents = getEventsForDate(dateObj, events);
-      const hasMine = dayEvents.some(e => e.createdBy === currentUser.uid);
-      const hasPartner = dayEvents.some(e => e.createdBy === partnerUid);
-
-      if (dayEvents.length > 0) cell.classList.add("has-events");
-      if (iso === todayISOStr) cell.classList.add("today");
-      if (selectedCalDate === iso) cell.classList.add("selected");
-
-      if (hasMine || hasPartner) {
-        const dots = document.createElement("div");
-        dots.className = "dots";
-        if (hasMine) {
-          const d = document.createElement("span");
-          d.className = "dot mine";
-          dots.appendChild(d);
-        }
-        if (hasPartner) {
-          const d = document.createElement("span");
-          d.className = "dot partner";
-          dots.appendChild(d);
-        }
-        cell.appendChild(dots);
-      }
-
-      cell.onclick = () => {
-        vibrate(10);
-        selectedCalDate = (selectedCalDate === iso) ? null : iso;
-        renderCalendar();
-        renderEventsList();
-      };
-    }
-
-    grid.appendChild(cell);
-  }
-}
-
-function renderEventsList() {
-  const container = $("events-list");
-  if (!container) return;
-  const prevEventIds = collectPrevIds(container);
-  container.innerHTML = "";
-
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-  const todayDate = new Date();
-  const todayISOStr = todayISO();
-
-  // Если выбран день — показываем его первым
-  if (selectedCalDate) {
-    const selDate = parseISODate(selectedCalDate);
-    const dayEvents = getEventsForDate(selDate, events);
-
-    const title = document.createElement("div");
-    title.className = "events-title";
-    const dateLabel = selDate.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
-    title.innerHTML = `<span>${dateLabel}</span>`;
-    const clearBtn = document.createElement("span");
-    clearBtn.className = "clear-selection";
-    clearBtn.textContent = "Сбросить выбор";
-    clearBtn.onclick = () => {
-      selectedCalDate = null;
-      renderCalendar();
-      renderEventsList();
-    };
-    title.appendChild(clearBtn);
-    container.appendChild(title);
-
-    if (dayEvents.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "events-empty";
-      empty.textContent = "На этот день ничего нет.";
-      container.appendChild(empty);
-    } else {
-      dayEvents.forEach((ev, i) => {
-        const el = buildEventItem(ev, selDate);
-        markForAnim(el, ev.id, prevEventIds, i);
-        container.appendChild(el);
-      });
-    }
-    return;
-  }
-
-  // Иначе: «Сегодня» + «Ближайшие 30 дней»
-  const todayEvents = getEventsForDate(todayDate, events);
-  if (todayEvents.length > 0) {
-    const title = document.createElement("div");
-    title.className = "events-title";
-    title.textContent = "Сегодня";
-    container.appendChild(title);
-    todayEvents.forEach((ev, i) => {
-      const el = buildEventItem(ev, todayDate);
-      markForAnim(el, ev.id, prevEventIds, i);
-      container.appendChild(el);
-    });
-  }
-
-  // Ближайшие 30 дней (начиная с завтра)
-  const upcoming = [];
-  for (let i = 1; i <= 30; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    const evs = getEventsForDate(d, events);
-    evs.forEach(ev => upcoming.push({ ev, date: new Date(d) }));
-  }
-
-  if (upcoming.length === 0 && todayEvents.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "events-empty";
-    empty.textContent = "Пока нет ближайших событий. Добавьте годовщины, ДР родных, встречи — и они появятся здесь.";
-    container.appendChild(empty);
-    return;
-  }
-
-  if (upcoming.length > 0) {
-    const title = document.createElement("div");
-    title.className = "events-title";
-    title.style.marginTop = todayEvents.length > 0 ? "16px" : "0";
-    title.textContent = "Ближайшие 30 дней";
-    container.appendChild(title);
-    upcoming.forEach(({ ev, date }, i) => {
-      const el = buildEventItem(ev, date);
-      markForAnim(el, ev.id, prevEventIds, i);
-      container.appendChild(el);
-    });
-  }
-}
-
-function buildEventItem(ev, dateObj) {
-  const isMine = ev.createdBy === currentUser.uid;
-  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-  const authorName = isMine
-    ? (myProfile?.displayName?.trim() || "Я")
-    : (partnerProfile?.displayName?.trim() || "Партнёр");
-
-  const div = document.createElement("div");
-  div.className = `event-item ${isMine ? "author-me" : "author-partner"}`;
-  div.dataset.animId = ev.id;
-
-  const day = dateObj.getDate();
-  const monthShort = dateObj.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "");
-
-  // Повтор
-  let repeatBadge = "";
-  if (ev.repeat === "year") repeatBadge = `<span class="repeat-badge">каждый год</span>`;
-  else if (ev.repeat === "month") repeatBadge = `<span class="repeat-badge">каждый месяц</span>`;
-  else if (ev.repeat === "week") repeatBadge = `<span class="repeat-badge">каждую неделю</span>`;
-
-  // «Скоро»-бейдж для ближайших дней
-  let soonBadge = "";
-  const todayISOStr = todayISO();
-  const targetISO = toISODate(dateObj);
-  if (targetISO !== todayISOStr) {
-    const diffDays = Math.round((parseISODate(targetISO) - parseISODate(todayISOStr)) / 86400000);
-    if (diffDays === 1) soonBadge = `<span class="soon-badge">завтра</span>`;
-    else if (diffDays === 2) soonBadge = `<span class="soon-badge">через 2 дня</span>`;
-    else if (diffDays === 3) soonBadge = `<span class="soon-badge">через 3 дня</span>`;
-  }
-
-  div.innerHTML = `
-    <div class="event-date">
-      <div class="event-day">${day}</div>
-      <div class="event-month">${monthShort}</div>
-    </div>
-    <div class="event-body">
-      <div class="event-title">${escapeHtml(ev.title || "Без названия")}</div>
-      <div class="event-sub">
-        <span class="time">${ev.time ? ev.time : "весь день"}</span>
-        <span class="author">${escapeHtml(authorName)}</span>
-        ${repeatBadge}
-        ${soonBadge}
-      </div>
-    </div>
-  `;
-  div.onclick = () => openEventModal(ev.id);
-  return div;
-}
-
-function openEventModal(eventId) {
-  editingEventId = eventId;
-  const isEdit = !!eventId;
-
-  const titleEl = $("event-modal-title");
-  const deleteBtn = $("event-delete-btn");
-
-  if (isEdit) {
-    const ev = events.find(e => e.id === eventId);
-    if (!ev) return;
-    titleEl.textContent = "Редактировать событие";
-    deleteBtn.classList.remove("hidden");
-    $("event-title-input").value = ev.title || "";
-    $("event-date-input").value = ev.date || "";
-    $("event-time-input").value = ev.time || "";
-    $("event-note-input").value = ev.note || "";
-    selectedEventRepeat = ev.repeat || "none";
-  } else {
-    titleEl.textContent = "Новое событие";
-    deleteBtn.classList.add("hidden");
-    $("event-title-input").value = "";
-    $("event-date-input").value = selectedCalDate || todayISO();
-    $("event-time-input").value = "";
-    $("event-note-input").value = "";
-    selectedEventRepeat = "none";
-  }
-
-  document.querySelectorAll("#event-repeat-picker .repeat-option").forEach(b => {
-    b.classList.toggle("active", b.dataset.repeat === selectedEventRepeat);
-  });
-
-  $("event-modal").classList.remove("hidden");
-  setTimeout(() => $("event-title-input").focus(), 100);
-}
-
-function closeEventModal() {
-  $("event-modal").classList.add("hidden");
-  editingEventId = null;
-}
-
-async function saveEvent() {
-  const title = $("event-title-input").value.trim();
-  if (!title) { alert("Введите название события"); return; }
-  const date = $("event-date-input").value;
-  if (!date) { alert("Выберите дату"); return; }
-  const time = $("event-time-input").value || null;
-  const note = $("event-note-input").value.trim();
-
-  const btn = $("event-save-btn");
-  btn.disabled = true;
-  try {
-    if (editingEventId) {
-      await updateDoc(doc(db, "couples", currentCoupleId, "events", editingEventId), {
-        title, date, time, note,
-        repeat: selectedEventRepeat,
-        updatedAt: serverTimestamp()
-      });
-    } else {
-      await addDoc(collection(db, "couples", currentCoupleId, "events"), {
-        title, date, time, note,
-        repeat: selectedEventRepeat,
-        createdBy: currentUser.uid,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-    }
-    vibrate(15);
-    closeEventModal();
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка сохранения: " + e.message);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function deleteEventFromModal() {
-  if (!editingEventId) return;
-  if (!confirm("Удалить событие? Это действие нельзя отменить.")) return;
-  try {
-    await deleteDoc(doc(db, "couples", currentCoupleId, "events", editingEventId));
-    vibrate(15);
-    closeEventModal();
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка удаления: " + e.message);
-  }
-}
-/* ==========================================================
-   АНИМАЦИЯ ДИНАМИЧЕСКИХ КАРТОЧЕК (Задачи, Заметки, Календарь)
+   АНИМАЦИЯ ДИНАМИЧЕСКИХ КАРТОЧЕК
    ========================================================== */
 
 function collectPrevIds(container) {
@@ -4842,7 +3408,6 @@ function markForAnim(el, id, prevIds, index) {
 
 function getWordForDay(day) {
   if (!words || words.length === 0) return null;
-  // Циклично: если день больше, чем слов — возвращаемся к началу
   const index = ((day - 1) % words.length + words.length) % words.length;
   return words[index];
 }
@@ -4980,11 +3545,6 @@ function closeMoonModal() {
    ПРИМИРЕНИЕ — режим внутри «Разговора»
    ========================================================== */
 
-/* ==========================================================
-   ПРИМИРЕНИЕ — режим внутри «Разговора»
-   ========================================================== */
-
-/* ---- SVG-иконки ---- */
 const DIALOGUE_ICONS = {
   dove: `<svg class="dialogue-icon" viewBox="0 0 24 24"><path d="M21 5 C18 5 16 6 14.5 8 C14 7 13 6.5 11.5 6.5 C8 6.5 5 9 5 12 L5 13 L2 14 L5 15 C5.5 18 8.5 21 13 21 C17.5 21 21 17.5 21 13 Z"/><path d="M12 8.5 L12 13"/><path d="M19 8 L20.5 6"/></svg>`,
   brokenHeart: `<svg class="dialogue-icon" viewBox="0 0 24 24"><path d="M12 21 C12 21 3 14 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 11.5 4 12 5 C12.5 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 14 12 21 12 21 Z"/><path d="M12 5 L10.5 9 L13.5 11 L12 15"/></svg>`,
@@ -4995,7 +3555,6 @@ const DIALOGUE_ICONS = {
   heart: `<svg class="dialogue-icon dialogue-icon--fill" viewBox="0 0 24 24"><path d="M12 21 C12 21 3 14 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 11.5 4 12 5 C12.5 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 14 12 21 12 21 Z"/></svg>`,
 };
 
-/* ---- Пять чувств ---- */
 const DIALOGUE_FEELINGS = [
   { key: "обида",          label: "Обида",           icon: "brokenHeart" },
   { key: "недопонимание",  label: "Недопонимание",   icon: "question" },
@@ -5012,7 +3571,6 @@ function getFeelingIcon(key, extraClass) {
   const f = getDialogueFeelingInfo(key);
   const svg = DIALOGUE_ICONS[f.icon] || "";
   if (!extraClass) return svg;
-  // подмешиваем доп. класс, если нужен
   return svg.replace('class="dialogue-icon"', `class="dialogue-icon ${extraClass}"`);
 }
 
@@ -5027,15 +3585,12 @@ function getMyNameForDialogue() {
   return myProfile?.displayName?.trim() || "Вы";
 }
 
-/* ---- Инициализация ---- */
 function initDialogue() {
   const btn = $("reconcile-btn");
   if (btn) btn.onclick = onReconcileClick;
   const backdrop = $("dialogue-backdrop");
   if (backdrop) backdrop.onclick = closeDialogueModal;
 
-  // Один слушатель на весь контент модалки — работает всегда,
-  // не зависит от inline onclick и window-экспорта
   const content = $("dialogue-modal-content");
   if (content && content.dataset.dlgBound !== "1") {
     content.dataset.dlgBound = "1";
@@ -5049,17 +3604,15 @@ function initDialogue() {
       const id = el.dataset.dlgId;
       const key = el.dataset.dlgKey;
 
-      console.log("[dialogue] action:", action, id, key);
-
       switch (action) {
         case "close":            closeDialogueModal(); break;
         case "pick-feeling":     pickDialogueFeeling(key); break;
         case "submit-feeling":   submitDialogueFeeling(); break;
         case "cancel-dialogue":  cancelDialogue(id); break;
         case "accept":           acceptDialogue(id); break;
-        case "save-text":            saveDialogueText(id); break;
-        case "open-agreement":       openDialogueAgreement(id); break;
-        case "save-agreement":       saveDialogueAgreement(id); break;
+        case "save-text":        saveDialogueText(id); break;
+        case "open-agreement":   openDialogueAgreement(id); break;
+        case "save-agreement":   saveDialogueAgreement(id); break;
         case "sign":             signDialogue(id); break;
         case "sign-for-partner": signForPartner(id); break;
         case "open-modal":       openDialogueModal(id); break;
@@ -5079,7 +3632,6 @@ function onReconcileClick() {
   }
 }
 
-/* ---- Модалка блокировки ---- */
 function openDialogueBlockModal(conv) {
   const f = getDialogueFeelingInfo(conv.feeling);
   const iAmInitiator = conv.initiatedBy === currentUser.uid;
@@ -5140,7 +3692,6 @@ async function cancelOldDialogueAndStartNew(convId) {
   }
 }
 
-/* ---- Выбор чувства ---- */
 let _tmpDialogueFeeling = null;
 let _tmpDialogueReason = "";
 let _currentDialogueId = null;
@@ -5219,7 +3770,6 @@ async function submitDialogueFeeling() {
   }
 }
 
-/* ---- Открытие существующего примирения ---- */
 function openDialogueModal(convId) {
   const conv = conversations.find(c => c.id === convId);
   if (!conv) return;
@@ -5250,7 +3800,6 @@ function closeDialogueModal() {
   _currentDialogueId = null;
 }
 
-/* ---- Ждём партнёра ---- */
 function renderDialogueWaiting(conv) {
   const f = getDialogueFeelingInfo(conv.feeling);
   const partnerName = getPartnerNameForDialogue();
@@ -5294,7 +3843,6 @@ async function cancelDialogue(convId) {
   }
 }
 
-/* ---- Экран партнёра ---- */
 function renderDialoguePartnerScreen(conv) {
   const f = getDialogueFeelingInfo(conv.feeling);
   const myName = getMyNameForDialogue();
@@ -5349,7 +3897,6 @@ async function acceptDialogue(convId) {
   }
 }
 
-/* ---- Фаза talking ---- */
 function renderDialogueTalking(conv) {
   const f = getDialogueFeelingInfo(conv.feeling);
   const myText = (conv.texts || {})[currentUser.uid] || "";
@@ -5417,7 +3964,6 @@ async function saveDialogueAgreement(convId) {
     });
 
     vibrate(15);
-    // Не закрываем модалку — onSnapshot перерисует её на фазу signing
   } catch (e) {
     console.error(e);
     alert("Ошибка: " + e.message);
@@ -5473,7 +4019,6 @@ function openDialogueAgreement(convId) {
   vibrate(10);
 }
 
-/* ---- Фаза подписи ---- */
 function renderDialogueSigning(conv) {
   const f = getDialogueFeelingInfo(conv.feeling);
   const signatures = conv.signatures || {};
@@ -5581,7 +4126,6 @@ async function signForPartner(convId) {
   }
 }
 
-/* ---- Финал ---- */
 function renderDialogueDone(conv) {
   const content = $("dialogue-modal-content");
   content.innerHTML = `
@@ -5612,7 +4156,6 @@ function burstDialogueHearts() {
   }
 }
 
-/* ---- Карточка примирения в списке ---- */
 function buildDialogueCard(conv, isDone) {
   const f = getDialogueFeelingInfo(conv.feeling);
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
@@ -5668,7 +4211,6 @@ function buildDialogueCard(conv, isDone) {
   return card;
 }
 
-/* ---- Экспорт функций в window (для inline onclick) ---- */
 window.openDialogueModal = openDialogueModal;
 window.closeDialogueModal = closeDialogueModal;
 window.pickDialogueFeeling = pickDialogueFeeling;
@@ -5682,8 +4224,371 @@ window.signForPartner = signForPartner;
 window.cancelOldDialogueAndStartNew = cancelOldDialogueAndStartNew;
 
 /* ==========================================================
-   КОНЕЦ БЛОКА «ПРИМИРЕНИЕ»
+   РИТМ — лента жизни пары
    ========================================================== */
+
+function initRhythm() {
+  listenForJournalNotes();
+
+  const backdrop = $("note-backdrop");
+  if (backdrop) backdrop.onclick = closeNoteSheet;
+
+  const cancel = $("note-cancel");
+  if (cancel) cancel.onclick = closeNoteSheet;
+
+  const save = $("note-save");
+  if (save) save.onclick = saveNote;
+
+  document.querySelectorAll("#feed-chips .feed-chip").forEach(btn => {
+    btn.onclick = () => {
+      vibrate(10);
+      document.querySelectorAll("#feed-chips .feed-chip").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      rhythmFilter = btn.dataset.filter;
+      renderRhythmTimeline({ animateAll: true });
+    };
+  });
+}
+
+function listenForJournalNotes() {
+  if (unsubJournalNotes) unsubJournalNotes();
+  unsubJournalNotes = onSnapshot(
+    collection(db, "couples", currentCoupleId, "journalNotes"),
+    (snap) => {
+      journalNotes = {};
+      snap.docs.forEach(d => { journalNotes[d.id] = { id: d.id, ...d.data() }; });
+      if (currentView === "rhythm") {
+        renderPulseStrip();
+        renderRhythmTimeline();
+      }
+    }
+  );
+}
+
+function getDayDate(dayIndex) {
+  if (!currentCouple?.startDate) return new Date();
+  const start = currentCouple.startDate.toDate
+    ? currentCouple.startDate.toDate()
+    : new Date(currentCouple.startDate);
+  const d = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  d.setDate(d.getDate() + (dayIndex - 1));
+  return d;
+}
+
+function dayFromTimestamp(ts) {
+  if (!ts || !currentCouple?.startDate) return null;
+  const t = ts.toDate ? ts.toDate() : new Date(ts);
+  const start = currentCouple.startDate.toDate
+    ? currentCouple.startDate.toDate()
+    : new Date(currentCouple.startDate);
+  const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const tDay = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+  const diff = Math.round((tDay - startDay) / 86400000);
+  const day = diff + 1;
+  return day >= 1 && day <= 365 ? day : null;
+}
+
+async function loadRhythmData() {
+  const now = Date.now();
+  if (now - _rhythmCache.loadedAt < 15000) return;
+
+  const [moodsSnap, answersSnap, convSnap, agrSnap] = await Promise.all([
+    getDocs(collection(db, "couples", currentCoupleId, "moods")),
+    getDocs(collection(db, "couples", currentCoupleId, "answers")),
+    getDocs(collection(db, "couples", currentCoupleId, "conversations")),
+    getDocs(collection(db, "couples", currentCoupleId, "agreements"))
+  ]);
+
+  const moods = {};
+  moodsSnap.docs.forEach(d => {
+    const data = d.data();
+    moods[data.day] = data.moods || {};
+  });
+
+  const answersByDay = {};
+  answersSnap.docs.forEach(d => {
+    const data = d.data();
+    if (!answersByDay[data.day]) answersByDay[data.day] = [];
+    answersByDay[data.day].push({ id: d.id, ...data });
+  });
+
+  _rhythmCache = {
+    moods,
+    answers: answersByDay,
+    conversations: convSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+    agreements: agrSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+    loadedAt: now
+  };
+}
+
+function collectEventsByDay() {
+  const map = {};
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+
+  for (const dayStr in _rhythmCache.answers) {
+    const day = Number(dayStr);
+    const arr = _rhythmCache.answers[dayStr];
+    const mine = arr.find(a => a.userId === currentUser.uid);
+    if (!mine) continue;
+    const partner = arr.find(a => a.userId === partnerUid);
+    const q = getQuestionForDay(day);
+    if (!q) continue;
+    if (!map[day]) map[day] = [];
+    map[day].push({
+      type: "qod",
+      question: q.text,
+      myAnswer: mine.text || "",
+      partnerAnswer: partner ? (partner.text || "") : null
+    });
+  }
+
+  for (const c of _rhythmCache.conversations) {
+    const day = dayFromTimestamp(c.createdAt);
+    if (!day) continue;
+    if (!map[day]) map[day] = [];
+    if (c.mode === "reconcile") {
+      const f = getDialogueFeelingInfo(c.feeling);
+      map[day].push({
+        type: "reconcile",
+        feeling: f.label,
+        status: c.phase === "done" ? "Мир" : "В процессе"
+      });
+    } else {
+      const t = c.texts || {};
+      const both = t[currentUser.uid] && t[partnerUid];
+      map[day].push({
+        type: "conv",
+        topic: c.topic || "Без темы",
+        status: both ? "Оба написали" : "В процессе"
+      });
+    }
+  }
+
+  for (const a of _rhythmCache.agreements) {
+    const day = dayFromTimestamp(a.createdAt);
+    if (!day) continue;
+    if (!map[day]) map[day] = [];
+    map[day].push({ type: "agr", title: a.title || "Без названия", text: a.text || "" });
+  }
+
+  for (const id in journalNotes) {
+    const n = journalNotes[id];
+    if (!n.day) continue;
+    if (n.userId !== currentUser.uid && !n.shared) continue;
+    if (!map[n.day]) map[n.day] = [];
+    map[n.day].push({
+      type: "note",
+      text: n.text || "",
+      shared: !!n.shared,
+      isMine: n.userId === currentUser.uid
+    });
+  }
+
+  return map;
+}
+
+async function renderRhythm() {
+  try { await loadRhythmData(); } catch (e) { console.error("Rhythm load error:", e); }
+  renderPulseStrip();
+  renderRhythmTimeline();
+}
+
+function renderPulseStrip() {
+  const strip = $("pulse-strip");
+  if (!strip) return;
+
+  const today = getCurrentDay();
+  const start = Math.max(1, today - 29);
+  strip.innerHTML = "";
+
+  const eventsByDay = collectEventsByDay();
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+
+  for (let day = start; day <= today; day++) {
+    const moodSnap = _rhythmCache.moods[day] || {};
+    const myMood = moodSnap[currentUser.uid] || null;
+    const partnerMood = moodSnap[partnerUid] || null;
+    const main = partnerMood || myMood;
+
+    const cell = document.createElement("div");
+    cell.className = "pulse-cell" + (day === today ? " is-today" : "");
+
+    const cls = ["pulse-cell__emoji"];
+    if (!main) cls.push("is-empty");
+    if (myMood) cls.push("has-mine");
+
+    const types = eventsByDay[day] ? [...new Set(eventsByDay[day].map(e => e.type))] : [];
+    const markers = types.map(t => `<span class="marker-dot ${t}"></span>`).join("");
+
+    cell.innerHTML = `
+      <div class="${cls.join(" ")}">${main || "·"}</div>
+      <div class="pulse-cell__marker">${markers}</div>
+    `;
+
+    cell.onclick = () => {
+      const el = document.querySelector(`[data-day-key="${day}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.style.transition = "background .6s";
+        el.style.background = "rgba(178,90,90,.08)";
+        setTimeout(() => el.style.background = "", 1600);
+      }
+    };
+    strip.appendChild(cell);
+  }
+  setTimeout(() => strip.scrollLeft = strip.scrollWidth, 60);
+}
+
+function renderRhythmTimeline(opts = {}) {
+  const tl = $("feed-timeline");
+  if (!tl) return;
+
+  const animateAll = !!opts.animateAll;
+
+  const prevKeys = new Set();
+  tl.querySelectorAll("[data-day-key]").forEach(el => {
+    prevKeys.add(String(el.dataset.dayKey));
+  });
+
+  const eventsByDay = collectEventsByDay();
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+
+  const days = Object.keys(eventsByDay).map(Number)
+    .filter(day => {
+      if (rhythmFilter === "all") return true;
+      return eventsByDay[day].some(e => e.type === rhythmFilter);
+    })
+    .sort((a, b) => b - a);
+
+  if (days.length === 0) {
+    tl.innerHTML = `<div class="hint" style="text-align:center; padding: 30px 20px;">Пока пусто. Начните отвечать на вопросы дня 💛</div>`;
+    requestAnimationFrame(() => initReveal());
+    return;
+  }
+
+  tl.innerHTML = "";
+
+  let newIndex = 0;
+  days.forEach(day => {
+    const date = getDayDate(day);
+    const events = eventsByDay[day].filter(e => rhythmFilter === "all" || e.type === rhythmFilter);
+    const moodSnap = _rhythmCache.moods[day] || {};
+    const myMood = moodSnap[currentUser.uid] || null;
+    const partnerMood = moodSnap[partnerUid] || null;
+
+    const dayEl = document.createElement("div");
+    dayEl.className = "feed-day";
+    dayEl.dataset.dayKey = String(day);
+    dayEl.dataset.animId = "rhythm-day-" + day;
+
+    const isNew = animateAll || !prevKeys.has(String(day));
+    if (isNew) {
+      dayEl.classList.add("reveal", "stagger");
+      dayEl.style.setProperty("--i", Math.min(newIndex, 6));
+      newIndex++;
+    }
+
+    const moods = `${myMood ? `<span title="Я">${myMood}</span>` : ""}${partnerMood ? `<span title="Партнёр">${partnerMood}</span>` : ""}`;
+
+    dayEl.innerHTML = `
+      <div class="feed-day__head">
+        <div class="feed-day__dot"></div>
+        <div class="feed-day__date">${date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}</div>
+        <div class="feed-day__weekday">${date.toLocaleDateString("ru-RU", { weekday: "short" })}</div>
+        <div class="feed-day__moods">${moods}</div>
+      </div>
+      <div class="feed-day__cards"></div>
+      <div class="feed-day__actions">
+        <button class="add-note-btn" data-add-note="${day}">+ Заметка</button>
+      </div>
+    `;
+
+    const box = dayEl.querySelector(".feed-day__cards");
+
+    events.forEach(ev => {
+      const card = document.createElement("div");
+      card.className = "feed-card" + (ev.type === "note" ? " feed-card--note" : "");
+      const typeLabel = { qod: "Вопрос дня", conv: "Разговор", agr: "Договорённость", reconcile: "Примирение", note: "Заметка" }[ev.type];
+      const typeIco = { qod: "💬", conv: "🗣", agr: "🤝", reconcile: "🕊", note: "📝" }[ev.type];
+
+      let title = "", text = "", meta = "", mark = "";
+      if (ev.type === "qod") {
+        title = ev.question;
+        text = ev.partnerAnswer
+          ? `Вы: ${ev.myAnswer} · Партнёр: ${ev.partnerAnswer}`
+          : `Вы: ${ev.myAnswer}`;
+      } else if (ev.type === "conv") { title = ev.topic; text = ev.status; }
+      else if (ev.type === "agr") { title = ev.title; text = ev.text; }
+      else if (ev.type === "reconcile") { title = ev.feeling; text = ev.status; }
+      else if (ev.type === "note") {
+        title = ev.shared ? "Общая заметка" : "Приватная заметка";
+        text = ev.text;
+        meta = ev.shared ? "Видят оба" : "Видна только вам";
+        mark = ev.shared ? "👁" : "🔒";
+      }
+
+      card.innerHTML = `
+        ${mark ? `<div class="feed-card__mark">${mark}</div>` : ""}
+        <div class="feed-card__icon ${ev.type}">${typeIco}</div>
+        <div class="feed-card__body">
+          <div class="feed-card__type ${ev.type}">${typeLabel}</div>
+          <div class="feed-card__title">${escapeHtml(title)}</div>
+          <div class="feed-card__text">${escapeHtml(text)}</div>
+          ${meta ? `<div class="feed-card__meta">${escapeHtml(meta)}</div>` : ""}
+        </div>
+      `;
+      box.appendChild(card);
+    });
+
+    tl.appendChild(dayEl);
+  });
+
+  tl.querySelectorAll("[data-add-note]").forEach(btn => {
+    btn.onclick = () => openNoteSheet(parseInt(btn.dataset.addNote));
+  });
+
+  requestAnimationFrame(() => initReveal());
+}
+
+function openNoteSheet(day) {
+  _noteDayKey = day;
+  const date = getDayDate(day);
+  $("note-sheet-title").textContent = "Заметка · " + date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  $("note-text").value = "";
+  $("note-share").checked = false;
+  $("note-sheet").classList.remove("hidden");
+  vibrate(10);
+}
+
+function closeNoteSheet() {
+  $("note-sheet").classList.add("hidden");
+  _noteDayKey = null;
+}
+
+async function saveNote() {
+  const text = $("note-text").value.trim();
+  if (!text || !_noteDayKey) { closeNoteSheet(); return; }
+  const shared = $("note-share").checked;
+  const btn = $("note-save");
+  btn.disabled = true;
+  try {
+    await addDoc(collection(db, "couples", currentCoupleId, "journalNotes"), {
+      day: _noteDayKey,
+      userId: currentUser.uid,
+      text,
+      shared,
+      createdAt: serverTimestamp()
+    });
+    vibrate(15);
+    closeNoteSheet();
+  } catch (e) {
+    console.error(e);
+    alert("Не удалось сохранить: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 /* Страховка: блокировка прокрутки body при открытой модалке */
 const modalObserver = new MutationObserver(() => {
   const hasOpenModal = document.querySelector(".modal:not(.hidden)");

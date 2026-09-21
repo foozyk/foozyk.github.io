@@ -74,39 +74,18 @@
           <div class="polaroid-caption" id="polaroid-name-me">Вы</div>
           <button class="pulse-dot pulse-dot--empty" id="pulse-me" type="button" aria-label="Пульс дня">+</button>
         </div>
-        <div class="polaroid">
+        <div class="polaroid" id="partner-polaroid">
           <div class="tape"></div>
           <div class="polaroid-img" id="polaroid-partner" style="background: linear-gradient(135deg, #c9a961, #b25a5a);">?</div>
           <div class="polaroid-caption" id="polaroid-name-partner">Партнёр</div>
           <button class="pulse-dot pulse-dot--empty" id="pulse-partner" type="button" aria-label="Пульс партнёра" disabled>+</button>
           <div class="polaroid-badge hidden" id="pulse-badge-partner">грустит</div>
-
-          <!-- Кнопки заботы — появляются, если партнёр грустит -->
-          <div class="care-actions hidden" id="care-actions">
-            <div class="care-label">позаботься</div>
-
-            <button class="care-btn" data-care="hug" type="button" aria-label="Обнять" title="Обнять">
-              <svg viewBox="0 0 24 24">
-                <circle cx="9" cy="7" r="3"/>
-                <circle cx="15" cy="7" r="3"/>
-                <path d="M3.5 17 C3.5 13.5 6 11.5 9 11.5 C10.3 11.5 11.5 12 12 13"/>
-                <path d="M20.5 17 C20.5 13.5 18 11.5 15 11.5 C13.7 11.5 12.5 12 12 13"/>
-                <path d="M12 13 C12 15 11 17 9 18"/>
-              </svg>
-            </button>
-
-            <button class="care-btn" data-care="support" type="button" aria-label="Я рядом" title="Я рядом">
-              <svg viewBox="0 0 24 24">
-                <path d="M12 20 C12 20 3 14 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 11.5 4 12 5 C12.5 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 14 12 20 12 20 Z"/>
-                <path d="M8 11 L10 11 L11 9 L12.5 13 L14 11 L16 11"/>
-              </svg>
-            </button>
-
-            <button class="care-btn care-btn--love" data-care="love" type="button" aria-label="Люблю" title="Люблю">
-              <svg viewBox="0 0 24 24">
-                <path d="M12 20 C12 20 3 14 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 11.5 4 12 5 C12.5 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 14 12 20 12 20 Z"/>
-              </svg>
-            </button>
+          <div class="quick-ring" id="quick-ring">
+            <button class="q-btn" type="button" data-th="скучаю" aria-label="скучаю">🥺</button>
+            <button class="q-btn" type="button" data-th="обнимаю" aria-label="обнимаю">🤗</button>
+            <button class="q-btn" type="button" data-th="благодарю" aria-label="благодарю">🙏</button>
+            <button class="q-btn" type="button" data-th="думаю" aria-label="думаю">❤️</button>
+            <button class="q-btn" type="button" data-th="ты огонь" aria-label="ты огонь">🔥</button>
           </div>
         </div>
       </div>
@@ -124,36 +103,8 @@
 
         <div class="header-days">
           <span class="header-days-num" id="header-day-num">—</span>
-          <span class="header-days-lbl" id="header-day-label">день вместе</span>
+          <span class="header-days-lbl" id="header-day-label">день из 365</span>
         </div>
-      </div>
-
-      <div class="info-strip-divider-top">
-        <div class="line"></div>
-        <div class="dot"></div>
-        <div class="line"></div>
-      </div>
-
-      <div class="info-strip-b">
-        <button class="info-item" id="moon-info-item" type="button">
-          <span class="ico" id="moon-icon">🌓</span>
-          <span id="moon-day">—</span>
-        </button>
-        <div class="info-divider" id="moon-info-divider"></div>
-        <button class="info-item" id="weather-widget" type="button">
-          <span class="ico" id="weather-icon">🌧</span>
-          <span id="weather-temp">—</span>
-        </button>
-        <div class="info-divider info-divider--weather"></div>
-        <div class="info-item">
-          <span class="ico">🔥</span>
-          <span id="streak-count">0</span>
-        </div>
-        <div class="info-divider"></div>
-        <button class="info-item" id="word-card" type="button">
-          <span class="ico">📖</span>
-          <span class="info-item__word" id="word-card-word">—</span>
-        </button>
       </div>
     </div>
 
@@ -182,6 +133,31 @@
         <div id="partner-answer" class="partner-answer">Пока скрыт.</div>
       </div>
 
+      <!-- Слово дня — компактная карточка -->
+      <div class="word-card reveal stagger" id="word-card" style="--i: 1;">
+        <div class="word-card__icon">📖</div>
+        <div class="word-card__body">
+          <div class="word-card__label">Слово дня</div>
+          <div class="word-card__word" id="word-card-word">—</div>
+        </div>
+        <div class="word-card__arrow">›</div>
+      </div>
+
+      <!-- Единая строка: луна + погода -->
+      <div class="sky-block reveal stagger" style="--i: 2;">
+        <div class="sky-row">
+          <button class="sky-item" id="moon-info-item" type="button">
+            <span class="sky-ico" id="moon-icon">🌒</span>
+            <span class="sky-text" id="moon-day">—</span>
+          </button>
+          <span class="sky-divider"></span>
+          <button class="sky-item" id="weather-widget" type="button">
+            <span class="sky-ico" id="weather-icon">🌧</span>
+            <span class="sky-text" id="weather-temp">—</span>
+          </button>
+        </div>
+      </div>
+
       <div style="display:none;">
         <span id="current-day">1</span>
         <div id="moon-widget"></div>
@@ -192,10 +168,10 @@
 
     <!-- Разговор -->
     <section id="conversation-view" class="hidden">
-      <h2>Разговор</h2>
-      <p class="hint">Поговорите о важном. Или начните примирение, если между вами что-то не так.</p>
+      <h2 class="reveal stagger" style="--i: 0;">Разговор</h2>
+      <p class="hint reveal stagger" style="--i: 1;">Поговорите о важном. Или начните примирение, если между вами что-то не так.</p>
 
-      <button id="new-conversation-btn" class="dialogue-start-btn dialogue-start-btn--normal" type="button">
+      <button id="new-conversation-btn" class="dialogue-start-btn dialogue-start-btn--normal reveal stagger" style="--i: 2;" type="button">
         <span class="dialogue-start-btn__title">
           <svg class="dialogue-icon dialogue-icon--20" viewBox="0 0 24 24">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
@@ -205,7 +181,7 @@
         <span class="dialogue-start-btn__sub">Поговорим о важном</span>
       </button>
 
-      <button id="reconcile-btn" class="dialogue-start-btn" type="button">
+      <button id="reconcile-btn" class="dialogue-start-btn reveal stagger" style="--i: 3;" type="button">
         <span class="dialogue-start-btn__title">
           <svg class="dialogue-icon dialogue-icon--20" viewBox="0 0 24 24">
             <path d="M21 5 C18 5 16 6 14.5 8 C14 7 13 6.5 11.5 6.5 C8 6.5 5 9 5 12 L5 13 L2 14 L5 15 C5.5 18 8.5 21 13 21 C17.5 21 21 17.5 21 13 Z"/>
@@ -217,7 +193,7 @@
         <span class="dialogue-start-btn__sub">Между нами что-то не так — хочу починить</span>
       </button>
 
-      <h3 class="conv-section-title">Активные</h3>
+      <h3 class="conv-section-title reveal stagger" style="--i: 4;">Активные</h3>
       <div id="conversations-active"></div>
 
       <div id="conversations-past-block" class="hidden">
@@ -225,8 +201,8 @@
         <div id="conversations-past"></div>
       </div>
 
-      <h3 class="conv-section-title">Договорённости</h3>
-      <button id="add-agreement-btn" class="add-agreement-btn">+ Новая договорённость</button>
+      <h3 class="conv-section-title reveal stagger" style="--i: 5;">Договорённости</h3>
+      <button id="add-agreement-btn" class="add-agreement-btn reveal stagger" style="--i: 6;">+ Новая договорённость</button>
       <div id="agreements-list"></div>
       <div id="agreements-done-block" class="hidden">
         <h3 class="conv-section-title done-title">Выполненные</h3>
@@ -234,157 +210,114 @@
       </div>
     </section>
 
-    <!-- Планы -->
-    <section id="plans-view" class="hidden">
-      <h2>Планы</h2>
-      <div class="sub-tabs">
-        <button id="sub-tasks" class="sub-tab active">Задачи</button>
-        <button id="sub-notes" class="sub-tab">Заметки</button>
-        <button id="sub-calendar" class="sub-tab">Календарь</button>
-      </div>
-
-      <div id="plans-tasks">
-        <div class="filter-row" id="tasks-filters">
-          <button class="filter-chip active" data-filter="active">Активные</button>
-          <button class="filter-chip" data-filter="mine">Мои</button>
-          <button class="filter-chip" data-filter="partner">Партнёра</button>
-          <button class="filter-chip" data-filter="free">Свободные</button>
-        </div>
-        <button id="add-task-btn" class="add-task-btn">+ Добавить задачу</button>
-        <div id="tasks-active-list"></div>
-        <div id="tasks-done-block" class="hidden">
-          <div class="done-divider">Выполненные</div>
-          <div id="tasks-done-list"></div>
-        </div>
-      </div>
-
-      <div id="plans-notes" class="hidden">
-        <div class="add-row">
-          <button id="add-sticker-btn" class="add-btn">+ Стикер</button>
-          <button id="add-note-btn" class="add-btn">+ Заметка</button>
-        </div>
-        <div id="stickers-container"></div>
-        <div id="notes-container"></div>
-      </div>
-
-      <div id="plans-calendar" class="hidden">
-        <div class="cal-card">
-          <div class="cal-header">
-            <div class="cal-month" id="cal-month-label">—</div>
-            <div class="cal-nav">
-              <button id="cal-prev" aria-label="Предыдущий месяц">‹</button>
-              <button id="cal-next" aria-label="Следующий месяц">›</button>
-            </div>
-          </div>
-          <div class="cal-grid" id="cal-grid"></div>
-        </div>
-        <button id="add-event-btn" class="add-event-btn">+ Добавить событие</button>
-        <div id="events-list"></div>
-      </div>
-    </section>
-
     <!-- Мы -->
     <section id="about-view" class="hidden">
       <h2>Про нас</h2>
-      <div class="sub-tabs">
-        <button id="sub-quiz" class="sub-tab active">Квиз</button>
-        <button id="sub-lovelang" class="sub-tab">Любовь</button>
-        <button id="sub-truth" class="sub-tab">Игра</button>
-        <button id="sub-archive" class="sub-tab">Архив</button>
+      <div class="sub-tabs reveal stagger" style="--i: 0;">
+        <button id="sub-games" class="sub-tab">Игры</button>
+        <button id="sub-archive" class="sub-tab active">Архив</button>
       </div>
 
-      <div id="about-quiz">
-        <p class="hint">Ответь на 10 вопросов о себе. Партнёр попробует угадать.</p>
-        <div id="quiz-main">
-          <div class="quiz-card">
-            <h3>Ваш квиз</h3>
-            <div id="my-quiz-status"></div>
+      <div id="about-games" class="hidden">
+        <div class="sub-sub-tabs reveal stagger" style="--i: 0;">
+          <button id="sub-quiz" class="sub-tab sub-sub active">Квиз</button>
+          <button id="sub-lovelang" class="sub-tab sub-sub">Любовь</button>
+          <button id="sub-truth" class="sub-tab sub-sub">Правда</button>
+        </div>
+
+        <div id="about-quiz">
+          <p class="hint">Ответь на 10 вопросов о себе. Партнёр попробует угадать.</p>
+          <div id="quiz-main">
+            <div class="quiz-card">
+              <h3>Ваш квиз</h3>
+              <div id="my-quiz-status"></div>
+            </div>
+            <div class="quiz-card">
+              <h3>Квиз партнёра</h3>
+              <div id="partner-quiz-status"></div>
+            </div>
           </div>
-          <div class="quiz-card">
-            <h3>Квиз партнёра</h3>
-            <div id="partner-quiz-status"></div>
+          <div id="quiz-play" class="hidden">
+            <p class="quiz-progress" id="quiz-progress">Вопрос 1 из 10</p>
+            <div class="quiz-progress-bar"><div id="quiz-progress-fill"></div></div>
+            <h3 id="quiz-question">—</h3>
+            <div id="quiz-options"></div>
+            <button id="quiz-cancel" class="link">Отмена</button>
+          </div>
+          <div id="quiz-result" class="hidden">
+            <h3 id="quiz-result-title">—</h3>
+            <div class="quiz-score" id="quiz-score">—</div>
+            <p class="hint">Разбор:</p>
+            <div id="quiz-breakdown"></div>
+            <button id="quiz-back" class="link">Назад к квизам</button>
           </div>
         </div>
-        <div id="quiz-play" class="hidden">
-          <p class="quiz-progress" id="quiz-progress">Вопрос 1 из 10</p>
-          <div class="quiz-progress-bar"><div id="quiz-progress-fill"></div></div>
-          <h3 id="quiz-question">—</h3>
-          <div id="quiz-options"></div>
-          <button id="quiz-cancel" class="link">Отмена</button>
+
+        <div id="about-lovelang" class="hidden">
+          <div id="lovelang-intro">
+            <p class="hint">Небольшой тест из 10 вопросов. Займёт 2 минуты. Каждый проходит отдельно — потом вы увидите результаты друг друга.</p>
+            <div id="lovelang-status"></div>
+            <button id="start-lovelang-test">Пройти тест</button>
+          </div>
+          <div id="lovelang-test" class="hidden">
+            <p class="lovelang-progress" id="lovelang-progress">Вопрос 1 из 10</p>
+            <div class="lovelang-progress-bar"><div id="lovelang-progress-fill"></div></div>
+            <h3 id="lovelang-question">—</h3>
+            <div id="lovelang-options"></div>
+          </div>
+          <div id="lovelang-result" class="hidden">
+            <h3>Ваш язык любви:</h3>
+            <div class="lovelang-primary" id="lovelang-primary">—</div>
+            <p class="hint">Полная картина:</p>
+            <div id="lovelang-scores"></div>
+            <p class="hint" id="lovelang-compare"></p>
+          </div>
         </div>
-        <div id="quiz-result" class="hidden">
-          <h3 id="quiz-result-title">—</h3>
-          <div class="quiz-score" id="quiz-score">—</div>
-          <p class="hint">Разбор:</p>
-          <div id="quiz-breakdown"></div>
-          <button id="quiz-back" class="link">Назад к квизам</button>
+
+        <div id="about-truth" class="hidden">
+          <div id="truth-intro">
+            <p class="hint">Правда или действие. Выбирайте уровень — и играйте. Правда — вопрос, действие — задание.</p>
+
+            <button class="truth-level-btn level-1" data-level="easy">
+              <span class="truth-level-name">Первые шаги</span>
+              <span class="truth-level-desc">Уютный вечер, лёгкие вопросы</span>
+            </button>
+            <button class="truth-level-btn level-2" data-level="medium">
+              <span class="truth-level-name">Ближе</span>
+              <span class="truth-level-desc">Откровенно, тепло, по-настоящему</span>
+            </button>
+            <button class="truth-level-btn level-3" data-level="bold">
+              <span class="truth-level-name">Всё всерьёз</span>
+              <span class="truth-level-desc">Смелые вопросы, взрослые ответы</span>
+            </button>
+          </div>
+
+          <div id="truth-game" class="hidden">
+            <p class="truth-progress">Раунд <span id="truth-round">1</span></p>
+            <div id="truth-choose">
+              <button id="truth-pick-truth" class="truth-pick-btn">Правда</button>
+              <button id="truth-pick-dare" class="truth-pick-btn">Действие</button>
+              <button id="truth-pick-random" class="link">🎲 Случайно</button>
+            </div>
+            <div id="truth-card" class="hidden">
+              <div class="truth-card-type" id="truth-card-type">Правда</div>
+              <div class="truth-card-text" id="truth-card-text">—</div>
+              <button id="truth-done">Выполнено</button>
+              <button id="truth-skip" class="link">Пропустить</button>
+            </div>
+            <button id="truth-end" class="link" style="margin-top:16px;">Закончить игру</button>
+          </div>
+
+          <div id="truth-final" class="hidden">
+            <div class="truth-final-emoji">🎉</div>
+            <div class="truth-final-title">Игра окончена!</div>
+            <div class="truth-final-score">Раундов: <span id="truth-final-rounds">0</span></div>
+            <button id="truth-restart">Играть заново</button>
+          </div>
         </div>
       </div>
 
-      <div id="about-lovelang" class="hidden">
-        <div id="lovelang-intro">
-          <p class="hint">Небольшой тест из 10 вопросов. Займёт 2 минуты. Каждый проходит отдельно — потом вы увидите результаты друг друга.</p>
-          <div id="lovelang-status"></div>
-          <button id="start-lovelang-test">Пройти тест</button>
-        </div>
-        <div id="lovelang-test" class="hidden">
-          <p class="lovelang-progress" id="lovelang-progress">Вопрос 1 из 10</p>
-          <div class="lovelang-progress-bar"><div id="lovelang-progress-fill"></div></div>
-          <h3 id="lovelang-question">—</h3>
-          <div id="lovelang-options"></div>
-        </div>
-        <div id="lovelang-result" class="hidden">
-          <h3>Ваш язык любви:</h3>
-          <div class="lovelang-primary" id="lovelang-primary">—</div>
-          <p class="hint">Полная картина:</p>
-          <div id="lovelang-scores"></div>
-          <p class="hint" id="lovelang-compare"></p>
-        </div>
-      </div>
-
-      <div id="about-truth" class="hidden">
-        <div id="truth-intro">
-          <p class="hint">Правда или действие. Выбирайте уровень — и играйте. Правда — вопрос, действие — задание.</p>
-
-          <button class="truth-level-btn level-1" data-level="easy">
-            <span class="truth-level-name">Первые шаги</span>
-            <span class="truth-level-desc">Уютный вечер, лёгкие вопросы</span>
-          </button>
-          <button class="truth-level-btn level-2" data-level="medium">
-            <span class="truth-level-name">Ближе</span>
-            <span class="truth-level-desc">Откровенно, тепло, по-настоящему</span>
-          </button>
-          <button class="truth-level-btn level-3" data-level="bold">
-            <span class="truth-level-name">Всё всерьёз</span>
-            <span class="truth-level-desc">Смелые вопросы, взрослые ответы</span>
-          </button>
-        </div>
-
-        <div id="truth-game" class="hidden">
-          <p class="truth-progress">Раунд <span id="truth-round">1</span></p>
-          <div id="truth-choose">
-            <button id="truth-pick-truth" class="truth-pick-btn">Правда</button>
-            <button id="truth-pick-dare" class="truth-pick-btn">Действие</button>
-            <button id="truth-pick-random" class="link">🎲 Случайно</button>
-          </div>
-          <div id="truth-card" class="hidden">
-            <div class="truth-card-type" id="truth-card-type">Правда</div>
-            <div class="truth-card-text" id="truth-card-text">—</div>
-            <button id="truth-done">Выполнено</button>
-            <button id="truth-skip" class="link">Пропустить</button>
-          </div>
-          <button id="truth-end" class="link" style="margin-top:16px;">Закончить игру</button>
-        </div>
-
-        <div id="truth-final" class="hidden">
-          <div class="truth-final-emoji">🎉</div>
-          <div class="truth-final-title">Игра окончена!</div>
-          <div class="truth-final-score">Раундов: <span id="truth-final-rounds">0</span></div>
-          <button id="truth-restart">Играть заново</button>
-        </div>
-      </div>
-
-      <div id="about-archive" class="hidden">
+      <div id="about-archive">
         <div class="heatmap-card reveal">
           <div class="hm-header">
             <div>
@@ -435,15 +368,44 @@
           <div class="stat-card"><div class="stat-value" id="stat-agreements">0</div><div class="stat-label">договорённостей</div></div>
         </div>
 
-        <h3 class="conv-section-title">Пульс месяца</h3>
-        <p class="hint">Последние 30 дней</p>
-        <div id="mood-grid" class="mood-grid reveal"></div>
-
+      
         <h3 class="conv-section-title">История ответов</h3>
         <button id="retro-btn" class="retro-btn reveal stagger" style="--i: 0;">📊 Итоги года</button>
         <button id="export-pdf-btn" class="export-pdf-btn reveal stagger" style="--i: 1;">📄 Скачать год в PDF</button>
         <div id="history-list" class="reveal"></div>
       </div>
+    </section>
+
+    <!-- Ритм -->
+    <section id="rhythm-view" class="hidden">
+      <h2 class="reveal stagger" style="--i: 0;">Ритм</h2>
+      <p class="hint reveal stagger" style="--i: 1;">Как мы дышали и что с нами было — день за днём.</p>
+
+      <div class="feed-pulse reveal stagger" style="--i: 2;">
+        <div class="feed-pulse__head">
+          <div class="feed-pulse__title">Как мы себя чувствовали</div>
+          <div class="feed-pulse__hint">30 дней</div>
+        </div>
+        <div class="feed-pulse__strip" id="pulse-strip"></div>
+        <div class="feed-pulse__legend">
+          <div class="legend-item"><span class="marker-dot qod"></span>Вопрос</div>
+          <div class="legend-item"><span class="marker-dot conv"></span>Разговор</div>
+          <div class="legend-item"><span class="marker-dot agr"></span>Договорённость</div>
+          <div class="legend-item"><span class="marker-dot reconcile"></span>Примирение</div>
+          <div class="legend-item"><span class="marker-dot note"></span>Заметка</div>
+        </div>
+      </div>
+
+      <div class="feed-chips reveal stagger" id="feed-chips" style="--i: 3;">
+        <button class="feed-chip active" data-filter="all">Всё</button>
+        <button class="feed-chip" data-filter="qod">Вопросы</button>
+        <button class="feed-chip" data-filter="conv">Разговоры</button>
+        <button class="feed-chip" data-filter="agr">Договорённости</button>
+        <button class="feed-chip" data-filter="reconcile">Примирения</button>
+        <button class="feed-chip" data-filter="note">Заметки</button>
+      </div>
+
+      <div class="feed-timeline" id="feed-timeline"></div>
     </section>
 
     <!-- Нижняя навигация -->
@@ -467,15 +429,15 @@
         <span class="nav-label">Разговор</span>
         <span class="nav-badge hidden" id="badge-conversation">0</span>
       </button>
-      <button class="bottom-nav-item" data-view="plans">
+      <button class="bottom-nav-item" data-view="rhythm">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 11l3 3 8-8"/>
-            <path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>
+            <path d="M2 9c2.5 0 3.5-3 5-3s3 6 5 6 3-6 5-6 3 3 5 3"/>
+            <path d="M2 15c2.5 0 3.5-3 5-3s3 6 5 6 3-6 5-6 3 3 5 3"/>
           </svg>
         </span>
-        <span class="nav-label">Планы</span>
-        <span class="nav-badge hidden" id="badge-plans">0</span>
+        <span class="nav-label">Ритм</span>
+        <span class="nav-badge hidden" id="badge-rhythm">0</span>
       </button>
       <button class="bottom-nav-item" data-view="about">
         <span class="nav-icon">
@@ -489,9 +451,6 @@
       </button>
     </nav>
 
-    <button class="think-btn" id="think-btn" title="Думаю о тебе">
-      <span class="think-btn__emoji">❤️</span>
-    </button>
   </div>
 
   <!-- ===== МЕНЮ ШЕСТЕРЁНКИ ===== -->
@@ -618,99 +577,6 @@
     </div>
   </div>
 
-  <div id="task-modal" class="modal hidden">
-    <div class="modal-backdrop" id="task-backdrop"></div>
-    <div class="modal-content">
-      <h3 id="task-modal-title">Новая задача</h3>
-      <label class="field-label">Что нужно сделать?</label>
-      <input type="text" id="task-title-input" placeholder="Например: записаться к стоматологу" maxlength="100">
-      <label class="field-label">Кому назначить?</label>
-      <div class="who-picker" id="task-who-picker">
-        <button type="button" class="who-option" data-who="me">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>
-          Себе
-        </button>
-        <button type="button" class="who-option" data-who="partner">
-          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          Партнёру
-        </button>
-        <button type="button" class="who-option active none" data-who="none">
-          <svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/></svg>
-          Кто возьмёт
-        </button>
-      </div>
-      <label class="field-label">Срок <span class="optional">(необязательно)</span></label>
-      <div class="row-2col">
-        <input type="date" id="task-due-date">
-        <input type="time" id="task-due-time">
-      </div>
-      <label class="field-label">Заметка <span class="optional">(необязательно)</span></label>
-      <textarea id="task-note-input" placeholder="Что-то важное по задаче..." rows="3" maxlength="500"></textarea>
-      <button id="task-save-btn">Сохранить</button>
-      <button id="task-delete-btn" class="link hidden" style="color: #ff8080;">🗑 Удалить задачу</button>
-      <button id="task-cancel-btn" class="link">Отмена</button>
-    </div>
-  </div>
-
-  <div id="sticker-modal" class="modal hidden">
-    <div class="modal-backdrop" id="sticker-backdrop"></div>
-    <div class="modal-content">
-      <h3 id="sticker-modal-title">Новый стикер</h3>
-      <label class="field-label">Текст</label>
-      <textarea id="sticker-text-input" class="sticker-preview" rows="3" placeholder="Быстрая мысль..." maxlength="300"></textarea>
-      <label class="field-label">Цвет</label>
-      <div class="color-picker-row" id="sticker-color-picker">
-        <button type="button" class="color-dot c-0" data-color="0"></button>
-        <button type="button" class="color-dot c-1" data-color="1"></button>
-        <button type="button" class="color-dot c-2" data-color="2"></button>
-        <button type="button" class="color-dot c-3" data-color="3"></button>
-        <button type="button" class="color-dot c-4" data-color="4"></button>
-        <button type="button" class="color-dot c-5" data-color="5"></button>
-      </div>
-      <button id="sticker-save-btn">Сохранить</button>
-      <button id="sticker-delete-btn" class="link hidden" style="color: #ff8080;">🗑 Удалить стикер</button>
-      <button id="sticker-cancel-btn" class="link">Отмена</button>
-    </div>
-  </div>
-
-  <div id="note-modal" class="modal hidden">
-    <div class="modal-backdrop" id="note-backdrop"></div>
-    <div class="modal-content">
-      <h3 id="note-modal-title">Новая заметка</h3>
-      <label class="field-label">Текст</label>
-      <textarea id="note-text-input" rows="7" placeholder="Что хочется записать..." maxlength="2000"></textarea>
-      <button id="note-save-btn">Сохранить</button>
-      <button id="note-delete-btn" class="link hidden" style="color: #ff8080;">🗑 Удалить заметку</button>
-      <button id="note-cancel-btn" class="link">Отмена</button>
-    </div>
-  </div>
-
-  <div id="event-modal" class="modal hidden">
-    <div class="modal-backdrop" id="event-backdrop"></div>
-    <div class="modal-content">
-      <h3 id="event-modal-title">Новое событие</h3>
-      <label class="field-label">Что за событие?</label>
-      <input type="text" id="event-title-input" placeholder="Например: ужин с родителями" maxlength="100">
-      <label class="field-label">Дата</label>
-      <input type="date" id="event-date-input">
-      <label class="field-label">Время <span class="optional">(необязательно)</span></label>
-      <input type="time" id="event-time-input">
-      <p style="font-size: 11px; color: var(--muted); margin-top: 6px;">Если пусто — событие считается «весь день»</p>
-      <label class="field-label">Повтор</label>
-      <div class="repeat-picker" id="event-repeat-picker">
-        <button type="button" class="repeat-option active" data-repeat="none">Один раз</button>
-        <button type="button" class="repeat-option" data-repeat="week">Каждую неделю</button>
-        <button type="button" class="repeat-option" data-repeat="month">Каждый месяц</button>
-        <button type="button" class="repeat-option" data-repeat="year">Каждый год</button>
-      </div>
-      <label class="field-label" style="margin-top: 16px;">Заметка <span class="optional">(необязательно)</span></label>
-      <textarea id="event-note-input" placeholder="Что важно помнить?" rows="3" maxlength="500"></textarea>
-      <button id="event-save-btn">Сохранить</button>
-      <button id="event-delete-btn" class="link hidden" style="color: #ff8080;">🗑 Удалить событие</button>
-      <button id="event-cancel-btn" class="link">Отмена</button>
-    </div>
-  </div>
-
   <!-- ===== МОДАЛКА «СЛОВО ДНЯ» ===== -->
   <div id="word-modal" class="modal hidden">
     <div class="modal-backdrop" id="word-backdrop"></div>
@@ -730,14 +596,6 @@
         <button type="button" class="pulse-emoji" data-emoji="😔">😔</button>
         <button type="button" class="pulse-emoji" data-emoji="😡">😡</button>
         <button type="button" class="pulse-emoji" data-emoji="😴">😴</button>
-      </div>
-
-      <button type="button" class="pulse-modal__add-note" id="pulse-add-note">+ добавить пояснение</button>
-
-      <div class="pulse-modal__note-wrap hidden" id="pulse-note-wrap">
-        <label class="field-label">Что-то ещё? <span class="optional">(необязательно)</span></label>
-        <textarea id="pulse-note-input" rows="2" maxlength="200" placeholder="Например: устал, но в целом хорошо"></textarea>
-        <button type="button" class="pulse-modal__save" id="pulse-save-btn">Сохранить</button>
       </div>
 
       <button type="button" class="link" id="pulse-cancel-btn">Отмена</button>
@@ -807,6 +665,21 @@
         </div>
       </div>
       <button id="day-view-close" class="link">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- ===== МОДАЛКА «ЗАМЕТКА К ДНЮ» ===== -->
+  <div id="note-sheet" class="modal hidden">
+    <div class="modal-backdrop" id="note-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="note-sheet-title">Заметка к дню</h3>
+      <textarea id="note-text" placeholder="Что я хочу сохранить об этом дне..." maxlength="300" rows="5"></textarea>
+      <label class="toggle-row">
+        <input type="checkbox" id="note-share">
+        <span>Поделиться с партнёром</span>
+      </label>
+      <button id="note-save">Сохранить</button>
+      <button id="note-cancel" class="link">Отмена</button>
     </div>
   </div>
 
