@@ -124,6 +124,15 @@
         <h2 id="current-question">Загрузка...</h2>
       </div>
 
+      <div class="lesson-card reveal stagger" id="lesson-card" style="--i: 1; display: none;">
+        <div class="lesson-card__icon">📖</div>
+        <div class="lesson-card__body">
+          <div class="lesson-card__label">Урок недели</div>
+          <div class="lesson-card__title" id="lesson-card-title">—</div>
+        </div>
+        <div class="lesson-card__arrow">›</div>
+      </div>
+
       <textarea id="my-answer" class="reveal stagger" style="--i: 1;" placeholder="Напишите свой ответ..." rows="6"></textarea>
       <button id="save-answer" class="reveal stagger" style="--i: 2;">Сохранить ответ</button>
       <p id="answer-status" class="hint"></p>
@@ -151,10 +160,10 @@
             <span class="sky-text" id="moon-day">—</span>
           </button>
           <span class="sky-divider"></span>
-          <button class="sky-item" id="weather-widget" type="button">
+          <div class="sky-item" id="weather-widget">
             <span class="sky-ico" id="weather-icon">🌧</span>
             <span class="sky-text" id="weather-temp">—</span>
-          </button>
+          </div>
         </div>
       </div>
 
@@ -215,6 +224,7 @@
       <h2>Про нас</h2>
       <div class="sub-tabs reveal stagger" style="--i: 0;">
         <button id="sub-games" class="sub-tab">Игры</button>
+        <button id="sub-lessons" class="sub-tab">Уроки</button>
         <button id="sub-archive" class="sub-tab active">Архив</button>
       </div>
 
@@ -315,6 +325,11 @@
             <button id="truth-restart">Играть заново</button>
           </div>
         </div>
+      </div>
+
+      <div id="about-lessons" class="hidden">
+        <p class="hint">Короткие уроки про то, как говорить друг с другом. Один в неделю — на главной. Здесь — все, что уже прошли.</p>
+        <div id="lessons-list"></div>
       </div>
 
       <div id="about-archive">
@@ -581,6 +596,12 @@
   <div id="word-modal" class="modal hidden">
     <div class="modal-backdrop" id="word-backdrop"></div>
     <div class="modal-content modal-wide" id="word-modal-content"></div>
+  </div>
+
+  <!-- ===== МОДАЛКА «УРОК НЕДЕЛИ» ===== -->
+  <div id="lesson-modal" class="modal hidden">
+    <div class="modal-backdrop" id="lesson-backdrop"></div>
+    <div class="modal-content" id="lesson-modal-content"></div>
   </div>
 
   <!-- ===== МОДАЛКА «ПУЛЬС ДНЯ» ===== -->

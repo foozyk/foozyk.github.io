@@ -4227,3 +4227,193 @@ body.dark .add-note-btn {
   color: var(--accent-alt);
   border-color: rgba(232, 160, 168, 0.35);
 }
+/* ==========================================================
+   УРОК НЕДЕЛИ — карточка + модалка
+   ========================================================== */
+.lesson-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(178, 90, 90, 0.18), rgba(232, 160, 168, 0.08));
+  border: 1px solid rgba(232, 160, 168, 0.28);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+}
+.lesson-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+.lesson-card__icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(178, 90, 90, 0.4);
+}
+.lesson-card__body { flex: 1; min-width: 0; }
+.lesson-card__label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--accent-alt);
+  margin-bottom: 3px;
+}
+.lesson-card__title {
+  font-family: 'Bodoni Moda', serif;
+  font-style: italic;
+  font-size: 17px;
+  color: var(--text);
+  line-height: 1.25;
+  letter-spacing: -0.2px;
+}
+.lesson-card__arrow {
+  font-size: 20px;
+  color: var(--accent-alt);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+#lesson-modal .modal-content {
+  padding: 28px 26px 24px;
+  position: relative;
+}
+#lesson-modal .modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-alt), var(--accent-gold));
+}
+.lesson-modal__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.lesson-modal__label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--accent-alt);
+}
+.lesson-modal__close {
+  width: 32px !important;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(232, 160, 168, 0.12);
+  border: none;
+  color: var(--accent-alt);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: none;
+  margin-top: 0 !important;
+  flex: 0 0 32px;
+}
+.lesson-modal__title {
+  font-family: 'Bodoni Moda', serif;
+  font-style: italic;
+  font-size: 26px;
+  color: var(--text);
+  line-height: 1.25;
+  margin-bottom: 20px;
+  letter-spacing: -0.4px;
+}
+.lesson-modal__body p {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-soft);
+  margin-bottom: 14px;
+}
+.lesson-modal__body p:last-child { margin-bottom: 0; }
+.lesson-try {
+  padding: 18px 20px;
+  margin-top: 20px;
+  background: linear-gradient(135deg, rgba(178, 90, 90, 0.15), rgba(232, 160, 168, 0.08));
+  border: 1px dashed rgba(232, 160, 168, 0.4);
+  border-radius: 18px;
+}
+.lesson-try__label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--accent-alt);
+  margin-bottom: 8px;
+}
+.lesson-try__text {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--text);
+  font-weight: 500;
+}
+.lesson-modal__footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+.lesson-modal__btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+}
+.lesson-modal__btn--primary {
+  background: linear-gradient(135deg, var(--accent-dark), var(--accent-alt));
+  color: #1a0a0e;
+  box-shadow: var(--shadow-glow);
+}
+.lesson-modal__btn--ghost {
+  background: rgba(232, 160, 168, 0.1);
+  color: var(--muted);
+}
+
+/* Список уроков в «Мы» */
+.lesson-item {
+  padding: 14px 18px;
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.lesson-item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+.lesson-item__week {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent-alt);
+  margin-bottom: 5px;
+}
+.lesson-item__title {
+  font-family: 'Bodoni Moda', serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+}
