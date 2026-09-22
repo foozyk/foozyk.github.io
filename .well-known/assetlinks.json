@@ -1,1 +1,8 @@
-
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.github.foozyk.twa",
+    "sha256_cert_fingerprints": ["AB:CD:EF...ЗДЕСЬ_ТВОЙ_ОТПЕЧАТОК"]
+  }
+}]
