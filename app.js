@@ -69,6 +69,20 @@ let cachedDayTime = 0;
 let moodWatcherDay = null;
 let dayWatcherInterval = null;
 
+/* ---------- ФИЧИ ВОЛНЫ 1 ---------- */
+let quietDayActive = false;
+let pauseTimerInterval = null;
+let _pauseTargetConvId = null;
+let _pauseSelectedMinutes = 30;
+let _lessonExpanded = false;
+
+const PAUSE_OPTIONS = [
+  { label: '15 минут', minutes: 15 },
+  { label: '30 минут', minutes: 30 },
+  { label: '1 час',    minutes: 60 },
+  { label: 'До завтра', untilTomorrow: true }
+];
+
 /* ---------- ВИБРАЦИЯ ---------- */
 function vibrate(pattern) {
   if (typeof navigator === "undefined") return;
@@ -529,6 +543,8 @@ function startMainApp() {
   initThinkSignals();
   initRhythm();
   initLessons();
+  initPauseFeature();
+  initQuietFeature();
 
   startDayWatcher();
 
@@ -579,6 +595,8 @@ function startDayWatcher() {
       renderWordCard();
       todayAnswers = [];
       updateTodayView();
+      quietDayActive = isQuietDay();
+      applyQuietDayState();
     }
   }, 60000);
 }
@@ -703,6 +721,10 @@ function fireConfetti() {
 function updateTodayView() {
   const myAnswer = todayAnswers.find(a => a.userId === currentUser.uid);
   const partnerAnswer = todayAnswers.find(a => a.userId !== currentUser.uid);
+  const partnerUid = currentCouple?.members?.find(uid => uid !== currentUser.uid);
+  const quiet = todayMoods.quiet || {};
+  const partnerIsQuiet = !!quiet[partnerUid];
+
   const myTa = $("my-answer");
   const savedText = myAnswer ? (myAnswer.text || "") : "";
   if (myTa && !myTa.matches(":focus") && myTa.value !== savedText) {
@@ -714,7 +736,7 @@ function updateTodayView() {
   const statusEl = $("answer-status");
   const section = document.querySelector(".partner-section");
 
-  if (section) section.classList.remove("is-waiting", "is-locked", "is-open");
+  if (section) section.classList.remove("is-waiting", "is-locked", "is-open", "is-partner-quiet");
 
   const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
   const safeName = `<span class="partner-answer__name">${escapeHtml(partnerName)}</span>`;
@@ -743,6 +765,17 @@ function updateTodayView() {
         <span class="partner-answer__text">
           ${safeName} уже ответила.<br>
           Напишите своё — и её ответ откроется.
+        </span>
+      `;
+      statusEl.textContent = "";
+      statusEl.style.color = "";
+    } else if (partnerIsQuiet) {
+      if (section) section.classList.add("is-partner-quiet");
+      partnerEl.innerHTML = `
+        <span class="quiet-moon-icon">🌙</span>
+        <span>
+          ${safeName} сегодня в тихом дне.<br>
+          Это не отдаление — это забота о себе.
         </span>
       `;
       statusEl.textContent = "";
@@ -1556,6 +1589,23 @@ function renderTodayMood() {
   const myMood = moods[currentUser.uid] || null;
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
   const partnerMood = moods[partnerUid] || null;
+
+  // --- Тихий день: синхронизация ---
+  const quiet = todayMoods.quiet || {};
+  const myQuiet = !!quiet[currentUser.uid];
+  const partnerQuiet = !!quiet[partnerUid];
+
+  // Своё состояние: Firestore — источник истины
+  if (myQuiet !== quietDayActive) {
+    quietDayActive = myQuiet;
+    if (myQuiet) localStorage.setItem(quietDayKey(), "1");
+    else localStorage.removeItem(quietDayKey());
+    applyQuietDayState();
+  }
+
+  // Знак партнёра на полароиде
+  const mark = $("quiet-mark-partner");
+  if (mark) mark.classList.toggle("hidden", !partnerQuiet);
 
   const meDot = $("pulse-me");
   if (meDot) {
@@ -2451,6 +2501,16 @@ function listenForConversations() {
 
       renderConversations();
       updateBadges();
+      renderHeaderPause();
+      if (conversations.some(isConvPaused)) startPauseTimer();
+
+      if (currentConversationId) {
+        const freshConv = conversations.find(c => c.id === currentConversationId);
+        const convModal = $("conversation-modal");
+        if (freshConv && convModal && !convModal.classList.contains("hidden")) {
+          openConversation(currentConversationId);
+        }
+      }
 
       if (_currentDialogueId) {
         const fresh = conversations.find(c => c.id === _currentDialogueId);
@@ -2586,11 +2646,21 @@ function buildConvCard(conv, partnerUid) {
   const card = document.createElement("div");
   card.className = "conv-card";
   card.dataset.animId = conv.id;
+
+  const paused = isConvPaused(conv);
+  if (paused) card.classList.add("conv-card--paused");
+
   let statusHtml = "";
-  if (!myText && !partnerText) statusHtml = `<span class="status-dot waiting"></span> Никто ещё не написал`;
+  if (paused) {
+    statusHtml = `
+      <span class="conv-card__paused-tag">⏸ ${escapeHtml(conv.pausedLabel || 'пауза')}</span>
+      <span data-pause-countdown data-pause-id="${conv.id}">${formatPauseRemaining(getConvPauseRemaining(conv))}</span>
+    `;
+  } else if (!myText && !partnerText) statusHtml = `<span class="status-dot waiting"></span> Никто ещё не написал`;
   else if (myText && !partnerText) statusHtml = `<span class="status-dot mine-done"></span> Вы написали, ждём партнёра`;
   else if (!myText && partnerText) statusHtml = `<span class="status-dot waiting"></span> Партнёр написал, ваша очередь`;
   else statusHtml = `<span class="status-dot both-done"></span> Оба написали — можно договориться`;
+
   card.innerHTML = `
     <button class="conv-delete-btn" data-action="delete-conv" title="Удалить разговор">🗑</button>
     <div class="conv-card-title">${escapeHtml(conv.topic || "Без темы")}</div>
@@ -2680,6 +2750,51 @@ function openConversation(convId) {
   if (!conv) return;
   if (conv.mode === "reconcile") return openDialogueModal(convId);
   currentConversationId = convId;
+
+  const pausedBox = $("conversation-paused-content");
+  const normalIds = [
+    "conversation-title", "conversation-date", "conversation-my-text",
+    "conversation-save-my", "conversation-partner-text",
+    "conversation-make-agreement", "conversation-pause-btn", "conversation-close"
+  ];
+  const labelEls = document.querySelectorAll("#conversation-modal .field-label");
+
+  if (isConvPaused(conv)) {
+    normalIds.forEach(id => { const el = $(id); if (el) el.classList.add("hidden"); });
+    labelEls.forEach(el => el.classList.add("hidden"));
+    if (pausedBox) {
+      pausedBox.classList.remove("hidden");
+      pausedBox.innerHTML = `
+        <h3>${escapeHtml(conv.topic || "Разговор")}</h3>
+        <p class="hint conv-date">${formatDate(conv.createdAt)}</p>
+        <div class="paused-state">
+          <div class="paused-state__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          </div>
+          <div class="paused-state__title">Пауза</div>
+          <div class="paused-state__origin">в этом разговоре · <b>${escapeHtml(conv.pausedLabel || '')}</b></div>
+          <div class="paused-state__countdown" data-pause-countdown data-pause-id="${conv.id}">${formatPauseRemaining(getConvPauseRemaining(conv))}</div>
+          <div class="paused-state__text">Ты взял(а) время подумать. Партнёр видит знак именно здесь и не торопит.</div>
+          <button class="btn-pause" id="pause-cancel-conv" type="button" style="margin-top:6px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            Снять паузу
+          </button>
+        </div>
+        <button class="link" id="conversation-close-paused">Закрыть</button>
+      `;
+      $("pause-cancel-conv").onclick = () => cancelPause(conv.id);
+      $("conversation-close-paused").onclick = closeConversationModal;
+    }
+    startPauseTimer();
+    $("conversation-modal").classList.remove("hidden");
+    return;
+  }
+
+  // Обычное состояние — раскрываем всё, что было скрыто паузой
+  normalIds.forEach(id => { const el = $(id); if (el) el.classList.remove("hidden"); });
+  labelEls.forEach(el => el.classList.remove("hidden"));
+  if (pausedBox) { pausedBox.classList.add("hidden"); pausedBox.innerHTML = ""; }
+
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
   const texts = conv.texts || {};
   const myText = texts[currentUser.uid] || "";
@@ -2712,6 +2827,8 @@ function openConversation(convId) {
     partnerBox.style.color = "var(--muted)";
     agreementBtn.classList.add("hidden");
   }
+  const pauseBtn = $("conversation-pause-btn");
+  if (pauseBtn) pauseBtn.onclick = () => openPauseModal(conv.id);
   $("conversation-modal").classList.remove("hidden");
 }
 function closeConversationModal() {
@@ -3627,6 +3744,8 @@ function initDialogue() {
         case "sign-for-partner": signForPartner(id); break;
         case "open-modal":       openDialogueModal(id); break;
         case "cancel-old-new":   cancelOldDialogueAndStartNew(id); break;
+        case "open-pause":       openPauseModal(id); break;
+        case "cancel-pause":     cancelPause(id); break;
       }
     });
   }
@@ -3792,6 +3911,39 @@ function openDialogueModal(convId) {
 }
 
 function renderDialogueContent(conv) {
+  // Если в примирении пауза — показываем paused-state вместо всего остального
+  if (isConvPaused(conv)) {
+    const f = getDialogueFeelingInfo(conv.feeling);
+    const content = $("dialogue-modal-content");
+    content.innerHTML = `
+      <div class="dialogue__head">
+        <div class="dialogue__label">Примирение</div>
+        <button class="dialogue__close" data-dlg-action="close">✕</button>
+      </div>
+      <div style="text-align:center;">
+        <div class="dialogue__context">
+          <span class="dialogue__context-icon">${getFeelingIcon(conv.feeling)}</span>
+          <span>${escapeHtml(f.label)}</span>
+        </div>
+      </div>
+      <div class="paused-state">
+        <div class="paused-state__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        </div>
+        <div class="paused-state__title">Пауза</div>
+        <div class="paused-state__origin">в этом примирении · <b>${escapeHtml(conv.pausedLabel || '')}</b></div>
+        <div class="paused-state__countdown" data-pause-countdown data-pause-id="${conv.id}">${formatPauseRemaining(getConvPauseRemaining(conv))}</div>
+        <div class="paused-state__text">Ты взял(а) время подумать. Партнёр видит знак именно здесь и ждёт — без давления.</div>
+        <button class="btn-pause" data-dlg-action="cancel-pause" data-dlg-id="${conv.id}" style="margin-top:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          Снять паузу
+        </button>
+      </div>
+    `;
+    startPauseTimer();
+    return;
+  }
+
   if (conv.phase === "done") {
     renderDialogueDone(conv);
   } else if (conv.phase === "invite") {
@@ -3885,7 +4037,15 @@ function renderDialoguePartnerScreen(conv) {
       ${reasonHtml}
       <div class="dialogue__partner-hint">${escapeHtml(partnerName)} предлагает перейти к договору</div>
 
+      ${renderLessonHint()}
+
       <button class="dialogue-btn" data-dlg-action="accept" data-dlg-id="${conv.id}">К договору</button>
+
+      <button class="btn-pause" data-dlg-action="open-pause" data-dlg-id="${conv.id}" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        Мне нужно время
+      </button>
+
       <button class="dialogue__secondary-link" data-dlg-action="close">Не сейчас</button>
 
       <div class="dialogue__partner-footer">
@@ -3893,6 +4053,7 @@ function renderDialoguePartnerScreen(conv) {
       </div>
     </div>
   `;
+  bindLessonHint(conv);
 }
 
 async function acceptDialogue(convId) {
@@ -3947,7 +4108,15 @@ function renderDialogueTalking(conv) {
     </div>
 
     ${proceedBtnHtml}
+
+    ${renderLessonHint()}
+
+    <button class="btn-pause" data-dlg-action="open-pause" data-dlg-id="${conv.id}" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+      Мне нужно время
+    </button>
   `;
+  bindLessonHint(conv);
 }
 async function saveDialogueAgreement(convId) {
   const title = ($("dlg-agr-title")?.value || "").trim();
@@ -4176,10 +4345,19 @@ function buildDialogueCard(conv, isDone) {
   card.dataset.animId = conv.id;
   if (isDone) card.classList.add("is-done");
 
+  const paused = isConvPaused(conv);
+  if (paused) card.classList.add("conv-card--paused");
+
   let statusHtml = "";
   let statusDot = "";
 
-  if (conv.phase === "invite") {
+  if (paused) {
+    statusDot = `<span class="status-dot paused"></span>`;
+    statusHtml = `
+      <span class="conv-card__paused-tag">⏸ ${escapeHtml(conv.pausedLabel || 'пауза')}</span>
+      <span data-pause-countdown data-pause-id="${conv.id}">${formatPauseRemaining(getConvPauseRemaining(conv))}</span>
+    `;
+  } else if (conv.phase === "invite") {
     if (conv.initiatedBy === currentUser.uid) {
       statusHtml = `Ждём ${escapeHtml(partnerName)}`;
     } else {
@@ -4750,6 +4928,312 @@ function openLessonModalByWeek(week) {
 
   $("lesson-modal").classList.remove("hidden");
   vibrate(10);
+}
+
+/* ==========================================================
+   ФИЧА №2 — «Мне нужно время» (пауза, по контекстам)
+   ========================================================== */
+
+function isConvPaused(conv) {
+  if (!conv || !conv.pausedUntil) return false;
+  const until = conv.pausedUntil.toMillis ? conv.pausedUntil.toMillis() : Number(conv.pausedUntil);
+  return until > Date.now();
+}
+
+function getConvPauseRemaining(conv) {
+  if (!conv || !conv.pausedUntil) return 0;
+  const until = conv.pausedUntil.toMillis ? conv.pausedUntil.toMillis() : Number(conv.pausedUntil);
+  return Math.max(0, until - Date.now());
+}
+
+function formatPauseRemaining(ms) {
+  if (ms <= 0) return '0:00';
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}ч ${String(m).padStart(2, '0')}м`;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function startPauseTimer() {
+  if (pauseTimerInterval) return;
+  pauseTimerInterval = setInterval(tickPauseTimer, 1000);
+  tickPauseTimer();
+}
+
+function tickPauseTimer() {
+  const active = conversations.filter(isConvPaused);
+
+  document.querySelectorAll('[data-pause-countdown]').forEach(el => {
+    const id = el.dataset.pauseId;
+    const conv = conversations.find(c => c.id === id);
+    if (conv && isConvPaused(conv)) {
+      el.textContent = formatPauseRemaining(getConvPauseRemaining(conv));
+    }
+  });
+
+  renderHeaderPause();
+
+  if (active.length === 0) {
+    clearInterval(pauseTimerInterval);
+    pauseTimerInterval = null;
+  }
+
+  if (currentConversationId) {
+    const c = conversations.find(x => x.id === currentConversationId);
+    const modal = $("conversation-modal");
+    if (c && modal && !modal.classList.contains("hidden") && !isConvPaused(c)) {
+      openConversation(currentConversationId);
+    }
+  }
+  if (_currentDialogueId) {
+    const c = conversations.find(x => x.id === _currentDialogueId);
+    const modal = $("dialogue-modal");
+    if (c && modal && !modal.classList.contains("hidden") && !isConvPaused(c)) {
+      renderDialogueContent(c);
+    }
+  }
+}
+
+function renderHeaderPause() {
+  const el = $("headerPause");
+  if (!el) return;
+  const active = conversations.filter(isConvPaused);
+  if (active.length === 0) {
+    el.classList.add("hidden");
+    return;
+  }
+  el.classList.remove("hidden");
+  const counter = $("pauseCounter");
+  if (!counter) return;
+  if (active.length === 1) {
+    const kind = active[0].mode === "reconcile" ? "примирение" : "разговор";
+    counter.textContent = `пауза · ${kind}`;
+  } else {
+    counter.textContent = `${active.length} паузы`;
+  }
+}
+
+function openPauseModal(convId) {
+  const conv = conversations.find(c => c.id === convId);
+  if (!conv) return;
+  _pauseTargetConvId = convId;
+  _pauseSelectedMinutes = 30;
+  renderPauseOptions();
+  $("pause-modal").classList.remove("hidden");
+  vibrate(10);
+}
+
+function renderPauseOptions() {
+  const box = $("pause-options");
+  if (!box) return;
+  box.innerHTML = PAUSE_OPTIONS.map((opt, i) => {
+    const isActive = (opt.minutes === _pauseSelectedMinutes) ||
+                     (opt.untilTomorrow && _pauseSelectedMinutes === null);
+    return `<button class="pause-option${isActive ? ' active' : ''}" data-idx="${i}">${opt.label}</button>`;
+  }).join("");
+  box.querySelectorAll(".pause-option").forEach((btn, i) => {
+    btn.onclick = () => {
+      _pauseSelectedMinutes = PAUSE_OPTIONS[i].untilTomorrow ? null : PAUSE_OPTIONS[i].minutes;
+      renderPauseOptions();
+    };
+  });
+}
+
+function closePauseModal() {
+  const m = $("pause-modal");
+  if (m) m.classList.add("hidden");
+  _pauseTargetConvId = null;
+}
+
+async function confirmPause() {
+  if (!_pauseTargetConvId) return;
+  const opt = PAUSE_OPTIONS.find(o =>
+    o.untilTomorrow ? _pauseSelectedMinutes === null : o.minutes === _pauseSelectedMinutes
+  ) || PAUSE_OPTIONS[1];
+
+  let until;
+  if (opt.untilTomorrow) {
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    t.setHours(0, 0, 0, 0);
+    until = Timestamp.fromDate(t);
+  } else {
+    until = Timestamp.fromMillis(Date.now() + opt.minutes * 60 * 1000);
+  }
+
+  const btn = $("pause-confirm");
+  if (btn) btn.disabled = true;
+  try {
+    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", _pauseTargetConvId), {
+      pausedUntil: until,
+      pausedBy: currentUser.uid,
+      pausedLabel: opt.label
+    });
+    closePauseModal();
+    startPauseTimer();
+    vibrate(15);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function cancelPause(convId) {
+  try {
+    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), {
+      pausedUntil: null,
+      pausedBy: null,
+      pausedLabel: null
+    });
+    vibrate(10);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+function initPauseFeature() {
+  const backdrop = $("pause-backdrop");
+  if (backdrop) backdrop.onclick = closePauseModal;
+  const cancel = $("pause-cancel-btn");
+  if (cancel) cancel.onclick = closePauseModal;
+  const confirm = $("pause-confirm");
+  if (confirm) confirm.onclick = confirmPause;
+}
+
+/* ==========================================================
+   ФИЧА №3 — «Тихий день»
+   ========================================================== */
+
+function quietDayKey() {
+  const d = new Date();
+  return `quiet-${currentCoupleId}-${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function isQuietDay() {
+  return localStorage.getItem(quietDayKey()) === "1";
+}
+
+async function setQuietDay(val) {
+  // 1. Сразу локально — мгновенный отклик UI
+  if (val) localStorage.setItem(quietDayKey(), "1");
+  else localStorage.removeItem(quietDayKey());
+  quietDayActive = val;
+  applyQuietDayState();
+
+  // 2. Затем в Firestore — чтобы партнёр увидел
+  if (!currentCoupleId || !currentUser) return;
+  try {
+    const day = getCurrentDay();
+    const ref = doc(db, "couples", currentCoupleId, "moods", String(day));
+    const snap = await getDoc(ref);
+    const data = snap.exists() ? snap.data() : {};
+    const quiet = { ...(data.quiet || {}) };
+    if (val) quiet[currentUser.uid] = true;
+    else delete quiet[currentUser.uid];
+    await setDoc(ref, { day, quiet }, { merge: true });
+  } catch (e) {
+    console.error("Quiet day sync error:", e);
+  }
+}
+
+function applyQuietDayState() {
+  const card = $("questionCard");
+  const icon = $("quietIconBtn");
+  const area = $("answerArea");
+  if (!card || !icon) return;
+  card.classList.toggle("is-quiet", quietDayActive);
+  icon.classList.toggle("is-active", quietDayActive);
+  if (area) area.classList.toggle("hidden", quietDayActive);
+}
+
+function openQuietModal() {
+  const m = $("quiet-modal");
+  if (m) m.classList.remove("hidden");
+  vibrate(10);
+}
+
+function closeQuietModal() {
+  const m = $("quiet-modal");
+  if (m) m.classList.add("hidden");
+}
+
+function initQuietFeature() {
+  quietDayActive = isQuietDay();
+  applyQuietDayState();
+
+  const icon = $("quietIconBtn");
+  if (icon) {
+    icon.onclick = () => {
+      if (quietDayActive) {
+        setQuietDay(false);
+        vibrate(10);
+      } else {
+        openQuietModal();
+      }
+    };
+  }
+
+  const backdrop = $("quiet-backdrop");
+  if (backdrop) backdrop.onclick = closeQuietModal;
+  const cancel = $("quiet-cancel");
+  if (cancel) cancel.onclick = closeQuietModal;
+  const confirm = $("quiet-confirm");
+  if (confirm) {
+    confirm.onclick = async () => {
+      closeQuietModal();
+      vibrate(15);
+      await setQuietDay(true);
+    };
+  }
+}
+
+/* ==========================================================
+   ФИЧА №8 — «Обучение в моменте» (60 сек)
+   ========================================================== */
+
+function getLessonSnippet() {
+  return lessons.find(l => l.week === 8) || lessons[0];
+}
+
+function renderLessonHint() {
+  const lesson = getLessonSnippet();
+  if (!lesson) return "";
+  return `
+    <div class="lesson-hint${_lessonExpanded ? ' is-expanded' : ''}" id="lessonHint">
+      <div class="lesson-hint__head">
+        <div class="lesson-hint__icon">📖</div>
+        <div>
+          <div class="lesson-hint__label">Урок в моменте</div>
+          <div class="lesson-hint__time">60 секунд</div>
+        </div>
+      </div>
+      <div class="lesson-hint__title">${escapeHtml(lesson.title)}</div>
+      <div class="lesson-hint__snippet">${escapeHtml(lesson.body[0] || '')}</div>
+      <div class="lesson-hint__more">
+        ${lesson.body.slice(1).map(p => `<p>${escapeHtml(p)}</p>`).join("")}
+        ${lesson.try ? `<div class="lesson-hint__try"><b>Попробуй сегодня:</b> ${escapeHtml(lesson.try)}</div>` : ""}
+      </div>
+      <span class="lesson-hint__toggle">
+        <span>${_lessonExpanded ? 'Свернуть' : 'Развернуть'}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </span>
+    </div>
+  `;
+}
+
+function bindLessonHint(conv) {
+  const hint = $("lessonHint");
+  if (!hint) return;
+  hint.onclick = (e) => {
+    if (e.target.closest("button")) return;
+    _lessonExpanded = !_lessonExpanded;
+    renderDialogueContent(conv);
+  };
 }
 
 /* Страховка: блокировка прокрутки body при открытой модалке */

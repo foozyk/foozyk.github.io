@@ -64,6 +64,13 @@
     <!-- ===== ШАПКА ===== -->
     <div class="header">
       <div class="header-top">
+        <div class="app-header__pause hidden" id="headerPause">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <rect x="6" y="4" width="4" height="16" rx="1"/>
+            <rect x="14" y="4" width="4" height="16" rx="1"/>
+          </svg>
+          <span id="pauseCounter">—</span>
+        </div>
         <button class="gear-btn" id="gearBtn" title="Настройки">⚙</button>
       </div>
 
@@ -76,6 +83,7 @@
         </div>
         <div class="polaroid" id="partner-polaroid">
           <div class="tape"></div>
+          <div class="quiet-mark hidden" id="quiet-mark-partner" aria-hidden="true">🌙</div>
           <div class="polaroid-img" id="polaroid-partner" style="background: linear-gradient(135deg, #c9a961, #b25a5a);">?</div>
           <div class="polaroid-caption" id="polaroid-name-partner">Партнёр</div>
           <button class="pulse-dot pulse-dot--empty" id="pulse-partner" type="button" aria-label="Пульс партнёра" disabled>+</button>
@@ -119,9 +127,19 @@
         <span class="progress-row__num" id="progress-label">0%</span>
       </div>
 
-      <div class="question-card reveal stagger" style="--i: 0;">
+      <div class="question-card reveal stagger" id="questionCard" style="--i: 0;">
+        <button class="quiet-icon" id="quietIconBtn" type="button" title="Тихий день" aria-label="Тихий день">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
         <div class="question-label">Вопрос дня</div>
         <h2 id="current-question">Загрузка...</h2>
+        <div class="quiet-state">
+          <div class="quiet-state__icon">🌙</div>
+          <div class="quiet-state__title">Тихий день</div>
+          <div class="quiet-state__text">Сегодня можно не отвечать на вопрос. Это не отдаление — это забота о себе. Партнёр увидит мягкий знак.</div>
+        </div>
       </div>
 
       <div class="lesson-card reveal stagger" id="lesson-card" style="--i: 1; display: none;">
@@ -133,9 +151,11 @@
         <div class="lesson-card__arrow">›</div>
       </div>
 
-      <textarea id="my-answer" class="reveal stagger" style="--i: 1;" placeholder="Напишите свой ответ..." rows="6"></textarea>
-      <button id="save-answer" class="reveal stagger" style="--i: 2;">Сохранить ответ</button>
-      <p id="answer-status" class="hint"></p>
+      <div id="answerArea">
+        <textarea id="my-answer" class="reveal stagger" style="--i: 1;" placeholder="Напишите свой ответ..." rows="6"></textarea>
+        <button id="save-answer" class="reveal stagger" style="--i: 2;">Сохранить ответ</button>
+        <p id="answer-status" class="hint"></p>
+      </div>
 
       <div class="partner-section reveal stagger" style="--i: 0;">
         <h3>Ответ партнёра</h3>
@@ -575,7 +595,15 @@
       <label class="field-label" style="margin-top:20px;">Что важно для партнёра</label>
       <div id="conversation-partner-text" class="conversation-partner-text">Пока скрыт.</div>
       <button id="conversation-make-agreement" class="make-agreement-btn">🤝 Договориться</button>
+      <button class="btn-pause" id="conversation-pause-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <rect x="6" y="4" width="4" height="16" rx="1"/>
+          <rect x="14" y="4" width="4" height="16" rx="1"/>
+        </svg>
+        Мне нужно время
+      </button>
       <button id="conversation-close" class="link">Закрыть</button>
+      <div id="conversation-paused-content" class="hidden"></div>
     </div>
   </div>
 
@@ -651,6 +679,44 @@
       </div>
 
       <button id="moon-modal-close-btn" class="link">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- ===== МОДАЛКА «ПАУЗА» ===== -->
+  <div id="pause-modal" class="modal hidden">
+    <div class="modal-backdrop" id="pause-backdrop"></div>
+    <div class="modal-content">
+      <div class="pause-modal__hero">
+        <div class="pause-modal__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 7v5l3 2"/>
+          </svg>
+        </div>
+        <div class="pause-modal__title">Мне нужно время</div>
+        <div class="pause-modal__text">Это не значит, что я ухожу. Это значит, что мне нужно подумать без спешки. Партнёр увидит знак в этом разговоре.</div>
+      </div>
+      <div class="pause-options" id="pause-options"></div>
+      <button id="pause-confirm" style="margin-top:12px">Взять паузу</button>
+      <button class="link" id="pause-cancel-btn">Отмена</button>
+    </div>
+  </div>
+
+  <!-- ===== МОДАЛКА «ТИХИЙ ДЕНЬ» ===== -->
+  <div id="quiet-modal" class="modal hidden">
+    <div class="modal-backdrop" id="quiet-backdrop"></div>
+    <div class="modal-content">
+      <div class="pause-modal__hero">
+        <div class="pause-modal__icon" style="background:rgba(140,130,155,.15);color:#6a5a7a">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+        <div class="pause-modal__title">Тихий день</div>
+        <div class="pause-modal__text">Сегодня можно не отвечать на вопрос. Это не отдаление — это забота о себе.</div>
+      </div>
+      <button id="quiet-confirm" style="margin-top:20px">Включить тихий день</button>
+      <button class="link" id="quiet-cancel">Отмена</button>
     </div>
   </div>
 

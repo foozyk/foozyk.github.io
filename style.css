@@ -4417,3 +4417,344 @@ body.dark .add-note-btn {
   color: var(--text);
   line-height: 1.3;
 }
+
+/* ==========================================================
+   ФИЧИ ВОЛНЫ 1 — пауза, тихий день, урок в моменте
+   ========================================================== */
+
+/* --- Индикатор паузы в шапке --- */
+.header-top { justify-content: space-between; }
+.app-header__pause {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.3);
+  padding: 5px 11px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  color: #fff;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.app-header__pause.hidden { display: none; }
+.app-header__pause svg { width: 12px; height: 12px; }
+
+/* --- Тихий день --- */
+.question-card { position: relative; }
+
+.quiet-icon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.7);
+  border: 1px solid rgba(178,90,90,.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .2s;
+  z-index: 2;
+  padding: 0;
+  box-shadow: none;
+}
+body.dark .quiet-icon {
+  background: rgba(40,25,32,.7);
+  border-color: rgba(232,160,168,.2);
+  color: #d4b8c0;
+}
+.quiet-icon:hover { transform: scale(1.08); color: var(--accent); border-color: var(--accent); opacity: 1; }
+.quiet-icon.is-active {
+  background: linear-gradient(135deg,#7a6d8a,#5a4a6a);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(90,70,110,.4);
+}
+.quiet-icon svg { width: 17px; height: 17px; }
+
+.question-card.is-quiet {
+  background: linear-gradient(180deg, rgba(220,215,225,.5), rgba(200,195,210,.3));
+  border-color: rgba(140,130,155,.3);
+}
+body.dark .question-card.is-quiet {
+  background: linear-gradient(180deg, rgba(60,50,75,.55), rgba(45,38,58,.4));
+  border-color: rgba(170,160,190,.25);
+}
+.question-card.is-quiet .question-label,
+.question-card.is-quiet #current-question { display: none; }
+
+.quiet-state { display: none; text-align: center; padding: 6px 0; }
+.question-card.is-quiet .quiet-state { display: block; }
+.quiet-state__icon { font-size: 38px; line-height: 1; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(90,70,110,.35)); }
+.quiet-state__title { font-family: 'Bodoni Moda', serif; font-style: italic; font-size: 22px; color: #5a4a6a; margin-bottom: 6px; }
+body.dark .quiet-state__title { color: #c0b0d8; }
+.quiet-state__text { font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 280px; margin: 0 auto; }
+body.dark .quiet-state__text { color: #b8a8c0; }
+
+/* --- Кнопка «Мне нужно время» --- */
+.btn-pause {
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #8a6a4a;
+  background: rgba(138,106,74,.1);
+  border: 1px dashed rgba(138,106,74,.4);
+  cursor: pointer;
+  transition: all .15s;
+  margin-top: 12px;
+  font-family: inherit;
+  box-shadow: none;
+}
+.btn-pause:hover { background: rgba(138,106,74,.16); border-color: #8a6a4a; transform: none; opacity: 1; }
+.btn-pause svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* --- Модалка паузы и тихого дня --- */
+.pause-modal__hero { text-align: center; padding: 8px 0 18px; }
+.pause-modal__icon {
+  width: 56px; height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: rgba(138,106,74,.1);
+  display: flex; align-items: center; justify-content: center;
+  color: #8a6a4a;
+}
+.pause-modal__icon svg { width: 28px; height: 28px; }
+.pause-modal__title { font-family: 'Bodoni Moda', serif; font-style: italic; font-size: 24px; color: var(--text); margin-bottom: 10px; }
+.pause-modal__text { font-size: 13.5px; color: var(--text-soft); line-height: 1.55; max-width: 340px; margin: 0 auto; }
+
+.pause-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 20px 0 8px; }
+.pause-option {
+  padding: 16px 12px;
+  border-radius: 16px;
+  text-align: center;
+  font-family: inherit;
+  background: var(--input-bg);
+  border: 1.5px solid var(--glass-border);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  box-shadow: none;
+}
+.pause-option:hover { border-color: #8a6a4a; transform: none; opacity: 1; }
+.pause-option.active {
+  background: linear-gradient(135deg, rgba(138,106,74,.1), rgba(138,106,74,.18));
+  border-color: #8a6a4a;
+  color: #8a6a4a;
+  box-shadow: 0 4px 14px rgba(138,106,74,.2);
+}
+body.dark .pause-option.active { background: rgba(180,150,110,.25); color: #d4b898; }
+
+/* --- Состояние «пауза» внутри детали --- */
+.paused-state {
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(138,106,74,.1);
+  border: 1px dashed rgba(138,106,74,.35);
+  text-align: center;
+}
+body.dark .paused-state { background: rgba(180,150,110,.12); border-color: rgba(180,150,110,.35); }
+.paused-state__icon {
+  width: 44px; height: 44px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: rgba(138,106,74,.18);
+  color: #8a6a4a;
+  display: flex; align-items: center; justify-content: center;
+}
+.paused-state__icon svg { width: 22px; height: 22px; }
+.paused-state__title { font-family: 'Bodoni Moda', serif; font-style: italic; font-size: 20px; color: var(--text); margin-bottom: 6px; }
+.paused-state__origin { font-size: 11px; color: var(--muted); margin-bottom: 10px; letter-spacing: .3px; }
+.paused-state__origin b { color: #8a6a4a; }
+.paused-state__countdown {
+  font-family: 'Bodoni Moda', serif;
+  font-size: 32px;
+  font-style: italic;
+  color: #8a6a4a;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin: 8px 0 10px;
+}
+.paused-state__text { font-size: 13px; color: var(--text-soft); line-height: 1.5; max-width: 300px; margin: 0 auto 14px; }
+
+/* --- Бейдж паузы в карточке списка --- */
+.conv-card--paused { border-color: rgba(138,106,74,.35); }
+.conv-card__paused-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 100px;
+  background: rgba(138,106,74,.12);
+  color: #8a6a4a;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+}
+body.dark .conv-card__paused-tag { background: rgba(180,150,110,.18); color: #d4b898; }
+.status-dot.paused { background: #8a6a4a; box-shadow: 0 0 8px rgba(138,106,74,.5); }
+
+/* --- «Обучение в моменте» — подсказка урока --- */
+.lesson-hint {
+  margin: 16px 0 4px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(178,90,90,.14), rgba(232,160,168,.08));
+  border: 1px dashed rgba(232,160,168,.5);
+  cursor: pointer;
+  transition: all .2s;
+}
+.lesson-hint:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(200,120,110,.12); }
+.lesson-hint__head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.lesson-hint__icon {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: #fff; flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(178,90,90,.3);
+}
+.lesson-hint__label { font-size: 9.5px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; color: var(--accent-alt); line-height: 1.2; }
+.lesson-hint__time { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: .4px; }
+.lesson-hint__title { font-family: 'Bodoni Moda', serif; font-style: italic; font-size: 16px; color: var(--text); line-height: 1.3; margin-bottom: 6px; }
+.lesson-hint__snippet { font-size: 13px; color: var(--text-soft); line-height: 1.55; }
+.lesson-hint__more {
+  display: none; margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid rgba(232,160,168,.35);
+  font-size: 13.5px; color: var(--text-soft); line-height: 1.6;
+}
+.lesson-hint.is-expanded .lesson-hint__more { display: block; }
+.lesson-hint__more p { margin-bottom: 10px; }
+.lesson-hint__more p:last-child { margin-bottom: 0; }
+.lesson-hint__try {
+  margin-top: 10px; padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.5);
+  font-size: 13px; color: var(--text); line-height: 1.5;
+  font-weight: 500;
+}
+body.dark .lesson-hint__try { background: rgba(0,0,0,.2); }
+.lesson-hint__toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 10px; font-size: 12px; font-weight: 700;
+  color: var(--accent); letter-spacing: .3px;
+}
+.lesson-hint__toggle svg { width: 12px; height: 12px; transition: transform .25s; }
+.lesson-hint.is-expanded .lesson-hint__toggle svg { transform: rotate(180deg); }
+
+/* --- Фикс контраста в тёмной теме для кнопок паузы --- */
+body.dark .pause-option {
+  color: var(--text);
+}
+body.dark .pause-option:hover {
+  color: var(--text);
+}
+body.dark .btn-pause {
+  color: #d4b898;
+  background: rgba(180,150,110,.12);
+  border-color: rgba(180,150,110,.45);
+}
+body.dark .btn-pause:hover {
+  color: #e8d0b0;
+  background: rgba(180,150,110,.2);
+  border-color: #d4b898;
+}
+body.dark .pause-modal__icon {
+  color: #d4b898;
+  background: rgba(180,150,110,.15);
+}
+body.dark .paused-state__icon {
+  color: #d4b898;
+  background: rgba(180,150,110,.18);
+}
+body.dark .paused-state__origin b {
+  color: #d4b898;
+}
+body.dark .paused-state__countdown {
+  color: #d4b898;
+}
+
+/* ==========================================================
+   ТИХИЙ ДЕНЬ — синхронизация с партнёром
+   ========================================================== */
+
+/* --- Знак-луна на полароиде партнёра --- */
+.polaroid .quiet-mark {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8a7d9a, #5a4a6a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  z-index: 11;
+  box-shadow: 0 4px 12px rgba(90,70,110,.4);
+  border: 2px solid #faf5ea;
+  pointer-events: none;
+  animation: quietMarkFadeIn .4s ease-out;
+}
+.polaroid .quiet-mark.hidden { display: none; }
+@keyframes quietMarkFadeIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* --- Блок «Ответ партнёра» в тихом дне --- */
+.partner-section.is-partner-quiet {
+  background: linear-gradient(180deg, rgba(220,215,225,.55), rgba(200,195,210,.35));
+  border-color: rgba(140,130,155,.3);
+}
+body.dark .partner-section.is-partner-quiet {
+  background: linear-gradient(180deg, rgba(60,50,75,.55), rgba(45,38,58,.45));
+  border-color: rgba(170,160,190,.25);
+}
+.partner-section.is-partner-quiet h3 {
+  color: #5a4a6a;
+}
+body.dark .partner-section.is-partner-quiet h3 {
+  color: #c0b0d8;
+}
+.partner-section.is-partner-quiet .partner-answer {
+  color: #5a4a6a;
+  font-style: normal;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.55;
+}
+body.dark .partner-section.is-partner-quiet .partner-answer {
+  color: #c8b8d8;
+}
+.partner-section.is-partner-quiet .partner-answer .quiet-moon-icon {
+  font-size: 20px;
+  line-height: 1.15;
+  flex-shrink: 0;
+  margin-top: -1px;
+  filter: drop-shadow(0 2px 6px rgba(90,70,110,.3));
+}
+.partner-section.is-partner-quiet .partner-answer .partner-answer__name {
+  color: #5a4a6a;
+  font-style: italic;
+}
+body.dark .partner-section.is-partner-quiet .partner-answer .partner-answer__name {
+  color: #c0b0d8;
+}
