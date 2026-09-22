@@ -91,9 +91,9 @@
           <div class="quick-ring" id="quick-ring">
             <button class="q-btn" type="button" data-th="скучаю" aria-label="скучаю">🥺</button>
             <button class="q-btn" type="button" data-th="обнимаю" aria-label="обнимаю">🤗</button>
-            <button class="q-btn" type="button" data-th="благодарю" aria-label="благодарю">🙏</button>
-            <button class="q-btn" type="button" data-th="думаю" aria-label="думаю">❤️</button>
-            <button class="q-btn" type="button" data-th="ты огонь" aria-label="ты огонь">🔥</button>
+            <button class="q-btn" type="button" data-th="целую" aria-label="целую">😘</button>
+            <button class="q-btn" type="button" data-th="думаю о тебе" aria-label="думаю о тебе">❤️</button>
+            <button class="q-btn" type="button" data-th="хочу тебя" aria-label="хочу тебя">🔥</button>
           </div>
         </div>
       </div>
@@ -514,6 +514,7 @@
   <div id="profile-modal" class="modal hidden">
     <div class="modal-backdrop" id="modal-backdrop"></div>
     <div class="modal-content">
+      <button class="modal-close" data-modal-close="closeProfileModal" aria-label="Закрыть">✕</button>
       <h3>Ваш профиль</h3>
       <label class="field-label">Имя</label>
       <input type="text" id="profile-name" placeholder="Например, Руслан" maxlength="30">
@@ -523,13 +524,22 @@
 
       <div id="lovelang-info" class="hidden">
         <label class="field-label" style="margin-top:16px;">Язык любви</label>
-        <p class="lovelang-line"><strong>Ваш:</strong> <span id="my-lovelang">—</span></p>
-        <p class="lovelang-line"><strong>Партнёра:</strong> <span id="partner-lovelang">—</span></p>
+        <p class="lovelang-line"><strong id="my-lovelang-label">Ваш:</strong> <span id="my-lovelang">—</span></p>
+        <p class="lovelang-line"><strong id="partner-lovelang-label">Партнёра:</strong> <span id="partner-lovelang">—</span></p>
       </div>
 
       <label class="field-label" style="margin-top:16px;">Время напоминания</label>
-      <input type="time" id="notif-time" value="21:00">
-      <p class="hint" style="text-align:left; margin-top:-6px; margin-bottom:14px;">Мы напомним, если вы ещё не ответили.</p>
+      <div class="time-field">
+        <span class="time-field__value" id="notif-time-display">21:00</span>
+        <span class="time-field__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 7v5l3 2"/>
+          </svg>
+        </span>
+        <input type="time" id="notif-time" value="21:00">
+      </div>
+      <p class="hint" style="text-align:left; margin-top:12px; margin-bottom:18px;">Мы напомним, если вы ещё не ответили.</p>
 
       <label class="field-label" style="margin-top:16px;">Лунный календарь</label>
       <label class="toggle-row">
@@ -545,6 +555,7 @@
   <div id="scheme-modal" class="modal hidden">
     <div class="modal-backdrop" id="scheme-backdrop"></div>
     <div class="modal-content">
+      <button class="modal-close" data-modal-close="closeSchemeModal" aria-label="Закрыть">✕</button>
       <h3>Цветовая схема</h3>
       <div class="scheme-grid">
         <button class="scheme-option" data-scheme="classic">
@@ -571,6 +582,7 @@
   <div id="topic-modal" class="modal hidden">
     <div class="modal-backdrop" id="topic-backdrop"></div>
     <div class="modal-content modal-wide">
+      <button class="modal-close" data-modal-close="closeTopicModal" aria-label="Закрыть">✕</button>
       <h3>О чём поговорить?</h3>
       <div id="topic-list" class="topic-list"></div>
       <label class="field-label" style="margin-top:16px;">Или своя тема</label>
@@ -587,6 +599,7 @@
   <div id="conversation-modal" class="modal hidden">
     <div class="modal-backdrop" id="conversation-backdrop"></div>
     <div class="modal-content modal-wide">
+      <button class="modal-close" data-modal-close="closeConversationModal" aria-label="Закрыть">✕</button>
       <h3 id="conversation-title">—</h3>
       <p class="hint conv-date" id="conversation-date">—</p>
       <label class="field-label">Что важно для меня</label>
@@ -610,6 +623,7 @@
   <div id="agreement-modal" class="modal hidden">
     <div class="modal-backdrop" id="agreement-backdrop"></div>
     <div class="modal-content">
+      <button class="modal-close" data-modal-close="closeAgreementModal" aria-label="Закрыть">✕</button>
       <h3 id="agreement-modal-title">Новая договорённость</h3>
       <label class="field-label">О чём договорились</label>
       <input type="text" id="agreement-title-input" placeholder="Например: «Гулять по субботам»" maxlength="80">
@@ -636,6 +650,7 @@
   <div id="pulse-modal" class="modal hidden">
     <div class="modal-backdrop" id="pulse-backdrop"></div>
     <div class="modal-content">
+      <button class="modal-close" data-modal-close="closePulseModal" aria-label="Закрыть">✕</button>
       <h3 class="pulse-modal__title">Как ты себя чувствуешь?</h3>
 
       <div class="pulse-modal__emojis" id="pulse-emojis">
@@ -686,6 +701,7 @@
   <div id="pause-modal" class="modal hidden">
     <div class="modal-backdrop" id="pause-backdrop"></div>
     <div class="modal-content">
+      <button class="modal-close" data-modal-close="closePauseModal" aria-label="Закрыть">✕</button>
       <div class="pause-modal__hero">
         <div class="pause-modal__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -706,6 +722,7 @@
   <div id="quiet-modal" class="modal hidden">
     <div class="modal-backdrop" id="quiet-backdrop"></div>
     <div class="modal-content">
+      <button class="modal-close" data-modal-close="closeQuietModal" aria-label="Закрыть">✕</button>
       <div class="pause-modal__hero">
         <div class="pause-modal__icon" style="background:rgba(140,130,155,.15);color:#6a5a7a">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -729,6 +746,7 @@
   <div id="retro-modal" class="modal hidden">
     <div class="modal-backdrop" id="retro-backdrop"></div>
     <div class="modal-content modal-wide">
+      <button class="modal-close" data-modal-close="closeRetro" aria-label="Закрыть">✕</button>
       <h3>Наш год</h3>
       <div id="retro-content"><p class="hint">Загрузка...</p></div>
       <button id="retro-close" class="link">Закрыть</button>
@@ -738,6 +756,7 @@
   <div id="day-view-modal" class="modal hidden">
     <div class="modal-backdrop" id="day-view-backdrop"></div>
     <div class="modal-content modal-wide">
+      <button class="modal-close" data-modal-close="closeDayView" aria-label="Закрыть">✕</button>
       <h3 id="day-view-title">День 1</h3>
       <p class="hint" id="day-view-date">—</p>
       <div class="day-view-question" id="day-view-question">—</div>
@@ -759,6 +778,7 @@
   <div id="note-sheet" class="modal hidden">
     <div class="modal-backdrop" id="note-backdrop"></div>
     <div class="modal-content">
+      <button class="modal-close" data-modal-close="closeNoteSheet" aria-label="Закрыть">✕</button>
       <h3 id="note-sheet-title">Заметка к дню</h3>
       <textarea id="note-text" placeholder="Что я хочу сохранить об этом дне..." maxlength="300" rows="5"></textarea>
       <label class="toggle-row">

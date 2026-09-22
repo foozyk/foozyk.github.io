@@ -75,6 +75,7 @@ let pauseTimerInterval = null;
 let _pauseTargetConvId = null;
 let _pauseSelectedMinutes = 30;
 let _lessonExpanded = false;
+let _pendingTopic = null;
 
 const PAUSE_OPTIONS = [
   { label: '15 минут', minutes: 15 },
@@ -192,15 +193,21 @@ function applyScheme(name, save) {
     btn.classList.toggle("active", btn.dataset.scheme === name);
   });
 }
+function closeSchemeModal() {
+  const m = $("scheme-modal");
+  if (m) m.classList.add("hidden");
+}
+
 function initSchemeControls() {
   $("scheme-btn").onclick = () => { vibrate(10); $("scheme-modal").classList.remove("hidden"); };
-  $("scheme-backdrop").onclick = () => $("scheme-modal").classList.add("hidden");
-  $("close-scheme").onclick = () => $("scheme-modal").classList.add("hidden");
+  $("scheme-backdrop").onclick = closeSchemeModal;
+  const closeBtn = $("close-scheme");
+  if (closeBtn) closeBtn.onclick = closeSchemeModal;
   document.querySelectorAll(".scheme-option").forEach(btn => {
     btn.onclick = () => {
       vibrate(15);
       applyScheme(btn.dataset.scheme);
-      setTimeout(() => $("scheme-modal").classList.add("hidden"), 200);
+      setTimeout(closeSchemeModal, 200);
     };
   });
 }
@@ -1364,6 +1371,7 @@ async function initProfile() {
       partnerProfile = snap.data();
       renderAvatars();
       renderTodayMood();
+      updateLoveLangUI();
     }
   });
 }
@@ -1424,6 +1432,7 @@ function openProfileModal() {
   vibrate(10);
   $("profile-name").value = myProfile?.displayName || "";
   $("profile-photo").value = myProfile?.photoURL || "";
+  updateLoveLangUI();
   $("profile-modal").classList.remove("hidden");
 }
 function closeProfileModal() { $("profile-modal").classList.add("hidden"); }
@@ -1540,10 +1549,15 @@ function checkReminder() {
 function initNotifTime() {
   const saved = localStorage.getItem("notif-time") || "21:00";
   const el = $("notif-time");
+  const display = $("notif-time-display");
   if (!el) return;
   el.value = saved;
-  el.onchange = () => {
-    localStorage.setItem("notif-time", el.value);
+  if (display) display.textContent = saved;
+
+  const handleChange = () => {
+    const val = el.value || saved;
+    localStorage.setItem("notif-time", val);
+    if (display) display.textContent = val;
     const label = document.querySelector('label[for="notif-time"]');
     if (label) {
       const original = label.textContent;
@@ -1551,6 +1565,9 @@ function initNotifTime() {
       setTimeout(() => { label.textContent = original; }, 1200);
     }
   };
+
+  el.onchange = handleChange;
+  el.oninput = handleChange;
 }
 
 /* ---------- ПУЛЬС ДНЯ ---------- */
@@ -1603,33 +1620,45 @@ function renderTodayMood() {
     applyQuietDayState();
   }
 
-  // Знак партнёра на полароиде
-  const mark = $("quiet-mark-partner");
-  if (mark) mark.classList.toggle("hidden", !partnerQuiet);
-
+  // --- Мой кружок ---
+  // Если у меня тихий день — свой кружок скрыт. Партнёр всё равно видит 🌙 у меня.
   const meDot = $("pulse-me");
   if (meDot) {
-    if (myMood) {
-      meDot.textContent = myMood;
-      meDot.classList.remove("pulse-dot--empty");
-      meDot.classList.add("pulse-dot--pulse");
+    if (myQuiet) {
+      meDot.classList.add("pulse-dot--hidden");
     } else {
-      meDot.textContent = "+";
-      meDot.classList.add("pulse-dot--empty");
-      meDot.classList.remove("pulse-dot--pulse");
+      meDot.classList.remove("pulse-dot--hidden");
+      if (myMood) {
+        meDot.textContent = myMood;
+        meDot.classList.remove("pulse-dot--empty");
+        meDot.classList.add("pulse-dot--pulse");
+      } else {
+        meDot.textContent = "+";
+        meDot.classList.add("pulse-dot--empty");
+        meDot.classList.remove("pulse-dot--pulse");
+      }
     }
   }
 
+  // --- Кружок партнёра ---
+  // Тихий день перекрывает пульс: показываем 🌙 в фиолетовом кружке
   const partnerDot = $("pulse-partner");
   if (partnerDot) {
-    if (partnerMood) {
-      partnerDot.textContent = partnerMood;
-      partnerDot.classList.remove("pulse-dot--empty");
-      partnerDot.classList.add("pulse-dot--pulse");
+    if (partnerQuiet) {
+      partnerDot.textContent = "🌙";
+      partnerDot.classList.remove("pulse-dot--empty", "pulse-dot--pulse");
+      partnerDot.classList.add("pulse-dot--quiet");
     } else {
-      partnerDot.textContent = "+";
-      partnerDot.classList.add("pulse-dot--empty");
-      partnerDot.classList.remove("pulse-dot--pulse");
+      partnerDot.classList.remove("pulse-dot--quiet");
+      if (partnerMood) {
+        partnerDot.textContent = partnerMood;
+        partnerDot.classList.remove("pulse-dot--empty");
+        partnerDot.classList.add("pulse-dot--pulse");
+      } else {
+        partnerDot.textContent = "+";
+        partnerDot.classList.add("pulse-dot--empty");
+        partnerDot.classList.remove("pulse-dot--pulse");
+      }
     }
   }
 
@@ -1642,6 +1671,9 @@ function renderTodayMood() {
   document.querySelectorAll("#pulse-emojis .pulse-emoji").forEach(btn => {
     btn.classList.toggle("selected", btn.dataset.emoji === myMood);
   });
+
+  // Перерисовываем блок «Ответ партнёра» — тихий день мог измениться
+  updateTodayView();
 }
 async function selectPulse(emoji) {
   const day = getCurrentDay();
@@ -1956,18 +1988,27 @@ function listenForLoveLang() {
   );
 }
 function updateLoveLangUI() {
+  const myName = myProfile?.displayName?.trim() || "Вы";
+  const partnerName = partnerProfile?.displayName?.trim() || "Партнёр";
+
   const bothDone = myLoveLang && partnerLoveLang;
   if (myLoveLang) {
     $("lovelang-status").innerHTML =
       `<p>✓ Вы прошли тест. Ваш язык: <strong>${escapeHtml(myLoveLang.primary)}</strong></p>` +
       (partnerLoveLang
-        ? `<p>✓ Партнёр тоже прошёл: <strong>${escapeHtml(partnerLoveLang.primary)}</strong></p>`
-        : `<p>⏳ Партнёр ещё не прошёл тест.</p>`);
+        ? `<p>✓ ${escapeHtml(partnerName)} тоже прошёл: <strong>${escapeHtml(partnerLoveLang.primary)}</strong></p>`
+        : `<p>⏳ ${escapeHtml(partnerName)} ещё не прошёл тест.</p>`);
   } else {
     $("lovelang-status").innerHTML = partnerLoveLang
-      ? `<p>Партнёр уже прошёл тест. Ваша очередь!</p>`
+      ? `<p>${escapeHtml(partnerName)} уже прошёл тест. Ваша очередь!</p>`
       : `<p>Никто ещё не проходил.</p>`;
   }
+
+  const myLabel = $("my-lovelang-label");
+  const partnerLabel = $("partner-lovelang-label");
+  if (myLabel) myLabel.textContent = myName + ":";
+  if (partnerLabel) partnerLabel.textContent = partnerName + ":";
+
   if (bothDone) {
     $("lovelang-info").classList.remove("hidden");
     $("my-lovelang").textContent = myLoveLang.primary;
@@ -2582,6 +2623,33 @@ function detectConversationEvents(prevConversations) {
       );
     }
   }
+
+  // Пауза партнёра — оповещение
+  for (const conv of conversations) {
+    const prev = prevMap.get(conv.id);
+    const prevPaused = prev ? isConvPaused(prev) : false;
+    const nowPaused = isConvPaused(conv);
+
+    if (!nowPaused) continue;
+    if (conv.pausedBy !== partnerUid) continue;
+    if (prevPaused) continue;
+
+    const label = conv.pausedLabel || "пауза";
+    let body;
+    if (conv.mode === "reconcile") {
+      const f = getDialogueFeelingInfo(conv.feeling);
+      body = `Примирение · ${f.label} · ${label}`;
+    } else {
+      body = `«${conv.topic || "без темы"}» · ${label}`;
+    }
+
+    notifyUser(
+      `${partnerName} на паузе`,
+      body,
+      "conversation",
+      { avatar }
+    );
+  }
 }
 function renderConversations() {
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
@@ -2599,6 +2667,10 @@ function renderConversations() {
     }
     const texts = conv.texts || {};
     const hasBoth = texts[currentUser.uid] && texts[partnerUid];
+
+    // Скрываем от партнёра разговор, пока инициатор не написал сам
+    if (conv.createdBy !== currentUser.uid && !texts[conv.createdBy]) return;
+
     if (hasBoth) past.push(conv);
     else active.push(conv);
   });
@@ -2716,7 +2788,7 @@ async function confirmTopic() {
   if (!topic) { alert("Выберите тему или введите свою"); return; }
   $("topic-confirm").disabled = true;
   try {
-    if ($("topic-save-custom").checked) {
+    if ($("topic-save-custom").checked && custom) {
       const exists = customTopics.some(t => t.text.toLowerCase() === topic.toLowerCase());
       if (!exists) {
         await addDoc(collection(db, "couples", currentCoupleId, "customTopics"), {
@@ -2726,25 +2798,54 @@ async function confirmTopic() {
         });
       }
     }
-    const ref = await addDoc(collection(db, "couples", currentCoupleId, "conversations"), {
-      topic,
-      createdBy: currentUser.uid,
-      createdAt: serverTimestamp(),
-      texts: {}
-    });
+    _pendingTopic = topic;
     closeTopicModal();
     vibrate(15);
-    setTimeout(() => {
-      const conv = conversations.find(c => c.id === ref.id);
-      if (conv) openConversation(ref.id);
-    }, 400);
+    openPendingConversation();
   } catch (e) {
     console.error(e);
-    alert("Ошибка создания: " + e.message);
+    alert("Ошибка: " + e.message);
   } finally {
     $("topic-confirm").disabled = false;
   }
 }
+function openPendingConversation() {
+  // Разговор ещё не создан в Firestore — показываем черновик
+  currentConversationId = null;
+
+  const pausedBox = $("conversation-paused-content");
+  const normalIds = [
+    "conversation-title", "conversation-date", "conversation-my-text",
+    "conversation-save-my", "conversation-partner-text",
+    "conversation-make-agreement", "conversation-pause-btn", "conversation-close"
+  ];
+  const labelEls = document.querySelectorAll("#conversation-modal .field-label");
+
+  normalIds.forEach(id => { const el = $(id); if (el) el.classList.remove("hidden"); });
+  labelEls.forEach(el => el.classList.remove("hidden"));
+  if (pausedBox) { pausedBox.classList.add("hidden"); pausedBox.innerHTML = ""; }
+
+  $("conversation-title").textContent = _pendingTopic || "Разговор";
+  $("conversation-date").textContent = new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  $("conversation-my-text").value = "";
+
+  const partnerBox = $("conversation-partner-text");
+  partnerBox.textContent = "Пока никто не написал.";
+  partnerBox.style.fontStyle = "italic";
+  partnerBox.style.color = "var(--muted)";
+
+  const agreementBtn = $("conversation-make-agreement");
+  if (agreementBtn) agreementBtn.classList.add("hidden");
+
+  const pauseBtn = $("conversation-pause-btn");
+  if (pauseBtn) pauseBtn.classList.add("hidden");
+
+  const saveBtn = $("conversation-save-my");
+  saveBtn.textContent = "Сохранить";
+
+  $("conversation-modal").classList.remove("hidden");
+}
+
 function openConversation(convId) {
   const conv = conversations.find(c => c.id === convId);
   if (!conv) return;
@@ -2834,23 +2935,41 @@ function openConversation(convId) {
 function closeConversationModal() {
   $("conversation-modal").classList.add("hidden");
   currentConversationId = null;
+  _pendingTopic = null;
 }
 async function saveMyConversationText() {
-  if (!currentConversationId) return;
   const text = $("conversation-my-text").value.trim();
   if (!text) { alert("Напишите что-нибудь"); return; }
   const btn = $("conversation-save-my");
   btn.disabled = true;
   try {
-    const docRef = doc(db, "couples", currentCoupleId, "conversations", currentConversationId);
-    const snap = await getDoc(docRef);
-    const current = snap.exists() ? (snap.data().texts || {}) : {};
-    current[currentUser.uid] = text;
-    await updateDoc(docRef, { texts: current });
-    const conv = conversations.find(c => c.id === currentConversationId);
-    if (conv) conv.texts = current;
-    openConversation(currentConversationId);
-    vibrate(15);
+    if (!currentConversationId && _pendingTopic) {
+      // Первый раз — создаём документ сразу с текстом
+      const ref = await addDoc(collection(db, "couples", currentCoupleId, "conversations"), {
+        topic: _pendingTopic,
+        createdBy: currentUser.uid,
+        createdAt: serverTimestamp(),
+        texts: { [currentUser.uid]: text }
+      });
+      _pendingTopic = null;
+      currentConversationId = ref.id;
+      vibrate(15);
+      // Дать onSnapshot догнать, потом перерисовать
+      setTimeout(() => {
+        if (currentConversationId === ref.id) openConversation(ref.id);
+      }, 350);
+    } else {
+      // Обновляем существующий
+      const docRef = doc(db, "couples", currentCoupleId, "conversations", currentConversationId);
+      const snap = await getDoc(docRef);
+      const current = snap.exists() ? (snap.data().texts || {}) : {};
+      current[currentUser.uid] = text;
+      await updateDoc(docRef, { texts: current });
+      const conv = conversations.find(c => c.id === currentConversationId);
+      if (conv) conv.texts = current;
+      openConversation(currentConversationId);
+      vibrate(15);
+    }
   } catch (e) {
     console.error(e);
     alert("Ошибка сохранения: " + e.message);
@@ -3226,21 +3345,72 @@ function markTodaySeen() {
    IN-APP БАННЕР + СИСТЕМНЫЕ УВЕДОМЛЕНИЯ
    ========================================================== */
 
-let _bannerEl = null;
-let _bannerTimer = null;
+/* ==========================================================
+   IN-APP БАННЕР — СТЕК
+   ========================================================== */
 
+const BANNER_MAX_VISIBLE = 3;
+const BANNER_LIFETIME_MS = 5000;
+
+let _bannerStackEl = null;
+const _activeBanners = []; // [{ el, timer, closing }]
+
+function ensureBannerStack() {
+  if (_bannerStackEl && document.body.contains(_bannerStackEl)) return _bannerStackEl;
+  _bannerStackEl = document.createElement("div");
+  _bannerStackEl.className = "app-banner-stack";
+  document.body.appendChild(_bannerStackEl);
+  return _bannerStackEl;
+}
+
+function closeBannerEntry(entry) {
+  if (!entry || entry.closing) return;
+  entry.closing = true;
+  clearTimeout(entry.timer);
+
+  const el = entry.el;
+  const h = el.offsetHeight;
+
+  // 1. Замораживаем текущую высоту — без transition, чтобы замер был честным
+  el.style.transition = "none";
+  el.style.maxHeight = h + "px";
+  void el.offsetHeight; // форсируем reflow
+
+  // 2. Возвращаем transition (из CSS) и запускаем схлопывание
+  el.style.transition = "";
+  requestAnimationFrame(() => {
+    el.classList.remove("is-visible");
+    el.classList.add("is-collapsing");
+  });
+
+  // 3. Убираем из активного списка (визуально он ещё исчезает ~450 мс)
+  const idx = _activeBanners.indexOf(entry);
+  if (idx >= 0) _activeBanners.splice(idx, 1);
+
+  // 4. Реально удаляем из DOM после завершения анимации
+  setTimeout(() => {
+    el.remove();
+    if (_activeBanners.length === 0 && _bannerStackEl) {
+      const stack = _bannerStackEl;
+      _bannerStackEl = null;
+      stack.remove();
+    }
+  }, 460);
+}
+
+// Совместимость со старым API: закрыть самый свежий баннер
 function closeBanner() {
-  if (!_bannerEl) return;
-  clearTimeout(_bannerTimer);
-  _bannerEl.classList.remove("is-visible");
-  _bannerEl.classList.add("is-dismissed");
-  const el = _bannerEl;
-  _bannerEl = null;
-  setTimeout(() => el.remove(), 500);
+  const last = _activeBanners[_activeBanners.length - 1];
+  if (last) closeBannerEntry(last);
 }
 
 function showBanner(title, text, view, opts = {}) {
-  if (_bannerEl) _bannerEl.remove();
+  const stack = ensureBannerStack();
+
+  // Переполнение — прибить самый старый
+  while (_activeBanners.length >= BANNER_MAX_VISIBLE) {
+    closeBannerEntry(_activeBanners[0]);
+  }
 
   const avatar = opts.avatar || {};
   const letter = avatar.letter || "❤";
@@ -3263,8 +3433,11 @@ function showBanner(title, text, view, opts = {}) {
       <div class="app-banner__progress-fill"></div>
     </div>
   `;
-  document.body.appendChild(el);
-  _bannerEl = el;
+
+  const entry = { el, timer: null, closing: false };
+
+  stack.appendChild(el);
+  _activeBanners.push(entry);
 
   requestAnimationFrame(() => el.classList.add("is-visible"));
 
@@ -3273,14 +3446,15 @@ function showBanner(title, text, view, opts = {}) {
     if (view && typeof switchNav === "function") {
       switchNav(view);
     }
-    closeBanner();
+    closeBannerEntry(entry);
   });
 
   el.querySelector(".app-banner__close").addEventListener("click", (e) => {
     e.stopPropagation();
-    closeBanner();
+    closeBannerEntry(entry);
   });
 
+  // Свайп вверх — закрыть этот баннер
   let startY = null, dy = 0;
   el.addEventListener("pointerdown", (e) => {
     if (e.target.closest(".app-banner__close")) return;
@@ -3292,7 +3466,7 @@ function showBanner(title, text, view, opts = {}) {
     if (startY === null) return;
     dy = e.clientY - startY;
     if (dy < 0) {
-      el.style.transform = `translate(-50%, ${dy}px)`;
+      el.style.transform = `translateY(${dy}px)`;
       el.style.opacity = String(Math.max(0, 1 + dy / 150));
     }
   });
@@ -3301,12 +3475,14 @@ function showBanner(title, text, view, opts = {}) {
     el.style.transition = "";
     el.style.transform = "";
     el.style.opacity = "";
-    if (dy < -60) closeBanner();
+    if (dy < -60) closeBannerEntry(entry);
     startY = null;
     dy = 0;
   });
 
-  _bannerTimer = setTimeout(closeBanner, 5000);
+  entry.timer = setTimeout(() => closeBannerEntry(entry), BANNER_LIFETIME_MS);
+
+  return entry;
 }
 
 function notifyUser(title, text, view, opts = {}) {
@@ -3399,7 +3575,7 @@ async function sendThinkSignal(thought) {
   try {
     await addDoc(collection(db, "couples", currentCoupleId, "signals"), {
       type: "think",
-      thought: thought || "думаю",
+      thought: thought || "думаю о тебе",
       fromUserId: currentUser.uid,
       toUserId: partnerUid,
       ts: Date.now(),
@@ -3495,15 +3671,16 @@ function initThinkSignals() {
 
       if (thinkSignals.length > 0) {
         const th = thinkSignals[0].thought || "думаю о тебе";
-        const text = thinkSignals.length === 1
-          ? th
-          : `${th} ×${thinkSignals.length}`;
-        notifyUser(
-          `${partnerName} думает о тебе ❤️`,
-          text,
-          "today",
-          { avatar }
-        );
+        const titles = {
+          "скучаю":       `${partnerName} скучает 🥺`,
+          "обнимаю":      `${partnerName} обнимает 🤗`,
+          "целую":        `${partnerName} целует 😘`,
+          "думаю о тебе": `${partnerName} думает о тебе ❤️`,
+          "хочу тебя":    `${partnerName} хочет тебя 🔥`,
+        };
+        const title = titles[th] || `${partnerName} думает о тебе ❤️`;
+        const body = thinkSignals.length > 1 ? `×${thinkSignals.length}` : "";
+        notifyUser(title, body, "today", { avatar });
       }
     }
   );
@@ -3855,7 +4032,6 @@ function openFeelingPicker() {
     <textarea id="dialogue-reason-input" rows="2" placeholder="Коротко, чтобы ${escapeHtml(partnerName)} понял..."></textarea>
 
     <button class="dialogue-btn" id="dialogue-submit-btn" disabled data-dlg-action="submit-feeling">Предложить примирение</button>
-    <button class="dialogue-link" data-dlg-action="close">Отмена</button>
   `;
 
   const ta = $("dialogue-reason-input");
@@ -5200,11 +5376,37 @@ function getLessonSnippet() {
   return lessons.find(l => l.week === 8) || lessons[0];
 }
 
+function lessonReadKey() {
+  const d = new Date();
+  return `lesson-read-${currentCoupleId}-${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function isLessonReadToday() {
+  if (!currentCoupleId) return false;
+  return localStorage.getItem(lessonReadKey()) === "1";
+}
+
+function markLessonRead() {
+  if (!currentCoupleId) return;
+  localStorage.setItem(lessonReadKey(), "1");
+}
+
 function renderLessonHint() {
   const lesson = getLessonSnippet();
   if (!lesson) return "";
+
+  const read = isLessonReadToday();
+  const showRead = read && !_lessonExpanded;
+
+  const toggleLabel = _lessonExpanded ? 'Свернуть' : (read ? '✓ Прочитано' : 'Развернуть');
+  const classes = [
+    'lesson-hint',
+    _lessonExpanded ? 'is-expanded' : '',
+    showRead ? 'is-read' : ''
+  ].filter(Boolean).join(' ');
+
   return `
-    <div class="lesson-hint${_lessonExpanded ? ' is-expanded' : ''}" id="lessonHint">
+    <div class="${classes}" id="lessonHint">
       <div class="lesson-hint__head">
         <div class="lesson-hint__icon">📖</div>
         <div>
@@ -5219,7 +5421,7 @@ function renderLessonHint() {
         ${lesson.try ? `<div class="lesson-hint__try"><b>Попробуй сегодня:</b> ${escapeHtml(lesson.try)}</div>` : ""}
       </div>
       <span class="lesson-hint__toggle">
-        <span>${_lessonExpanded ? 'Свернуть' : 'Развернуть'}</span>
+        <span>${toggleLabel}</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </span>
     </div>
@@ -5232,9 +5434,42 @@ function bindLessonHint(conv) {
   hint.onclick = (e) => {
     if (e.target.closest("button")) return;
     _lessonExpanded = !_lessonExpanded;
+    if (_lessonExpanded) markLessonRead();
     renderDialogueContent(conv);
   };
 }
+
+/* ==========================================================
+   ЕДИНЫЙ ОБРАБОТЧИК КРЕСТИКА ЗАКРЫТИЯ МОДАЛОК
+   ========================================================== */
+
+const MODAL_CLOSE_FNS = {
+  closeProfileModal,
+  closeSchemeModal,
+  closeTopicModal,
+  closeConversationModal,
+  closeAgreementModal,
+  closePulseModal,
+  closePauseModal,
+  closeQuietModal,
+  closeRetro,
+  closeDayView,
+  closeNoteSheet,
+  closeMoonModal,
+};
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-modal-close]");
+  if (!btn) return;
+  const fnName = btn.dataset.modalClose;
+  const fn = MODAL_CLOSE_FNS[fnName];
+  if (typeof fn === "function") {
+    fn();
+  } else {
+    const modal = btn.closest(".modal");
+    if (modal) modal.classList.add("hidden");
+  }
+});
 
 /* Страховка: блокировка прокрутки body при открытой модалке */
 const modalObserver = new MutationObserver(() => {

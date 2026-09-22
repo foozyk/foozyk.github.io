@@ -77,6 +77,22 @@ body.scheme-ocean {
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 
+/* Полосы прокрутки скрыты везде — контент всё равно скроллится */
+html,
+body,
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
 body {
   font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
   background:
@@ -210,6 +226,72 @@ input:focus, textarea:focus {
 }
 textarea { resize: vertical; min-height: 80px; line-height: 1.55; }
 input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.7; }
+
+/* ==========================================================
+   ПОЛЕ ВРЕМЕНИ — кастомное поле + невидимый нативный input
+   Одинаково выглядит на iOS и Android
+   ========================================================== */
+.time-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--input-border);
+  border-radius: 18px;
+  background: var(--input-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.time-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm), 0 0 0 3px rgba(178, 90, 90, 0.15);
+}
+.time-field__value {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  color: var(--text);
+}
+.time-field__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.time-field__icon svg {
+  width: 20px;
+  height: 20px;
+}
+/* Невидимый нативный input растянут по всему полю — тап открывает пикер */
+.time-field input[type="time"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 16px;
+}
+.time-field input[type="time"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
 
 label.field-label {
   display: block;
@@ -379,6 +461,7 @@ body.dark .error { color: #ff8080; }
 .polaroid {
   background: #faf5ea;
   padding: 7px 7px 32px;
+  border-radius: 6px;
   box-shadow: 0 10px 28px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
   position: relative;
   cursor: pointer;
@@ -390,20 +473,22 @@ body.dark .error { color: #ff8080; }
   user-select: none;
 }
 .polaroid:nth-child(1) {
-  --rot: -6deg;
-  --lift: 6px;
-  transform: rotate(var(--rot)) translateY(var(--lift));
+  --rot: -8deg;
+  --lift: 8px;
+  --tx: 8px;
+  transform: rotate(var(--rot)) translateX(var(--tx)) translateY(var(--lift));
   transform-origin: 60% 90%;
 }
 .polaroid:nth-child(2) {
-  --rot: 4deg;
-  --lift: -4px;
-  transform: rotate(var(--rot)) translateY(var(--lift));
+  --rot: 5deg;
+  --lift: -6px;
+  --tx: -8px;
+  transform: rotate(var(--rot)) translateX(var(--tx)) translateY(var(--lift));
   transform-origin: 40% 90%;
   z-index: 1;
 }
 .polaroid.tapped {
-  transform: rotate(var(--rot)) translateY(calc(var(--lift) - 10px)) scale(1.08);
+  transform: rotate(var(--rot)) translateX(var(--tx)) translateY(calc(var(--lift) - 10px)) scale(1.08);
   box-shadow:
     0 22px 50px rgba(0,0,0,0.55),
     0 6px 14px rgba(0,0,0,0.3);
@@ -419,7 +504,7 @@ body.dark .error { color: #ff8080; }
 }
 @media (hover: hover) and (pointer: fine) {
   .polaroid:hover {
-    transform: rotate(var(--rot)) translateY(calc(var(--lift) - 8px)) scale(1.06);
+    transform: rotate(var(--rot)) translateX(var(--tx)) translateY(calc(var(--lift) - 8px)) scale(1.06);
     box-shadow:
       0 20px 45px rgba(0,0,0,0.5),
       0 4px 12px rgba(0,0,0,0.28);
@@ -456,15 +541,7 @@ body.dark .error { color: #ff8080; }
   letter-spacing: 0.5px;
 }
 .tape {
-  position: absolute;
-  top: -9px;
-  left: 50%;
-  transform: translateX(-50%) rotate(-2deg);
-  width: 54px;
-  height: 18px;
-  background: rgba(230, 190, 120, 0.85);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  z-index: 2;
+  display: none;
 }
 
 .header-title {
@@ -2345,13 +2422,28 @@ body.dark .partner-answer__name {
 /* ==========================================================
    IN-APP БАННЕР
    ========================================================== */
-.app-banner {
+/* --- Контейнер-стек для баннеров --- */
+.app-banner-stack {
   position: fixed;
   top: calc(12px + env(safe-area-inset-top, 0px));
   left: 50%;
-  transform: translate(-50%, -140%);
+  transform: translateX(-50%);
   width: calc(100% - 24px);
   max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9000;
+  pointer-events: none;
+}
+
+/* --- Сам баннер (внутри стека) --- */
+.app-banner {
+  position: relative;
+  width: 100%;
+  margin-bottom: 8px;
+  max-height: 300px;
+  overflow: hidden;
   background: rgba(48, 30, 38, 0.96);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -2364,14 +2456,22 @@ body.dark .partner-answer__name {
   display: flex;
   align-items: center;
   gap: 12px;
-  z-index: 9000;
   transition:
-    transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1),
-    opacity 0.3s;
+    transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+    opacity 0.3s ease,
+    max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(-20px);
   opacity: 0;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
+  will-change: transform, opacity, max-height;
+}
+.app-banner:last-child {
+  margin-bottom: 0;
 }
 body:not(.dark) .app-banner {
   background: rgba(255, 255, 255, 0.97);
@@ -2381,12 +2481,22 @@ body:not(.dark) .app-banner {
     0 0 0 1px rgba(255, 255, 255, 0.5) inset;
 }
 .app-banner.is-visible {
-  transform: translate(-50%, 0);
+  transform: translateY(0);
   opacity: 1;
 }
 .app-banner.is-dismissed {
-  transform: translate(-50%, -140%);
+  transform: translateY(-20px);
   opacity: 0;
+}
+.app-banner.is-collapsing {
+  max-height: 0 !important;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  opacity: 0;
+  transform: translateY(-20px);
+  border-top-width: 0;
+  border-bottom-width: 0;
 }
 
 .app-banner__avatar {
@@ -2566,66 +2676,81 @@ body:not(.dark) .app-banner__progress {
 }
 
 /* ==========================================================
-   БЫСТРЫЕ СИГНАЛЫ — эмодзи вокруг полароида партнёра
+   БЫСТРЫЕ СИГНАЛЫ — вертикальная пилюля справа от полароида
    ========================================================== */
+
 .polaroid .quick-ring {
   position: absolute;
   top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  pointer-events: none;
+  left: calc(100% + 2px);
+  transform-origin: left center;
+  transform: translateY(-50%) translateX(-4px) scale(0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px;
+  background: #ffffff;
+  border: 1.5px solid rgba(178, 90, 90, 0.12);
+  border-radius: 100px;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.28),
+    0 2px 5px rgba(0, 0, 0, 0.14);
   z-index: 30;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.polaroid .quick-ring.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) translateX(0) scale(1);
 }
 
 .polaroid .quick-ring .q-btn {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 38px;
-  height: 38px;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  border: none;
   border-radius: 50%;
-  background: #fff;
-  border: 2px solid rgba(178, 90, 90, 0.15);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-  padding: 0;
-  font-family: inherit;
+  font-size: 16px;
   line-height: 1;
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.4);
-  transition: opacity 0.2s, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
-  pointer-events: none;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: none;
+  transform: none;
+  transition:
+    background 0.15s ease,
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.polaroid .quick-ring.open .q-btn {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-  pointer-events: auto;
-}
-
-.polaroid .quick-ring .q-btn:nth-child(1) { margin-left: -58px; margin-top: -42px; }
-.polaroid .quick-ring .q-btn:nth-child(2) { margin-left:  58px; margin-top: -42px; }
-.polaroid .quick-ring .q-btn:nth-child(3) { margin-left: -78px; margin-top:  16px; }
-.polaroid .quick-ring .q-btn:nth-child(4) { margin-left:  78px; margin-top:  16px; }
-.polaroid .quick-ring .q-btn:nth-child(5) { margin-left:   0px; margin-top:  62px; }
 
 .polaroid .quick-ring .q-btn:hover {
-  transform: translate(-50%, -50%) scale(1.15);
-  box-shadow: 0 6px 20px rgba(178, 90, 90, 0.35);
-  border-color: var(--accent);
+  background: rgba(178, 90, 90, 0.12);
+  transform: scale(1.12);
+  opacity: 1;
+}
+
+.polaroid .quick-ring .q-btn:active {
+  transform: scale(0.92);
 }
 
 @media (max-width: 380px) {
-  .polaroid .quick-ring .q-btn { width: 34px; height: 34px; font-size: 16px; }
-  .polaroid .quick-ring .q-btn:nth-child(1) { margin-left: -52px; margin-top: -38px; }
-  .polaroid .quick-ring .q-btn:nth-child(2) { margin-left:  52px; margin-top: -38px; }
-  .polaroid .quick-ring .q-btn:nth-child(3) { margin-left: -70px; margin-top:  14px; }
-  .polaroid .quick-ring .q-btn:nth-child(4) { margin-left:  70px; margin-top:  14px; }
-  .polaroid .quick-ring .q-btn:nth-child(5) { margin-left:   0px; margin-top:  56px; }
+  .polaroid .quick-ring {
+    padding: 3px;
+  }
+  .polaroid .quick-ring .q-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 15px;
+  }
 }
 
 /* ==========================================================
@@ -3179,9 +3304,10 @@ body.dark .dialogue-start-btn__sub { color: #8ab4d4; }
 
 .dialogue__head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 18px;
+  padding-right: 40px;
+  min-height: 32px;
 }
 .dialogue__label {
   font-size: 10px;
@@ -3193,27 +3319,44 @@ body.dark .dialogue-start-btn__sub { color: #8ab4d4; }
 body.dark .dialogue__label { color: #8ab4d4; }
 
 .dialogue__close {
-  width: 30px;
-  height: 30px;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  max-width: 32px;
   border-radius: 50%;
-  background: rgba(74, 122, 156, 0.12);
+  background: rgba(178, 90, 90, 0.12);
   border: none;
-  color: #4a7a9c;
-  font-size: 14px;
+  color: var(--accent);
+  font-size: 15px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
+  margin: 0;
   line-height: 1;
-  flex: 0 0 30px;
   box-shadow: none;
+  z-index: 3;
+  transition: background 0.15s;
 }
 body.dark .dialogue__close {
-  background: rgba(138, 180, 212, 0.15);
-  color: #8ab4d4;
+  background: rgba(232, 160, 168, 0.15);
+  color: var(--accent-alt);
 }
-.dialogue__close:hover { background: rgba(74, 122, 156, 0.22); transform: none; opacity: 1; }
+.dialogue__close:hover {
+  background: rgba(178, 90, 90, 0.22);
+  transform: none;
+  opacity: 1;
+}
+body.dark .dialogue__close:hover {
+  background: rgba(232, 160, 168, 0.25);
+}
+.dialogue__close:active {
+  transform: scale(0.94);
+}
 
 .dialogue__subtitle {
   font-family: 'Bodoni Moda', serif;
@@ -3774,8 +3917,8 @@ body.dark .conv-card--reconcile .conv-card__feeling { color: #8ab4d4; }
    ========================================================== */
 .pulse-dot {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -12px;
+  right: -4px;
   width: 36px;
   height: 36px;
   background: #fff;
@@ -3790,7 +3933,13 @@ body.dark .conv-card--reconcile .conv-card__feeling { color: #8ab4d4; }
   border: 2px solid #faf5ea;
   z-index: 10;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition:
+    transform 0.2s,
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s,
+    opacity 0.2s;
   padding: 0;
   color: #3a2a2a;
 }
@@ -4423,7 +4572,8 @@ body.dark .add-note-btn {
    ========================================================== */
 
 /* --- Индикатор паузы в шапке --- */
-.header-top { justify-content: space-between; }
+.header-top { justify-content: flex-end; }
+.app-header__pause { margin-right: auto; }
 .app-header__pause {
   display: inline-flex;
   align-items: center;
@@ -4692,30 +4842,34 @@ body.dark .paused-state__countdown {
    ТИХИЙ ДЕНЬ — синхронизация с партнёром
    ========================================================== */
 
-/* --- Знак-луна на полароиде партнёра --- */
+/* --- Тихий день теперь внутри пульс-кружка --- */
 .polaroid .quiet-mark {
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #8a7d9a, #5a4a6a);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  line-height: 1;
-  z-index: 11;
-  box-shadow: 0 4px 12px rgba(90,70,110,.4);
-  border: 2px solid #faf5ea;
-  pointer-events: none;
-  animation: quietMarkFadeIn .4s ease-out;
+  display: none;
 }
-.polaroid .quiet-mark.hidden { display: none; }
-@keyframes quietMarkFadeIn {
-  from { transform: scale(0.5); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
+
+/* Партнёр в тихом дне — фиолетовый кружок с луной */
+.pulse-dot--quiet {
+  background: linear-gradient(135deg, #8a7d9a, #5a4a6a);
+  color: #ffffff;
+  border-color: #c8bcd8;
+  box-shadow:
+    0 4px 12px rgba(90, 70, 110, 0.45),
+    0 0 0 3px rgba(138, 125, 154, 0.2);
+  font-size: 17px;
+}
+body.dark .pulse-dot--quiet {
+  background: linear-gradient(135deg, #7a6a8a, #4a3a5a);
+  border-color: #6a5a7a;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    0 0 0 3px rgba(138, 125, 154, 0.3);
+}
+
+/* Свой кружок скрыт, пока у тебя тихий день */
+.pulse-dot--hidden {
+  opacity: 0;
+  transform: scale(0.3);
+  pointer-events: none;
 }
 
 /* --- Блок «Ответ партнёра» в тихом дне --- */
@@ -4757,4 +4911,102 @@ body.dark .partner-section.is-partner-quiet .partner-answer {
 }
 body.dark .partner-section.is-partner-quiet .partner-answer .partner-answer__name {
   color: #c0b0d8;
+}
+
+/* ==========================================================
+   УРОК В МОМЕНТЕ — метка «прочитано»
+   ========================================================== */
+
+.lesson-hint.is-read .lesson-hint__toggle {
+  color: #4a8b4a;
+}
+.lesson-hint.is-read .lesson-hint__toggle svg {
+  display: none;
+}
+body.dark .lesson-hint.is-read .lesson-hint__toggle {
+  color: #a8d8a8;
+}
+
+/* ==========================================================
+   ЕДИНЫЙ КРЕСТИК ЗАКРЫТИЯ МОДАЛОК
+   ========================================================== */
+
+.modal-content > .modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  max-width: 32px;
+  border-radius: 50%;
+  background: rgba(178, 90, 90, 0.12);
+  border: none;
+  color: var(--accent);
+  font-size: 15px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  box-shadow: none;
+  z-index: 3;
+  transition: background 0.15s;
+}
+.modal-content > .modal-close:hover {
+  background: rgba(178, 90, 90, 0.22);
+  transform: none;
+  opacity: 1;
+}
+.modal-content > .modal-close:active {
+  transform: scale(0.94);
+}
+body.dark .modal-content > .modal-close {
+  background: rgba(232, 160, 168, 0.15);
+  color: var(--accent-alt);
+}
+body.dark .modal-content > .modal-close:hover {
+  background: rgba(232, 160, 168, 0.25);
+}
+
+/* ==========================================================
+   ЕДИНАЯ ЖЁЛТАЯ ПОЛОСА СВЕРХУ МОДАЛОК
+   ========================================================== */
+
+.modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-alt), var(--accent-gold));
+  border-radius: 26px 26px 0 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Для примирения — своя полоса в синей палитре */
+#dialogue-modal .modal-content::before {
+  background: linear-gradient(90deg, #4a7a9c 0%, #6aacc0 50%, #2d5f7a 100%);
+}
+
+/* ==========================================================
+   СКРЫТИЕ ДУБЛИРУЮЩИХ «ОТМЕНА» / «ЗАКРЫТЬ»
+   (крестик в углу делает то же самое)
+   ========================================================== */
+
+#profile-modal .link,
+#scheme-modal .link,
+#topic-modal .link,
+#conversation-modal .link,
+#agreement-modal .link,
+#pulse-modal .link,
+#pause-modal .link,
+#quiet-modal .link,
+#retro-modal .link,
+#day-view-modal .link,
+#note-sheet .link,
+#moon-modal .link {
+  display: none !important;
 }

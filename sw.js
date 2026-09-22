@@ -2,7 +2,7 @@
    НАШ ГОД — Service Worker
    ========================================================== */
 
-const CACHE_NAME = "nash-god-v15";
+const CACHE_NAME = "nash-god-v20";
 
 const ASSETS = [
   "./",
