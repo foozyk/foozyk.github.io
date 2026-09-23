@@ -8620,3 +8620,53 @@ body.dark .settings-menu {
 body.dark .settings-divider {
   background: color-mix(in srgb, var(--accent) 22%, transparent) !important;
 }
+/* ==========================================================
+   Строка луна+погода — фикс выхода за границы на iPhone
+   ========================================================== */
+
+#about-view .sky-block {
+  overflow: hidden;
+}
+
+#about-view .sky-row {
+  gap: 8px;
+  min-width: 0;
+}
+
+#about-view .sky-item {
+  min-width: 0;
+  flex-shrink: 1;
+  padding: 4px;
+  gap: 5px;
+}
+
+#about-view .sky-text {
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* На узких экранах — уменьшить шрифт и убрать лишние отступы */
+@media (max-width: 400px) {
+  #about-view .sky-text {
+    font-size: 11.5px;
+  }
+  #about-view .sky-item {
+    gap: 4px;
+    padding: 3px;
+  }
+  #about-view .sky-divider {
+    margin: 0 1px;
+  }
+  #about-view .sky-ico {
+    font-size: 14px;
+  }
+}
+
+/* Луна — убрать drop-shadow, который визуально «вылезает» */
+body.dark #about-view .sky-ico {
+  filter: none;
+}
