@@ -8670,3 +8670,16 @@ body.dark .settings-divider {
 body.dark #about-view .sky-ico {
   filter: none;
 }
+/* ==========================================================
+   Слово дня — SVG-иконка вместо эмодзи
+   ========================================================== */
+.word-card__icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
