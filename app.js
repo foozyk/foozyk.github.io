@@ -209,8 +209,12 @@ function initSchemeControls() {
 
 /* ---------- ЭКРАНЫ ---------- */
 const screens = {
-  loading: $("loading"), auth: $("auth-screen"), setup: $("setup-screen"),
-  waiting: $("waiting-screen"), main: $("main-screen")
+  loading: $("loading"),
+  onboarding: $("onboarding-screen"),
+  auth: $("auth-screen"),
+  setup: $("setup-screen"),
+  waiting: $("waiting-screen"),
+  main: $("main-screen")
 };
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.remove("active"));
@@ -298,12 +302,86 @@ function translateError(code) {
 ["logout-btn", "logout-btn-setup", "logout-btn-waiting"].forEach(id => {
   $(id).onclick = () => signOut(auth);
 });
+/* ---------- ОНБОРДИНГ ---------- */
+let onboardingSlide = 0;
+const ONBOARDING_TOTAL = 3;
+
+function initOnboarding() {
+  if (localStorage.getItem("onboarding-seen") === "1") return false;
+
+  const slides = document.querySelectorAll(".onboarding-slide");
+  const dots = document.querySelectorAll(".onboarding-dot");
+  const nextBtn = $("onboarding-next");
+  const skipBtn = $("onboarding-skip");
+  const container = document.querySelector(".onboarding-slides");
+
+  if (!slides.length || !nextBtn) return false;
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle("active", i === onboardingSlide));
+    dots.forEach((d, i) => d.classList.toggle("active", i === onboardingSlide));
+    nextBtn.textContent = onboardingSlide === ONBOARDING_TOTAL - 1 ? "Начать" : "Далее";
+  }
+
+  function finish() {
+    localStorage.setItem("onboarding-seen", "1");
+    onboardingSlide = 0;
+    showScreen("auth");
+  }
+
+  nextBtn.onclick = () => {
+    vibrate(10);
+    if (onboardingSlide < ONBOARDING_TOTAL - 1) {
+      onboardingSlide++;
+      render();
+    } else {
+      finish();
+    }
+  };
+
+  skipBtn.onclick = () => {
+    vibrate(10);
+    finish();
+  };
+
+  // Свайп влево-вправо
+  let startX = null;
+  let startY = null;
+  if (container) {
+    container.addEventListener("pointerdown", (e) => {
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+    container.addEventListener("pointerup", (e) => {
+      if (startX === null) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      startX = null;
+      startY = null;
+      if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+      if (dx < 0 && onboardingSlide < ONBOARDING_TOTAL - 1) {
+        onboardingSlide++;
+        render();
+        vibrate(5);
+      } else if (dx > 0 && onboardingSlide > 0) {
+        onboardingSlide--;
+        render();
+        vibrate(5);
+      }
+    });
+  }
+
+  render();
+  showScreen("onboarding");
+  return true;
+}
 
 /* ---------- STATE ---------- */
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   if (!user) {
     if (dayWatcherInterval) { clearInterval(dayWatcherInterval); dayWatcherInterval = null; }
+    if (initOnboarding()) return;
     showScreen("auth");
     return;
   }
