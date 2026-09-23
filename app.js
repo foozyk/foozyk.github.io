@@ -21,6 +21,14 @@ const WEATHER_API_KEY = "6cb4ed33606386df572e12ae5e9c7e5c";
 
 const $ = (id) => document.getElementById(id);
 
+/* Склонение по полу. gender: "male" | "female" | "" */
+function gendered(profile, maleForm, femaleForm) {
+  const g = profile?.gender;
+  if (g === "male") return maleForm;
+  if (g === "female") return femaleForm;
+  return `${maleForm}(а)`;
+}
+
 let currentUser = null;
 let currentCoupleId = null;
 let currentCouple = null;
@@ -71,6 +79,7 @@ let dayWatcherInterval = null;
 
 /* ---------- ФИЧИ ВОЛНЫ 1 ---------- */
 let quietDayActive = false;
+let _selectedPulseEmoji = null;
 let pauseTimerInterval = null;
 let _pauseTargetConvId = null;
 let _pauseSelectedMinutes = 30;
@@ -155,57 +164,6 @@ const ICONS = {
   book: `<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
   calendar: `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`
 };
-
-/* ---------- ТЕМА ---------- */
-function initTheme() {
-  const saved = localStorage.getItem("theme");
-  const label = $("theme-label");
-  if (saved === "dark") {
-    document.body.classList.add("dark");
-    if (label) label.textContent = "Светлая тема";
-  } else {
-    if (label) label.textContent = "Тёмная тема";
-  }
-  $("theme-btn").onclick = () => { vibrate(10); toggleTheme(); };
-}
-function toggleTheme() {
-  const isDark = document.body.classList.toggle("dark");
-  const label = $("theme-label");
-  if (label) label.textContent = isDark ? "Светлая тема" : "Тёмная тема";
-  localStorage.setItem("theme", isDark ? "dark" : "light");
-}
-
-/* ---------- ЦВЕТОВЫЕ СХЕМЫ ---------- */
-function applySavedScheme() {
-  const saved = localStorage.getItem("scheme") || "classic";
-  applyScheme(saved, false);
-}
-function applyScheme(name, save) {
-  document.body.classList.remove("scheme-autumn", "scheme-spring", "scheme-ocean");
-  if (name !== "classic") document.body.classList.add("scheme-" + name);
-  if (save !== false) localStorage.setItem("scheme", name);
-  document.querySelectorAll(".scheme-option").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.scheme === name);
-  });
-}
-function closeSchemeModal() {
-  const m = $("scheme-modal");
-  if (m) m.classList.add("hidden");
-}
-
-function initSchemeControls() {
-  $("scheme-btn").onclick = () => { vibrate(10); $("scheme-modal").classList.remove("hidden"); };
-  $("scheme-backdrop").onclick = closeSchemeModal;
-  const closeBtn = $("close-scheme");
-  if (closeBtn) closeBtn.onclick = closeSchemeModal;
-  document.querySelectorAll(".scheme-option").forEach(btn => {
-    btn.onclick = () => {
-      vibrate(15);
-      applyScheme(btn.dataset.scheme);
-      setTimeout(closeSchemeModal, 200);
-    };
-  });
-}
 
 /* ---------- ЭКРАНЫ ---------- */
 const screens = {
@@ -529,14 +487,6 @@ function initAboutSubTabs() {
   if (l) l.onclick = () => { vibrate(10); setAboutGamesSubTab("lovelang"); };
   if (t) t.onclick = () => { vibrate(10); setAboutGamesSubTab("truth"); };
 }
-function initMiniLessonsPreview() {
-  const block = $("mini-lessons-preview");
-  if (!block) return;
-  block.onclick = () => {
-    vibrate(10);
-    setAboutSubTab("lessons");
-  };
-}
 function setAboutSubTab(tab) {
   currentAboutSubTab = tab;
   const g = $("sub-games");
@@ -630,7 +580,6 @@ function startMainApp() {
   initPDFExport();
   initRetro();
   initDayView();
-  initSchemeControls();
   initBottomNav();
   initQuickReactions();
   initThinkSignals();
@@ -735,7 +684,6 @@ function listenForAnswers() {
 
       todayAnswers = all.filter(a => a.day === day);
       updateTodayView();
-      updateStreak(all);
       updateBadges();
 
       const partnerAnswerNow = todayAnswers.find(a => a.userId !== currentUser.uid);
@@ -766,8 +714,8 @@ function notifyPartnerAnswered(partnerAnswer) {
   const photoURL = partnerProfile?.photoURL?.trim() || "";
 
   notifyUser(
-    `${partnerName} ответила на вопрос дня`,
-    "Откройте «Сегодня», чтобы прочитать.",
+    `${partnerName} ${gendered(partnerProfile, "ответил", "ответила")} на вопрос дня`,
+    "Открой «Сегодня», чтобы прочитать.",
     "today",
     { avatar: { letter, photoURL } }
   );
@@ -779,19 +727,6 @@ function notifyPartnerAnswered(partnerAnswer) {
   }
 }
 
-function updateStreak(allAnswers) {
-  const byDay = {};
-  allAnswers.forEach(a => {
-    if (!byDay[a.day]) byDay[a.day] = new Set();
-    byDay[a.day].add(a.userId);
-  });
-  let totalBoth = 0;
-  for (const d in byDay) {
-    if (byDay[d].size >= 2) totalBoth++;
-  }
-  const el = $("streak-count");
-  if (el) el.textContent = totalBoth;
-}
 function checkConfetti() {
   const myAnswer = todayAnswers.find(a => a.userId === currentUser.uid);
   const partnerAnswer = todayAnswers.find(a => a.userId !== currentUser.uid);
@@ -845,19 +780,19 @@ function updateTodayView() {
       partnerEl.innerHTML = `
         <span class="partner-answer__icon">⏳</span>
         <span class="partner-answer__text">
-          Ваш ответ сохранён.<br>
-          Как только ${safeName} ответит — увидите ответ здесь.
+          Твой ответ сохранён.<br>
+          Как только ${safeName} ответит — увидишь ответ здесь.
         </span>
       `;
-      statusEl.textContent = "Ваш ответ сохранён. Ждём партнёра...";
+      statusEl.textContent = "Твой ответ сохранён. Ждём партнёра...";
       statusEl.style.color = "#999";
     } else if (!myAnswer && partnerAnswer) {
       if (section) section.classList.add("is-locked");
       partnerEl.innerHTML = `
         <span class="partner-answer__icon">🔒</span>
         <span class="partner-answer__text">
-          ${safeName} уже ответила.<br>
-          Напишите своё — и её ответ откроется.
+          ${safeName} уже ${gendered(partnerProfile, "ответил", "ответила")}.<br>
+          Напиши своё — и ответ откроется.
         </span>
       `;
       statusEl.textContent = "";
@@ -875,7 +810,7 @@ function updateTodayView() {
       statusEl.style.color = "";
     } else {
       if (section) section.classList.add("is-waiting");
-      partnerEl.innerHTML = `Пока пусто. Начните первым — или подождите партнёра ❤️`;
+      partnerEl.innerHTML = `Пока пусто. Начни первым — или подожди партнёра ❤️`;
       statusEl.textContent = "";
       statusEl.style.color = "";
     }
@@ -1367,7 +1302,7 @@ async function openRetro() {
     }
 
     if (!html.includes("retro-section")) {
-      html = `<div class="retro-empty">Пока не хватает данных для итогов. Возвращайтесь, когда накопится история 💛</div>`;
+      html = `<div class="retro-empty">Пока не хватает данных для итогов. Возвращайся, когда накопится история 💛</div>`;
     }
 
     content.innerHTML = html;
@@ -1413,12 +1348,12 @@ async function renderHistory() {
       <div class="history-day">День ${day}${q ? " • " + escapeHtml(q.theme) : ""}</div>
       <div class="history-question">${escapeHtml(q?.text || "—")}</div>
       <div class="history-answer ${mine ? "" : "empty"}">
-        <strong>Вы:</strong> ${mine ? escapeHtml(mine.text) : "—"}
+        <strong>Ты:</strong> ${mine ? escapeHtml(mine.text) : "—"}
       </div>
       <div class="history-answer ${partner && showPartner ? "" : "empty"}">
         <strong>Партнёр:</strong> ${
           partner && showPartner ? escapeHtml(partner.text) :
-          showPartner ? "Пока не ответил(а)" : "Скрыто (вы ещё не ответили)"
+          showPartner ? "Пока не ответил(а)" : "Скрыто (ты ещё не ответил(а))"
         }
       </div>
     `;
@@ -1427,9 +1362,6 @@ async function renderHistory() {
   }
 }
 
-/* ---------- ЗАПУСК ТЕМЫ И СХЕМЫ ---------- */
-initTheme();
-applySavedScheme();
 
 /* ---------- ПРОФИЛИ ---------- */
 async function initProfile() {
@@ -1450,6 +1382,15 @@ async function initProfile() {
   if (closeBtn) closeBtn.onclick = closeProfileModal;
   const saveBtn = $("save-profile");
   if (saveBtn) saveBtn.onclick = saveProfileModal;
+
+  document.querySelectorAll("#gender-tabs .tab").forEach(t => {
+    t.onclick = () => {
+      vibrate(8);
+      document.querySelectorAll("#gender-tabs .tab").forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+    };
+  });
+
   initNotifTime();
   initMoonToggle();
   onSnapshot(doc(db, "users", partnerUid), (snap) => {
@@ -1495,7 +1436,7 @@ function renderOnePolaroid(polaroidId, nameId, profile, fallbackName) {
     polaroidEl.textContent = getInitials(name);
     const hue = hashString(name) % 360;
     polaroidEl.style.background = `linear-gradient(135deg, hsl(${hue}, 45%, 60%) 0%, hsl(${hue}, 50%, 42%) 100%)`;
-    polaroidEl.style.fontFamily = "'Bodoni Moda', serif";
+    polaroidEl.style.fontFamily = "'DM Serif Display', serif";
     polaroidEl.style.fontSize = "48px";
     polaroidEl.style.color = "#fff";
     polaroidEl.style.fontStyle = "italic";
@@ -1518,6 +1459,10 @@ function openProfileModal() {
   vibrate(10);
   $("profile-name").value = myProfile?.displayName || "";
   $("profile-photo").value = myProfile?.photoURL || "";
+  const myGender = myProfile?.gender || "";
+  document.querySelectorAll("#gender-tabs .tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.gender === myGender);
+  });
   updateLoveLangUI();
   $("profile-modal").classList.remove("hidden");
 }
@@ -1525,12 +1470,15 @@ function closeProfileModal() { $("profile-modal").classList.add("hidden"); }
 async function saveProfileModal() {
   const name = $("profile-name").value.trim();
   const photoURL = $("profile-photo").value.trim();
+  const activeGenderTab = document.querySelector("#gender-tabs .tab.active");
+  const gender = activeGenderTab ? activeGenderTab.dataset.gender : "";
   try {
     await setDoc(doc(db, "users", currentUser.uid), {
       displayName: name,
-      photoURL: photoURL
+      photoURL: photoURL,
+      gender: gender
     }, { merge: true });
-    myProfile = { displayName: name, photoURL };
+    myProfile = { displayName: name, photoURL, gender };
     renderAvatars();
     closeProfileModal();
     vibrate(15);
@@ -1590,20 +1538,20 @@ async function toggleNotifications() {
     return;
   }
   if (typeof Notification === "undefined") {
-    alert("Ваш браузер не поддерживает уведомления.");
+    alert("Твой браузер не поддерживает уведомления.");
     return;
   }
   let permission = Notification.permission;
   if (permission === "default") permission = await Notification.requestPermission();
   if (permission !== "granted") {
-    alert("Разрешение не получено. Включите уведомления для этого сайта в настройках браузера.");
+    alert("Разрешение не получено. Включи уведомления для этого сайта в настройках браузера.");
     return;
   }
   localStorage.setItem("notif-enabled", "1");
   updateNotifButton();
   try {
     new Notification("Уведомления включены 💛", {
-      body: "Мы напомним вам вечером, если вы ещё не ответили на вопрос дня.",
+      body: "Мы напомним вечером, если ты ещё не ответил(а) на вопрос дня.",
       icon: "./icon-192.png"
     });
   } catch (e) { console.log("Notif error:", e); }
@@ -1625,7 +1573,7 @@ function checkReminder() {
   if (myAnswer) return;
   try {
     new Notification("Наш год 💛", {
-      body: "Вы ещё не ответили на сегодняшний вопрос. Загляните!",
+      body: "Ты ещё не ответил(а) на сегодняшний вопрос. Загляни!",
       icon: "./icon-192.png",
       tag: "daily-reminder"
     });
@@ -1671,8 +1619,19 @@ function initMood() {
   if (cancelBtn) cancelBtn.onclick = closePulseModal;
 
   document.querySelectorAll("#pulse-emojis .pulse-emoji").forEach(btn => {
-    btn.onclick = () => selectPulse(btn.dataset.emoji);
+    btn.onclick = () => {
+      _selectedPulseEmoji = btn.dataset.emoji;
+      document.querySelectorAll("#pulse-emojis .pulse-emoji").forEach(b => {
+        b.classList.toggle("selected", b.dataset.emoji === _selectedPulseEmoji);
+      });
+      const saveBtn = $("pulse-save-btn");
+      if (saveBtn) saveBtn.disabled = false;
+      vibrate(8);
+    };
   });
+
+  const saveBtn = $("pulse-save-btn");
+  if (saveBtn) saveBtn.onclick = savePulse;
 
   listenForMood();
 }
@@ -1754,32 +1713,80 @@ function renderTodayMood() {
   const badge = $("pulse-badge-partner");
   if (badge) badge.classList.toggle("hidden", !partnerSad);
 
-  document.querySelectorAll("#pulse-emojis .pulse-emoji").forEach(btn => {
-    btn.classList.toggle("selected", btn.dataset.emoji === myMood);
-  });
+  const pulseModal = $("pulse-modal");
+  const pulseModalOpen = pulseModal && !pulseModal.classList.contains("hidden");
+  if (!pulseModalOpen) {
+    document.querySelectorAll("#pulse-emojis .pulse-emoji").forEach(btn => {
+      btn.classList.toggle("selected", btn.dataset.emoji === myMood);
+    });
+  }
+
+  // Строка настроения партнёра над его ответом
+  const moodLine = $("partner-mood-line");
+  if (moodLine) {
+    const notes = todayMoods.notes || {};
+    const partnerNote = (notes[partnerUid] || "").trim();
+    if (partnerMood && partnerNote && !partnerQuiet) {
+      const partnerDisplayName = partnerProfile?.displayName?.trim() || "Партнёр";
+      moodLine.innerHTML = `
+        <span class="partner-mood-line__emoji">${partnerMood}</span>
+        <span class="partner-mood-line__name">${escapeHtml(partnerDisplayName)}:</span>
+        <span class="partner-mood-line__text">${escapeHtml(partnerNote)}</span>
+      `;
+      moodLine.classList.remove("hidden");
+    } else {
+      moodLine.classList.add("hidden");
+      moodLine.innerHTML = "";
+    }
+  }
 
   // Перерисовываем блок «Ответ партнёра» — тихий день мог измениться
   updateTodayView();
 }
-async function selectPulse(emoji) {
+async function savePulse() {
+  if (!_selectedPulseEmoji) {
+    vibrate(8);
+    return;
+  }
   const day = getCurrentDay();
+  const whyInput = $("pulse-why");
+  const noteText = whyInput ? whyInput.value.trim() : "";
+
   const docRef = doc(db, "couples", currentCoupleId, "moods", String(day));
   try {
     const snap = await getDoc(docRef);
     const data = snap.exists() ? snap.data() : {};
     const moods = { ...(data.moods || {}) };
     const notes = { ...(data.notes || {}) };
-    moods[currentUser.uid] = emoji;
+    moods[currentUser.uid] = _selectedPulseEmoji;
+    if (noteText) notes[currentUser.uid] = noteText;
+    else delete notes[currentUser.uid];
     await setDoc(docRef, { day, moods, notes }, { merge: true });
-    vibrate(10);
+    vibrate(12);
   } catch (e) {
     console.error(e);
     alert("Не удалось сохранить пульс: " + e.message);
+    return;
   }
   closePulseModal();
 }
 
 function openPulseModal() {
+  const notes = todayMoods.notes || {};
+  const myNote = notes[currentUser.uid] || "";
+  const moods = todayMoods.moods || {};
+  _selectedPulseEmoji = moods[currentUser.uid] || null;
+
+  const whyInput = $("pulse-why");
+  if (whyInput) whyInput.value = myNote;
+
+  document.querySelectorAll("#pulse-emojis .pulse-emoji").forEach(b => {
+    b.classList.toggle("selected", b.dataset.emoji === _selectedPulseEmoji);
+  });
+
+  const saveBtn = $("pulse-save-btn");
+  if (saveBtn) saveBtn.disabled = !_selectedPulseEmoji;
+
   $("pulse-modal").classList.remove("hidden");
   vibrate(10);
 }
@@ -1933,7 +1940,7 @@ async function initWeather() {
       const wt = $("weather-temp");
       if (wt) wt.textContent = "—";
       const wd = $("weather-desc");
-      if (wd) wd.textContent = "Разрешите геолокацию";
+      if (wd) wd.textContent = "Разреши геолокацию";
     },
     { timeout: 8000, maximumAge: 30 * 60 * 1000 }
   );
@@ -2080,13 +2087,13 @@ function updateLoveLangUI() {
   const bothDone = myLoveLang && partnerLoveLang;
   if (myLoveLang) {
     $("lovelang-status").innerHTML =
-      `<p>✓ Вы прошли тест. Ваш язык: <strong>${escapeHtml(myLoveLang.primary)}</strong></p>` +
+      `<p>✓ Ты прошёл(ла) тест. Твой язык: <strong>${escapeHtml(myLoveLang.primary)}</strong></p>` +
       (partnerLoveLang
         ? `<p>✓ ${escapeHtml(partnerName)} тоже прошёл: <strong>${escapeHtml(partnerLoveLang.primary)}</strong></p>`
         : `<p>⏳ ${escapeHtml(partnerName)} ещё не прошёл тест.</p>`);
   } else {
     $("lovelang-status").innerHTML = partnerLoveLang
-      ? `<p>${escapeHtml(partnerName)} уже прошёл тест. Ваша очередь!</p>`
+      ? `<p>${escapeHtml(partnerName)} уже прошёл тест. Твоя очередь!</p>`
       : `<p>Никто ещё не проходил.</p>`;
   }
 
@@ -2241,8 +2248,8 @@ function detectQuizEvents(prevData) {
 
   if (!prevPartner.answers && currPartner.answers) {
     notifyUser(
-      `${partnerName} создала квиз о себе`,
-      "Угадайте её ответы на 10 вопросов.",
+      `${partnerName} ${gendered(partnerProfile, "создал", "создала")} квиз о себе`,
+      "Угадайте ответы на 10 вопросов.",
       "about",
       { avatar }
     );
@@ -2260,13 +2267,13 @@ function renderQuizMain() {
   const partnerData = quizData[partnerUid] || null;
   const myStatus = $("my-quiz-status");
   if (myData?.answers) {
-    myStatus.innerHTML = `<div class="status-line">✓ Ваш квиз готов.</div>
+    myStatus.innerHTML = `<div class="status-line">✓ Твой квиз готов.</div>
       <button id="quiz-view-my">Посмотреть мои ответы</button>
       <button id="quiz-retake" class="link">Пройти заново</button>`;
     $("quiz-view-my").onclick = () => showMyQuizResult();
     $("quiz-retake").onclick = () => startQuiz("me");
   } else {
-    myStatus.innerHTML = `<div class="status-line">Ответьте на 10 вопросов о себе — партнёр попробует угадать.</div>
+    myStatus.innerHTML = `<div class="status-line">Ответь на 10 вопросов о себе — партнёр попробует угадать.</div>
       <button id="quiz-start-me">Создать квиз обо мне</button>`;
     $("quiz-start-me").onclick = () => startQuiz("me");
   }
@@ -2275,13 +2282,13 @@ function renderQuizMain() {
     partnerStatus.innerHTML = `<div class="status-line">Партнёр ещё не создал квиз о себе. Ждём.</div>`;
   } else if (myData?.guesses && myData.guessesFor === partnerUid) {
     const correct = countCorrect(myData.guesses, partnerData.answers);
-    partnerStatus.innerHTML = `<div class="status-line">✓ Вы угадали <strong>${correct} из 10</strong> ответов партнёра.</div>
+    partnerStatus.innerHTML = `<div class="status-line">✓ Ты угадал(а) <strong>${correct} из 10</strong> ответов партнёра.</div>
       <button id="quiz-view-my-result">Посмотреть разбор</button>
       <button id="quiz-retry" class="link">Пройти заново</button>`;
     $("quiz-view-my-result").onclick = () => showGuessResult();
     $("quiz-retry").onclick = () => startQuiz("partner");
   } else {
-    partnerStatus.innerHTML = `<div class="status-line">Партнёр создал квиз о себе. Попробуйте угадать его ответы!</div>
+    partnerStatus.innerHTML = `<div class="status-line">Партнёр создал квиз о себе. Попробуй угадать его ответы!</div>
       <button id="quiz-start-partner">Пройти квиз партнёра</button>`;
     $("quiz-start-partner").onclick = () => startQuiz("partner");
   }
@@ -2360,7 +2367,7 @@ function showMyQuizResult() {
   $("quiz-main").classList.add("hidden");
   $("quiz-play").classList.add("hidden");
   $("quiz-result").classList.remove("hidden");
-  $("quiz-result-title").textContent = "Ваши ответы";
+  $("quiz-result-title").textContent = "Твои ответы";
   $("quiz-score").textContent = "10 ответов";
   const breakdown = $("quiz-breakdown");
   breakdown.innerHTML = "";
@@ -2628,7 +2635,7 @@ function listenForConversations() {
 
       renderConversations();
       updateBadges();
-      renderHeaderPause();
+      renderPauseNavIndicator();
       if (conversations.some(isConvPaused)) startPauseTimer();
 
       if (currentConversationId) {
@@ -2768,8 +2775,8 @@ function renderConversations() {
   if (active.length === 0 && past.length === 0) {
     activeBox.innerHTML = emptyStateHtml({
       icon: ICONS.chat,
-      title: "Начните первый разговор",
-      text: "Выберите тему и напишите, что для вас важно. Партнёр ответит своим — и вы лучше узнаете друг друга."
+      title: "Начни первый разговор",
+      text: "Выбери тему и напиши, что для тебя важно. Партнёр ответит своим — и вы лучше узнаете друг друга."
     });
     pastBlock.classList.add("hidden");
     return;
@@ -2871,7 +2878,7 @@ function closeTopicModal() { $("topic-modal").classList.add("hidden"); }
 async function confirmTopic() {
   const custom = $("topic-custom").value.trim();
   const topic = custom || selectedTopic;
-  if (!topic) { alert("Выберите тему или введите свою"); return; }
+  if (!topic) { alert("Выбери тему или введи свою"); return; }
   $("topic-confirm").disabled = true;
   try {
     if ($("topic-save-custom").checked && custom) {
@@ -3004,7 +3011,7 @@ function openConversation(convId) {
     partnerBox.style.color = "var(--muted)";
     agreementBtn.classList.add("hidden");
   } else if (!myText && partnerText) {
-    partnerBox.textContent = "Сначала напишите своё — потом увидите, что написал партнёр.";
+    partnerBox.textContent = "Сначала напиши своё — потом увидишь, что написал партнёр.";
     partnerBox.style.fontStyle = "italic";
     partnerBox.style.color = "var(--muted)";
     agreementBtn.classList.add("hidden");
@@ -3025,7 +3032,7 @@ function closeConversationModal() {
 }
 async function saveMyConversationText() {
   const text = $("conversation-my-text").value.trim();
-  if (!text) { alert("Напишите что-нибудь"); return; }
+  if (!text) { alert("Напиши что-нибудь"); return; }
   const btn = $("conversation-save-my");
   btn.disabled = true;
   try {
@@ -3157,7 +3164,7 @@ function renderAgreements() {
     activeBox.innerHTML = emptyStateHtml({
       icon: ICONS.agreement,
       title: "Пока ни одной договорённости",
-      text: "Когда договоритесь о чём-то важном — сохраните здесь. Всегда можно перечитать."
+      text: "Когда договоритесь о чём-то важном — сохрани здесь. Всегда можно перечитать."
     });
     doneBlock.classList.add("hidden");
     return;
@@ -3206,7 +3213,7 @@ function buildAgreementItem(agr, isDone) {
 async function saveAgreement() {
   const title = $("agreement-title-input").value.trim();
   const text = $("agreement-text-input").value.trim();
-  if (!title) { alert("Введите название договорённости"); return; }
+  if (!title) { alert("Введи название договорённости"); return; }
   const fromConversation = $("agreement-modal").dataset.fromConversation || "";
   const fromDialogue = $("agreement-modal").dataset.fromDialogue || "";
   const btn = $("save-agreement");
@@ -4034,7 +4041,7 @@ function openDialogueBlockModal(conv) {
   if (conv.phase === "invite") {
     meta = iAmInitiator
       ? `от ${dateStr} · ждём <strong>${escapeHtml(partnerName)}</strong>`
-      : `от ${dateStr} · <strong>${escapeHtml(partnerName)}</strong> ждёт вашего ответа`;
+      : `от ${dateStr} · <strong>${escapeHtml(partnerName)}</strong> ждёт твоего ответа`;
   } else if (conv.phase === "talking") {
     meta = `от ${dateStr} · оба пишете`;
   } else if (conv.phase === "signing") {
@@ -4342,7 +4349,7 @@ function renderDialogueTalking(conv) {
 
   const partnerBoxHtml = partnerText
     ? `<div class="dialogue__partner-box dialogue__partner-box--open">${escapeHtml(partnerText)}</div>`
-    : `<div class="dialogue__partner-box">${escapeHtml(partnerName)} ещё не написал.<br>Мы скажем, когда он ответит.</div>`;
+    : `<div class="dialogue__partner-box">${escapeHtml(partnerName)} ещё не ${gendered(partnerProfile, "написал", "написала")}.<br>Мы скажем, когда ответит.</div>`;
 
   const saveBtnHtml = !bothWrote
     ? `<button class="dialogue-btn" data-dlg-action="save-text" data-dlg-id="${conv.id}">Сохранить</button>`
@@ -4363,7 +4370,7 @@ function renderDialogueTalking(conv) {
 
     <div class="dialogue__subtitle">Что важно для меня</div>
 
-    <textarea id="dialogue-my-text" rows="${bothWrote ? 4 : 5}" placeholder="Напишите своё — ${escapeHtml(partnerName.toLowerCase())} увидит, когда напишет он.">${escapeHtml(myText)}</textarea>
+    <textarea id="dialogue-my-text" rows="${bothWrote ? 4 : 5}" placeholder="Напиши своё — ${escapeHtml(partnerName.toLowerCase())} увидит, когда напишет он.">${escapeHtml(myText)}</textarea>
 
     ${saveBtnHtml}
 
@@ -4385,7 +4392,7 @@ function renderDialogueTalking(conv) {
 async function saveDialogueAgreement(convId) {
   const title = ($("dlg-agr-title")?.value || "").trim();
   const text = ($("dlg-agr-text")?.value || "").trim();
-  if (!title) { alert("Введите название договора"); return; }
+  if (!title) { alert("Введи название договора"); return; }
 
   const btn = document.querySelector('[data-dlg-action="save-agreement"]');
   if (btn) btn.disabled = true;
@@ -5237,7 +5244,7 @@ function tickPauseTimer() {
     }
   });
 
-  renderHeaderPause();
+  renderPauseNavIndicator();
 
   if (active.length === 0) {
     clearInterval(pauseTimerInterval);
@@ -5260,23 +5267,11 @@ function tickPauseTimer() {
   }
 }
 
-function renderHeaderPause() {
-  const el = $("headerPause");
-  if (!el) return;
+function renderPauseNavIndicator() {
+  const btn = document.querySelector('.nav-btn[data-view="conversation"]');
+  if (!btn) return;
   const active = conversations.filter(isConvPaused);
-  if (active.length === 0) {
-    el.classList.add("hidden");
-    return;
-  }
-  el.classList.remove("hidden");
-  const counter = $("pauseCounter");
-  if (!counter) return;
-  if (active.length === 1) {
-    const kind = active[0].mode === "reconcile" ? "примирение" : "разговор";
-    counter.textContent = `пауза · ${kind}`;
-  } else {
-    counter.textContent = `${active.length} паузы`;
-  }
+  btn.classList.toggle("has-pause", active.length > 0);
 }
 
 function openPauseModal(convId) {
@@ -5534,7 +5529,6 @@ function bindLessonHint(conv) {
 
 const MODAL_CLOSE_FNS = {
   closeProfileModal,
-  closeSchemeModal,
   closeTopicModal,
   closeConversationModal,
   closeAgreementModal,
@@ -5588,6 +5582,5 @@ document.querySelectorAll(".modal").forEach(m => {
     if (el) el.style.setProperty('display', 'none', 'important');
   }
   hide();
-  setTimeout(hide, 500);
-  setTimeout(hide, 2000);
+  setTimeout(hide, 800);
 })();

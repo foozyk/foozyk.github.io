@@ -92,11 +92,11 @@
   <div id="setup-screen" class="screen">
     <h1>Настройка пары</h1>
     <div class="card">
-      <p>Создайте пару — вы получите код для партнёра.</p>
+      <p>Создай пару — получишь код для партнёра.</p>
       <button id="create-couple">Создать пару</button>
     </div>
     <div class="card">
-      <p>Или введите код приглашения:</p>
+      <p>Или введи код приглашения:</p>
       <input type="text" id="invite-code" placeholder="ABC123" maxlength="6" style="text-transform:uppercase">
       <button id="join-couple">Присоединиться</button>
     </div>
@@ -106,7 +106,7 @@
 
   <div id="waiting-screen" class="screen">
     <h1>Пара создана!</h1>
-    <p>Отправьте этот код партнёру:</p>
+    <p>Отправь этот код партнёру:</p>
     <div id="invite-code-display" class="invite-code">------</div>
     <p class="hint">Страница обновится автоматически, когда партнёр присоединится.</p>
     <button id="logout-btn-waiting" class="link">Выйти</button>
@@ -122,15 +122,6 @@
         <span id="header-day-label">день из 365</span>
       </span>
       <button class="icon-btn" id="gearBtn" aria-label="Настройки">⚙</button>
-    </div>
-
-    <!-- Пауза в шапке -->
-    <div class="app-header__pause hidden" id="headerPause">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <rect x="6" y="4" width="4" height="16" rx="1"/>
-        <rect x="14" y="4" width="4" height="16" rx="1"/>
-      </svg>
-      <span id="pauseCounter">—</span>
     </div>
 
     <!-- ===== СЕГОДНЯ ===== -->
@@ -197,13 +188,14 @@
 
       <!-- Ответ -->
       <div id="answerArea">
-        <textarea id="my-answer" class="textarea reveal stagger" style="--i: 1;" placeholder="Напишите свой ответ..." rows="6"></textarea>
+        <textarea id="my-answer" class="textarea reveal stagger" style="--i: 1;" placeholder="Напиши свой ответ..." rows="6"></textarea>
         <button id="save-answer" class="cta reveal stagger" style="--i: 2;">Сохранить ответ</button>
         <p id="answer-status" class="hint"></p>
       </div>
 
       <!-- Ответ партнёра -->
       <div class="partner-section reveal stagger" style="--i: 0;">
+        <div class="partner-mood-line hidden" id="partner-mood-line"></div>
         <h3>Ответ партнёра</h3>
         <div id="partner-answer" class="partner-answer">Пока скрыт.</div>
       </div>
@@ -219,7 +211,7 @@
     <!-- ===== РАЗГОВОР ===== -->
     <section id="conversation-view" class="hidden">
       <h1 class="screen-title">Разговор</h1>
-      <p class="hint reveal stagger" style="--i: 1;">Поговорите о важном. Или начните примирение, если между вами что-то не так.</p>
+      <p class="hint reveal stagger" style="--i: 1;">Поговори о важном. Или начни примирение, если между вами что-то не так.</p>
 
       <button id="new-conversation-btn" class="dialogue-start-btn dialogue-start-btn--normal reveal stagger" style="--i: 2;" type="button">
         <span class="dialogue-start-btn__title">
@@ -341,7 +333,7 @@
           <p class="hint">Ответь на 10 вопросов о себе. Партнёр попробует угадать.</p>
           <div id="quiz-main">
             <div class="quiz-card">
-              <h3>Ваш квиз</h3>
+              <h3>Твой квиз</h3>
               <div id="my-quiz-status"></div>
             </div>
             <div class="quiz-card">
@@ -378,7 +370,7 @@
             <div id="lovelang-options"></div>
           </div>
           <div id="lovelang-result" class="hidden">
-            <h3>Ваш язык любви:</h3>
+            <h3>Твой язык любви:</h3>
             <div class="lovelang-primary" id="lovelang-primary">—</div>
             <p class="hint">Полная картина:</p>
             <div id="lovelang-scores"></div>
@@ -388,7 +380,7 @@
 
         <div id="about-truth" class="hidden">
           <div id="truth-intro">
-            <p class="hint">Правда или действие. Выбирайте уровень — и играйте. Правда — вопрос, действие — задание.</p>
+            <p class="hint">Правда или действие. Выбирай уровень — и играй. Правда — вопрос, действие — задание.</p>
             <button class="truth-level-btn level-1" data-level="easy">
               <span class="truth-level-name">Первые шаги</span>
               <span class="truth-level-desc">Уютный вечер, лёгкие вопросы</span>
@@ -505,8 +497,12 @@
       </button>
       <button class="nav-btn" data-view="conversation">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="icon-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+          <svg class="icon-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="4" width="4" height="16" rx="1"/>
+            <rect x="14" y="4" width="4" height="16" rx="1"/>
           </svg>
         </span>
         <span class="nav-label">Разговор</span>
@@ -548,30 +544,6 @@
       </span>
       <span id="notif-label">Уведомления</span>
     </button>
-    <button class="settings-item" id="scheme-btn">
-      <span class="settings-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="13.5" cy="6.5" r="1.5"/>
-          <circle cx="17.5" cy="10.5" r="1.5"/>
-          <circle cx="8.5" cy="7.5" r="1.5"/>
-          <circle cx="6.5" cy="12.5" r="1.5"/>
-          <path d="M12 22a10 10 0 1 1 10-10c0 2-2 3-4 3h-1a3 3 0 0 0-3 3 3 3 0 0 0 3 3h1c0 1-2 1-6 1z"/>
-        </svg>
-      </span>
-      <span>Цветовая схема</span>
-    </button>
-    <button class="settings-item" id="theme-btn">
-      <span class="settings-icon" id="theme-icon">
-        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="4"/>
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-        </svg>
-      </span>
-      <span id="theme-label">Тёмная тема</span>
-    </button>
     <div class="settings-divider"></div>
     <button class="settings-item danger" id="logout-btn">
       <span class="settings-icon">
@@ -590,16 +562,23 @@
     <div class="modal-backdrop" id="modal-backdrop"></div>
     <div class="modal-content">
       <button class="modal-close" data-modal-close="closeProfileModal" aria-label="Закрыть">✕</button>
-      <h3>Ваш профиль</h3>
+      <h3>Твой профиль</h3>
       <label class="field-label">Имя</label>
       <input type="text" id="profile-name" placeholder="Например, Руслан" maxlength="30">
       <label class="field-label">Ссылка на фото (необязательно)</label>
       <input type="url" id="profile-photo" placeholder="https://...">
       <p class="hint" style="text-align:left;">Можно вставить ссылку на любое фото из интернета или из облака.</p>
 
+      <label class="field-label" style="margin-top:16px;">Пол</label>
+      <div class="tabs" id="gender-tabs" style="margin-bottom:14px;">
+        <button type="button" class="tab" data-gender="female">Женский</button>
+        <button type="button" class="tab" data-gender="male">Мужской</button>
+        <button type="button" class="tab active" data-gender="">Не указывать</button>
+      </div>
+
       <div id="lovelang-info" class="hidden">
         <label class="field-label" style="margin-top:16px;">Язык любви</label>
-        <p class="lovelang-line"><strong id="my-lovelang-label">Ваш:</strong> <span id="my-lovelang">—</span></p>
+        <p class="lovelang-line"><strong id="my-lovelang-label">Твой:</strong> <span id="my-lovelang">—</span></p>
         <p class="lovelang-line"><strong id="partner-lovelang-label">Партнёра:</strong> <span id="partner-lovelang">—</span></p>
       </div>
 
@@ -614,7 +593,7 @@
         </span>
         <input type="time" id="notif-time" value="21:00">
       </div>
-      <p class="hint" style="text-align:left; margin-top:12px; margin-bottom:18px;">Мы напомним, если вы ещё не ответили.</p>
+      <p class="hint" style="text-align:left; margin-top:12px; margin-bottom:18px;">Мы напомним, если ты ещё не ответил(а).</p>
 
       <label class="field-label" style="margin-top:16px;">Лунный календарь</label>
       <label class="toggle-row">
@@ -624,33 +603,6 @@
 
       <button id="save-profile">Сохранить</button>
       <button id="close-profile" class="link">Отмена</button>
-    </div>
-  </div>
-
-  <div id="scheme-modal" class="modal hidden">
-    <div class="modal-backdrop" id="scheme-backdrop"></div>
-    <div class="modal-content">
-      <button class="modal-close" data-modal-close="closeSchemeModal" aria-label="Закрыть">✕</button>
-      <h3>Цветовая схема</h3>
-      <div class="scheme-grid">
-        <button class="scheme-option" data-scheme="classic">
-          <span class="scheme-dot" style="background: linear-gradient(135deg, #b25a5a, #8b3a3a)"></span>
-          <span class="scheme-name">Классика</span>
-        </button>
-        <button class="scheme-option" data-scheme="autumn">
-          <span class="scheme-dot" style="background: linear-gradient(135deg, #d97706, #b45309)"></span>
-          <span class="scheme-name">Осень</span>
-        </button>
-        <button class="scheme-option" data-scheme="spring">
-          <span class="scheme-dot" style="background: linear-gradient(135deg, #d4708c, #a64563)"></span>
-          <span class="scheme-name">Весна</span>
-        </button>
-        <button class="scheme-option" data-scheme="ocean">
-          <span class="scheme-dot" style="background: linear-gradient(135deg, #2a7d9c, #1a5570)"></span>
-          <span class="scheme-name">Океан</span>
-        </button>
-      </div>
-      <button id="close-scheme" class="link">Закрыть</button>
     </div>
   </div>
 
@@ -678,7 +630,7 @@
       <h3 id="conversation-title">—</h3>
       <p class="hint conv-date" id="conversation-date">—</p>
       <label class="field-label">Что важно для меня</label>
-      <textarea id="conversation-my-text" rows="5" maxlength="2000" placeholder="Напишите своё..."></textarea>
+      <textarea id="conversation-my-text" rows="5" maxlength="2000" placeholder="Напиши своё..."></textarea>
       <button id="conversation-save-my">Сохранить</button>
       <label class="field-label" style="margin-top:20px;">Что важно для партнёра</label>
       <div id="conversation-partner-text" class="conversation-partner-text">Пока скрыт.</div>
@@ -732,6 +684,11 @@
         <button type="button" class="pulse-emoji" data-emoji="😡">😡</button>
         <button type="button" class="pulse-emoji" data-emoji="😴">😴</button>
       </div>
+
+      <label class="pulse-why-label" for="pulse-why">Почему? <span class="pulse-why-optional">— необязательно</span></label>
+      <input type="text" id="pulse-why" class="pulse-why-input" maxlength="40" placeholder="Например: устал(а), болит голова" autocomplete="off">
+
+      <button type="button" class="cta" id="pulse-save-btn" disabled>Сохранить</button>
       <button type="button" class="link" id="pulse-cancel-btn">Отмена</button>
     </div>
   </div>
@@ -823,7 +780,7 @@
       <div class="day-view-question" id="day-view-question">—</div>
       <div class="day-view-answers">
         <div class="day-view-answer">
-          <div class="day-view-answer-label" id="day-view-label-me">Вы</div>
+          <div class="day-view-answer-label" id="day-view-label-me">Ты</div>
           <div class="day-view-answer-text" id="day-view-answer-me">—</div>
         </div>
         <div class="day-view-answer partner">
@@ -888,14 +845,5 @@
   </script>
 
   <script type="module" src="app.js"></script>
-    <script>
-    (function setTodayDate() {
-      var el = document.getElementById('today-date');
-      if (!el) return;
-      var d = new Date();
-      var months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-      el.textContent = d.getDate() + ' ' + months[d.getMonth()];
-    })();
-  </script>
 </body>
 </html>
