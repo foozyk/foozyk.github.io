@@ -159,23 +159,18 @@ const ICONS = {
 /* ---------- ТЕМА ---------- */
 function initTheme() {
   const saved = localStorage.getItem("theme");
-  const icon = $("theme-icon");
   const label = $("theme-label");
   if (saved === "dark") {
     document.body.classList.add("dark");
-    if (icon) icon.textContent = "☀️";
     if (label) label.textContent = "Светлая тема";
   } else {
-    if (icon) icon.textContent = "🌙";
     if (label) label.textContent = "Тёмная тема";
   }
   $("theme-btn").onclick = () => { vibrate(10); toggleTheme(); };
 }
 function toggleTheme() {
   const isDark = document.body.classList.toggle("dark");
-  const icon = $("theme-icon");
   const label = $("theme-label");
-  if (icon) icon.textContent = isDark ? "☀️" : "🌙";
   if (label) label.textContent = isDark ? "Светлая тема" : "Тёмная тема";
   localStorage.setItem("theme", isDark ? "dark" : "light");
 }
@@ -380,7 +375,7 @@ function generateCode() {
 const VIEW_ORDER = ["today", "conversation", "rhythm", "about"];
 
 function initBottomNav() {
-  document.querySelectorAll(".bottom-nav-item").forEach(btn => {
+  document.querySelectorAll(".bottom-nav-item, .nav-btn").forEach(btn => {
     btn.onclick = () => { vibrate(10); switchNav(btn.dataset.view); };
   });
 }
@@ -391,7 +386,11 @@ function switchNav(view) {
   const direction = newIndex > oldIndex ? "right" : "left";
 
   currentView = view;
-  document.querySelectorAll(".bottom-nav-item").forEach(btn => {
+    document.body.classList.remove("screen-talk", "screen-rhythm", "screen-us");
+  if (view === "conversation") document.body.classList.add("screen-talk");
+  else if (view === "rhythm") document.body.classList.add("screen-rhythm");
+  else if (view === "about") document.body.classList.add("screen-us");
+  document.querySelectorAll(".bottom-nav-item, .nav-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.view === view);
   });
 
@@ -417,6 +416,8 @@ function switchNav(view) {
   if (view === "conversation") renderConversations();
   if (view === "about") renderAboutSubTab();
   window.scrollTo({ top: 0, behavior: "smooth" });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 
   if (activeSection) resetReveal(activeSection);
 
@@ -450,7 +451,14 @@ function initAboutSubTabs() {
   if (l) l.onclick = () => { vibrate(10); setAboutGamesSubTab("lovelang"); };
   if (t) t.onclick = () => { vibrate(10); setAboutGamesSubTab("truth"); };
 }
-
+function initMiniLessonsPreview() {
+  const block = $("mini-lessons-preview");
+  if (!block) return;
+  block.onclick = () => {
+    vibrate(10);
+    setAboutSubTab("lessons");
+  };
+}
 function setAboutSubTab(tab) {
   currentAboutSubTab = tab;
   const g = $("sub-games");
@@ -4083,6 +4091,7 @@ function openDialogueModal(convId) {
   renderDialogueContent(conv);
 
   $("dialogue-modal").classList.remove("hidden");
+  document.body.classList.add("state-reconcile");
   vibrate(10);
 }
 
@@ -4135,6 +4144,7 @@ function renderDialogueContent(conv) {
 function closeDialogueModal() {
   const m = $("dialogue-modal");
   if (m) m.classList.add("hidden");
+  document.body.classList.remove("state-reconcile");
   _currentDialogueId = null;
 }
 
@@ -5321,6 +5331,7 @@ function applyQuietDayState() {
   const card = $("questionCard");
   const icon = $("quietIconBtn");
   const area = $("answerArea");
+  document.body.classList.toggle("state-quiet", quietDayActive);
   if (!card || !icon) return;
   card.classList.toggle("is-quiet", quietDayActive);
   icon.classList.toggle("is-active", quietDayActive);
@@ -5479,3 +5490,26 @@ const modalObserver = new MutationObserver(() => {
 document.querySelectorAll(".modal").forEach(m => {
   modalObserver.observe(m, { attributes: true, attributeFilter: ["class"] });
 });
+
+/* Дата в топ-баре */
+(function setTodayDate() {
+  const dateEl = document.getElementById('today-date');
+  if (!dateEl) return;
+  const d = new Date();
+  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  dateEl.textContent = d.getDate() + ' ' + months[d.getMonth()];
+})();
+/* ==========================================================
+   Скрываем дату в топ-баре — убрана (этап A→B).
+   Ставим display: none с !important ПОСЛЕ основного блока
+   установки даты, чтобы перебить её inline-стили.
+   ========================================================== */
+(function hideTopDate() {
+  function hide() {
+    var el = document.getElementById('today-date');
+    if (el) el.style.setProperty('display', 'none', 'important');
+  }
+  hide();
+  setTimeout(hide, 500);
+  setTimeout(hide, 2000);
+})();
