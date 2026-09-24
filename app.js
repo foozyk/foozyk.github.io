@@ -4561,6 +4561,7 @@ async function cancelReadyToSign(convId) {
     await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), {
       readyToSign: ready
     });
+    renderDialogueTalking({ ...conv, readyToSign: ready });
     vibrate(10);
   } catch (e) {
     console.error(e);
@@ -4586,8 +4587,7 @@ function renderDialogueWaitingAgreement(conv) {
         Как только ${escapeHtml(partnerName)} тоже нажмёт «К договору» — откроется форма.
       </div>
 
-      <button class="dialogue-btn" data-dlg-action="open-modal" data-dlg-id="${conv.id}">Назад к диалогу</button>
-      <button class="dialogue-link dialogue-link--muted" data-dlg-action="cancel-ready" data-dlg-id="${conv.id}">Я передумал</button>
+      <button class="dialogue-btn" data-dlg-action="cancel-ready" data-dlg-id="${conv.id}">Вернуться к диалогу</button>
     </div>
   `;
 }
