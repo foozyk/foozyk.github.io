@@ -3011,9 +3011,9 @@ function openConversation(convId) {
     partnerBox.style.color = "var(--muted)";
     agreementBtn.classList.add("hidden");
   } else if (!myText && partnerText) {
-    partnerBox.textContent = "Сначала напиши своё — потом увидишь, что написал партнёр.";
-    partnerBox.style.fontStyle = "italic";
-    partnerBox.style.color = "var(--muted)";
+    partnerBox.textContent = partnerText;
+    partnerBox.style.fontStyle = "normal";
+    partnerBox.style.color = "";
     agreementBtn.classList.add("hidden");
   } else {
     partnerBox.textContent = "Пока никто не написал.";
