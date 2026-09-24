@@ -4051,6 +4051,7 @@ function initDialogue() {
         case "accept":           acceptDialogue(id); break;
         case "save-text":        saveDialogueText(id); break;
         case "open-agreement":   openDialogueAgreement(id); break;
+        case "cancel-ready":     cancelReadyToSign(id); break;
         case "save-agreement":   saveDialogueAgreement(id); break;
         case "sign":             signDialogue(id); break;
         case "sign-for-partner": signForPartner(id); break;
@@ -4262,7 +4263,18 @@ function renderDialogueContent(conv) {
     if (conv.initiatedBy === currentUser.uid) renderDialogueWaiting(conv);
     else renderDialoguePartnerScreen(conv);
   } else if (conv.phase === "talking") {
-    renderDialogueTalking(conv);
+    const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+    const ready = conv.readyToSign || {};
+    const iReady = !!ready[currentUser.uid];
+    const partnerReady = !!ready[partnerUid];
+
+    if (iReady && partnerReady) {
+      renderDialogueAgreementForm(conv);
+    } else if (iReady && !partnerReady) {
+      renderDialogueWaitingAgreement(conv);
+    } else {
+      renderDialogueTalking(conv);
+    }
   } else if (conv.phase === "signing") {
     renderDialogueSigning(conv);
   }
@@ -4479,10 +4491,77 @@ async function saveDialogueText(convId) {
   }
 }
 
-function openDialogueAgreement(convId) {
+async function openDialogueAgreement(convId) {
   const conv = conversations.find(c => c.id === convId);
   if (!conv) return;
 
+  // Ставим флаг «я готов к договору»
+  const ready = { ...(conv.readyToSign || {}) };
+  ready[currentUser.uid] = Date.now();
+
+  try {
+    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), {
+      readyToSign: ready
+    });
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+    return;
+  }
+
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+  const bothReady = ready[currentUser.uid] && ready[partnerUid];
+
+  if (!bothReady) {
+    renderDialogueWaitingAgreement(conv);
+    vibrate(10);
+    return;
+  }
+
+  renderDialogueAgreementForm(conv);
+  vibrate(10);
+}
+async function cancelReadyToSign(convId) {
+  const conv = conversations.find(c => c.id === convId);
+  if (!conv) return;
+  const ready = { ...(conv.readyToSign || {}) };
+  delete ready[currentUser.uid];
+  try {
+    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), {
+      readyToSign: ready
+    });
+    vibrate(10);
+  } catch (e) {
+    console.error(e);
+  }
+}
+function renderDialogueWaitingAgreement(conv) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const partnerName = getPartnerNameForDialogue();
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div style="text-align:center;">
+      <div class="dialogue__context">
+        <span class="dialogue__context-icon">${getFeelingIcon(conv.feeling)}</span>
+        <span>${escapeHtml(f.label)}</span>
+      </div>
+    </div>
+
+    <div class="dialogue__waiting">
+      <div class="dialogue__waiting-title">Ждём ${escapeHtml(partnerName)}</div>
+      <div class="dialogue__waiting-text">
+        Ты готов перейти к договору.<br>
+        Как только ${escapeHtml(partnerName)} тоже нажмёт «К договору» — откроется форма.
+      </div>
+
+      <button class="dialogue-btn" data-dlg-action="open-modal" data-dlg-id="${conv.id}">Назад к диалогу</button>
+      <button class="dialogue-link dialogue-link--muted" data-dlg-action="cancel-ready" data-dlg-id="${conv.id}">Я передумал</button>
+    </div>
+  `;
+}
+
+function renderDialogueAgreementForm(conv) {
   const f = getDialogueFeelingInfo(conv.feeling);
 
   const content = $("dialogue-modal-content");
@@ -4502,11 +4581,9 @@ function openDialogueAgreement(convId) {
     <label class="field-label">Детали</label>
     <textarea id="dlg-agr-text" rows="4" placeholder="Что именно решили, как часто, с какого момента..." maxlength="1000"></textarea>
 
-    <button class="dialogue-btn" data-dlg-action="save-agreement" data-dlg-id="${convId}">Сохранить и подписать</button>
-    <button class="dialogue-link" data-dlg-action="open-modal" data-dlg-id="${convId}">Назад</button>
+    <button class="dialogue-btn" data-dlg-action="save-agreement" data-dlg-id="${conv.id}">Сохранить и подписать</button>
+    <button class="dialogue-link" data-dlg-action="open-modal" data-dlg-id="${conv.id}">Назад</button>
   `;
-
-  vibrate(10);
 }
 
 function renderDialogueSigning(conv) {
