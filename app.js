@@ -2714,6 +2714,23 @@ function detectConversationEvents(prevConversations) {
         "conversation",
         { avatar }
       );
+    } else if (prevText && currText && prevText !== currText) {
+      // Партнёр уточнил / ответил в уже начатом разговоре.
+      // Дебаунс: не чаще раза в 60 секунд на один разговор.
+      if (currentView === "conversation" && currentConversationId === conv.id) continue;
+
+      const debounceKey = `conv-edit-notif-${currentCoupleId}-${conv.id}`;
+      const lastNotif = parseInt(localStorage.getItem(debounceKey) || "0", 10);
+      if (Date.now() - lastNotif < 60 * 1000) continue;
+
+      localStorage.setItem(debounceKey, String(Date.now()));
+
+      notifyUser(
+        `${partnerName} дополнил(а) разговор`,
+        conv.topic ? `«${conv.topic}» — открой, чтобы прочитать` : "Открой раздел «Разговор»",
+        "conversation",
+        { avatar }
+      );
     }
   }
 
