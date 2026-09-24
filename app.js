@@ -4050,6 +4050,7 @@ function initDialogue() {
         case "cancel-dialogue":  cancelDialogue(id); break;
         case "accept":           acceptDialogue(id); break;
         case "save-text":        saveDialogueText(id); break;
+        case "save-and-ready":   saveAndReadyDialogue(id); break;
         case "open-agreement":   openDialogueAgreement(id); break;
         case "cancel-ready":     cancelReadyToSign(id); break;
         case "save-agreement":   saveDialogueAgreement(id); break;
@@ -4405,11 +4406,12 @@ function renderDialogueTalking(conv) {
     ? `<div class="dialogue__partner-box dialogue__partner-box--open">${escapeHtml(partnerText)}</div>`
     : `<div class="dialogue__partner-box">${escapeHtml(partnerName)} ещё не ${gendered(partnerProfile, "написал", "написала")}.<br>Мы скажем, когда ответит.</div>`;
 
-  const saveBtnHtml = `<button class="dialogue-btn" data-dlg-action="save-text" data-dlg-id="${conv.id}">${myText ? "Обновить" : "Сохранить"}</button>`;
-
-  const proceedBtnHtml = bothWrote
-    ? `<button class="dialogue-btn" style="margin-top:6px;" data-dlg-action="open-agreement" data-dlg-id="${conv.id}">К договору</button>`
+  const partnerReady = !!(conv.readyToSign || {})[partnerUid];
+  const partnerReadyHint = partnerReady
+    ? `<div class="dialogue__partner-hint" style="margin-top:10px;">${escapeHtml(partnerName)} уже готов перейти к договору</div>`
     : "";
+
+  const saveBtnHtml = `<button class="dialogue-btn" data-dlg-action="save-and-ready" data-dlg-id="${conv.id}">К договору</button>`;
 
   const content = $("dialogue-modal-content");
   content.innerHTML = `
@@ -4425,12 +4427,11 @@ function renderDialogueTalking(conv) {
     <textarea id="dialogue-my-text" rows="${bothWrote ? 4 : 5}" placeholder="Напиши своё — ${escapeHtml(partnerName.toLowerCase())} увидит, когда напишет он.">${escapeHtml(myText)}</textarea>
 
     ${saveBtnHtml}
+    ${partnerReadyHint}
 
     <div style="margin-top:14px;">
       ${partnerBoxHtml}
     </div>
-
-    ${proceedBtnHtml}
 
     ${renderLessonHint()}
 
@@ -4490,7 +4491,37 @@ async function saveDialogueText(convId) {
     alert("Ошибка: " + e.message);
   }
 }
+async function saveAndReadyDialogue(convId) {
+  const ta = $("dialogue-my-text");
+  const conv = conversations.find(c => c.id === convId);
+  if (!conv) return;
 
+  const text = ta ? ta.value.trim() : "";
+  const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+
+  const texts = { ...(conv.texts || {}) };
+  if (text) texts[currentUser.uid] = text;
+
+  const ready = { ...(conv.readyToSign || {}) };
+  ready[currentUser.uid] = Date.now();
+
+  try {
+    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), {
+      texts,
+      readyToSign: ready
+    });
+    vibrate(15);
+
+    if (ready[partnerUid]) {
+      renderDialogueAgreementForm({ ...conv, texts, readyToSign: ready });
+    } else {
+      renderDialogueWaitingAgreement({ ...conv, texts, readyToSign: ready });
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
 async function openDialogueAgreement(convId) {
   const conv = conversations.find(c => c.id === convId);
   if (!conv) return;
