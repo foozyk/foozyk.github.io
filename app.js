@@ -4393,9 +4393,7 @@ function renderDialogueTalking(conv) {
     ? `<div class="dialogue__partner-box dialogue__partner-box--open">${escapeHtml(partnerText)}</div>`
     : `<div class="dialogue__partner-box">${escapeHtml(partnerName)} ещё не ${gendered(partnerProfile, "написал", "написала")}.<br>Мы скажем, когда ответит.</div>`;
 
-  const saveBtnHtml = !bothWrote
-    ? `<button class="dialogue-btn" data-dlg-action="save-text" data-dlg-id="${conv.id}">Сохранить</button>`
-    : "";
+  const saveBtnHtml = `<button class="dialogue-btn" data-dlg-action="save-text" data-dlg-id="${conv.id}">${myText ? "Обновить" : "Сохранить"}</button>`;
 
   const proceedBtnHtml = bothWrote
     ? `<button class="dialogue-btn" style="margin-top:6px;" data-dlg-action="open-agreement" data-dlg-id="${conv.id}">К договору</button>`
