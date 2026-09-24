@@ -6,7 +6,7 @@ import {
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
   collection, addDoc, query, where, getDocs, onSnapshot,
-  serverTimestamp, arrayUnion, Timestamp
+  serverTimestamp, arrayUnion, Timestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 import { questions } from "./questions.js";
@@ -2662,6 +2662,20 @@ function listenForConversations() {
       } else {
         conversationsInitialized = true;
       }
+
+      // Self-heal: примирение с обеими подписями, но phase всё ещё "signing"
+      const partnerUidForHeal = currentCouple.members.find(uid => uid !== currentUser.uid);
+      conversations.forEach(conv => {
+        if (conv.mode !== "reconcile") return;
+        if (conv.phase !== "signing") return;
+        const sigs = conv.signatures || {};
+        if (sigs[currentUser.uid] && sigs[partnerUidForHeal]) {
+          updateDoc(doc(db, "couples", currentCoupleId, "conversations", conv.id), {
+            phase: "done",
+            doneAt: serverTimestamp()
+          }).catch(err => console.error("Sign heal error:", err));
+        }
+      });
     }
   );
 }
@@ -2841,6 +2855,7 @@ function buildConvCard(conv, partnerUid) {
   } else if (!myText && !partnerText) statusHtml = `<span class="status-dot waiting"></span> Никто ещё не написал`;
   else if (myText && !partnerText) statusHtml = `<span class="status-dot mine-done"></span> Вы написали, ждём партнёра`;
   else if (!myText && partnerText) statusHtml = `<span class="status-dot waiting"></span> Партнёр написал, ваша очередь`;
+  else if (conv.hasAgreement) statusHtml = `<span class="status-dot both-done"></span> ✓ Договорённость создана`;
   else statusHtml = `<span class="status-dot both-done"></span> Оба написали — можно договориться`;
 
   card.innerHTML = `
@@ -3021,7 +3036,11 @@ function openConversation(convId) {
     partnerBox.textContent = partnerText;
     partnerBox.style.fontStyle = "normal";
     partnerBox.style.color = "";
-    agreementBtn.classList.remove("hidden");
+    if (conv.hasAgreement) {
+      agreementBtn.classList.add("hidden");
+    } else {
+      agreementBtn.classList.remove("hidden");
+    }
   } else if (myText && !partnerText) {
     partnerBox.textContent = "Партнёр ещё не написал. Мы скажем, когда он(а) ответит.";
     partnerBox.style.fontStyle = "italic";
@@ -3241,7 +3260,13 @@ async function saveAgreement() {
     if (fromDialogue) payload.fromDialogue = true;
     const ref = await addDoc(collection(db, "couples", currentCoupleId, "agreements"), payload);
     closeAgreementModal();
-    if (fromConversation && !fromDialogue) closeConversationModal();
+    if (fromConversation && !fromDialogue) {
+      await updateDoc(doc(db, "couples", currentCoupleId, "conversations", fromConversation), {
+        hasAgreement: true,
+        agreementId: ref.id
+      });
+      closeConversationModal();
+    }
     if (fromDialogue) {
       await updateDoc(doc(db, "couples", currentCoupleId, "conversations", fromDialogue), {
         phase: "signing",
@@ -4542,25 +4567,28 @@ function renderDialogueSigning(conv) {
 
 async function signDialogue(convId) {
   try {
-    const conv = conversations.find(c => c.id === convId);
-    if (!conv) return;
-    const signatures = { ...(conv.signatures || {}) };
-    signatures[currentUser.uid] = Date.now();
-
-    const update = { signatures };
+    const ref = doc(db, "couples", currentCoupleId, "conversations", convId);
     const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
+    let isDone = false;
 
-    if (signatures[partnerUid]) {
-      update.phase = "done";
-      update.doneAt = serverTimestamp();
-    }
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error("Разговор не найден");
+      const data = snap.data();
+      const signatures = { ...(data.signatures || {}) };
+      signatures[currentUser.uid] = Date.now();
 
-    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), update);
+      const update = { signatures };
+      if (signatures[partnerUid]) {
+        update.phase = "done";
+        update.doneAt = serverTimestamp();
+        isDone = true;
+      }
+      tx.update(ref, update);
+    });
+
     vibrate(15);
-
-    if (update.phase === "done") {
-      setTimeout(() => burstDialogueHearts(), 200);
-    }
+    if (isDone) setTimeout(() => burstDialogueHearts(), 200);
   } catch (e) {
     console.error(e);
     alert("Ошибка: " + e.message);
@@ -4569,24 +4597,28 @@ async function signDialogue(convId) {
 
 async function signForPartner(convId) {
   try {
-    const conv = conversations.find(c => c.id === convId);
-    if (!conv) return;
+    const ref = doc(db, "couples", currentCoupleId, "conversations", convId);
     const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
-    const signatures = { ...(conv.signatures || {}) };
-    signatures[partnerUid] = Date.now();
+    let isDone = false;
 
-    const update = { signatures };
-    if (signatures[currentUser.uid]) {
-      update.phase = "done";
-      update.doneAt = serverTimestamp();
-    }
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error("Разговор не найден");
+      const data = snap.data();
+      const signatures = { ...(data.signatures || {}) };
+      signatures[partnerUid] = Date.now();
 
-    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), update);
+      const update = { signatures };
+      if (signatures[currentUser.uid]) {
+        update.phase = "done";
+        update.doneAt = serverTimestamp();
+        isDone = true;
+      }
+      tx.update(ref, update);
+    });
+
     vibrate(15);
-
-    if (update.phase === "done") {
-      setTimeout(() => burstDialogueHearts(), 200);
-    }
+    if (isDone) setTimeout(() => burstDialogueHearts(), 200);
   } catch (e) {
     console.error(e);
     alert("Ошибка: " + e.message);
