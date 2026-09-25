@@ -6732,6 +6732,11 @@ body.dark .feed-chip.active{
   border-radius:0;
   background:transparent;
 }
+.feed-day__cards{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
 .feed-day__head{
   display:flex;
   align-items:baseline;

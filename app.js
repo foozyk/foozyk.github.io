@@ -4054,6 +4054,8 @@ function initDialogue() {
         case "open-agreement":   openDialogueAgreement(id); break;
         case "cancel-ready":     cancelReadyToSign(id); break;
         case "save-agreement":   saveDialogueAgreement(id); break;
+        case "cancel-draft":     cancelDraft(id); break;
+        case "force-finalize":   forceFinalizeDraft(id); break;
         case "sign":             signDialogue(id); break;
         case "sign-for-partner": signForPartner(id); break;
         case "open-modal":       openDialogueModal(id); break;
@@ -4268,9 +4270,14 @@ function renderDialogueContent(conv) {
     const ready = conv.readyToSign || {};
     const iReady = !!ready[currentUser.uid];
     const partnerReady = !!ready[partnerUid];
+    const draft = conv.draftAgreement;
 
     if (iReady && partnerReady) {
-      renderDialogueAgreementForm(conv);
+      if (draft && draft.by === currentUser.uid) {
+        renderDialogueWaitingDraft(conv);
+      } else {
+        renderDialogueAgreementForm(conv);
+      }
     } else if (iReady && !partnerReady) {
       renderDialogueWaitingAgreement(conv);
     } else {
@@ -4443,35 +4450,86 @@ function renderDialogueTalking(conv) {
   bindLessonHint(conv);
 }
 async function saveDialogueAgreement(convId) {
+  const conv = conversations.find(c => c.id === convId);
+  if (!conv) return;
+
   const title = ($("dlg-agr-title")?.value || "").trim();
   const text = ($("dlg-agr-text")?.value || "").trim();
   if (!title) { alert("Введи название договора"); return; }
 
-  const btn = document.querySelector('[data-dlg-action="save-agreement"]');
-  if (btn) btn.disabled = true;
+  const draft = conv.draftAgreement;
 
+  if (draft && draft.by !== currentUser.uid && draft.title === title && draft.text === text) {
+    await acceptAndFinalize(convId, draft);
+    return;
+  }
+
+  await proposeDraft(convId, title, text);
+}
+
+async function proposeDraft(convId, title, text) {
   try {
-    const ref = await addDoc(collection(db, "couples", currentCoupleId, "agreements"), {
+    const draft = {
       title,
       text,
-      createdBy: currentUser.uid,
+      by: currentUser.uid,
+      ts: Date.now()
+    };
+    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), {
+      draftAgreement: draft
+    });
+    vibrate(15);
+    const conv = conversations.find(c => c.id === convId);
+    if (conv) renderDialogueWaitingDraft({ ...conv, draftAgreement: draft });
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+async function acceptAndFinalize(convId, draft) {
+  const btn = $("dlg-agr-submit");
+  if (btn) btn.disabled = true;
+  try {
+    const ref = await addDoc(collection(db, "couples", currentCoupleId, "agreements"), {
+      title: draft.title,
+      text: draft.text,
+      createdBy: draft.by,
       createdAt: serverTimestamp(),
       done: false,
       fromDialogue: true,
       fromConversation: convId
     });
-
     await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), {
       phase: "signing",
-      agreementId: ref.id
+      agreementId: ref.id,
+      draftAgreement: null
     });
-
     vibrate(15);
   } catch (e) {
     console.error(e);
     alert("Ошибка: " + e.message);
     if (btn) btn.disabled = false;
   }
+}
+
+async function cancelDraft(convId) {
+  try {
+    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), {
+      draftAgreement: null
+    });
+    vibrate(10);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+async function forceFinalizeDraft(convId) {
+  const conv = conversations.find(c => c.id === convId);
+  if (!conv || !conv.draftAgreement) return;
+  if (!confirm("Отправить версию как есть, без согласования с партнёром?")) return;
+  await acceptAndFinalize(convId, conv.draftAgreement);
 }
 async function saveDialogueText(convId) {
   const ta = $("dialogue-my-text");
@@ -4592,8 +4650,52 @@ function renderDialogueWaitingAgreement(conv) {
   `;
 }
 
+function renderDialogueWaitingDraft(conv) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const partnerName = getPartnerNameForDialogue();
+  const draft = conv.draftAgreement || {};
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div style="text-align:center;">
+      <div class="dialogue__context">
+        <span class="dialogue__context-icon">${getFeelingIcon(conv.feeling)}</span>
+        <span>${escapeHtml(f.label)}</span>
+      </div>
+    </div>
+
+    <div class="dialogue__waiting">
+      <div class="dialogue__waiting-title">Ждём ${escapeHtml(partnerName)}</div>
+      <div class="dialogue__waiting-text">
+        Ты предложил версию договора.<br>
+        ${escapeHtml(partnerName)} посмотрит и либо согласится, либо предложит свою.
+      </div>
+
+      <div class="dialogue__agreement-box" style="margin-top:14px;text-align:left;">
+        <div class="dialogue__agreement-title">${escapeHtml(draft.title || "")}</div>
+        <div class="dialogue__agreement-text">${escapeHtml(draft.text || "")}</div>
+      </div>
+
+      <button class="dialogue-btn" data-dlg-action="force-finalize" data-dlg-id="${conv.id}">Отправить как есть</button>
+      <button class="dialogue-link dialogue-link--muted" data-dlg-action="cancel-draft" data-dlg-id="${conv.id}">Отозвать черновик</button>
+    </div>
+  `;
+}
+
 function renderDialogueAgreementForm(conv) {
   const f = getDialogueFeelingInfo(conv.feeling);
+  const draft = conv.draftAgreement;
+  const partnerName = getPartnerNameForDialogue();
+  const draftByPartner = draft && draft.by !== currentUser.uid;
+
+  const initialTitle = draft ? draft.title : "";
+  const initialText = draft ? draft.text : "";
+
+  const modeLabel = draftByPartner
+    ? `<div class="dialogue__partner-hint" style="margin-bottom:14px;text-align:center;">Версия ${escapeHtml(partnerName)}</div>`
+    : "";
+
+  const btnLabel = draftByPartner ? "Согласен и подписать" : "Предложить партнёру";
 
   const content = $("dialogue-modal-content");
   content.innerHTML = `
@@ -4605,16 +4707,31 @@ function renderDialogueAgreementForm(conv) {
     </div>
 
     <div class="dialogue__subtitle">Что мы решили вместе</div>
+    ${modeLabel}
 
     <label class="field-label">О чём договорились</label>
-    <input type="text" id="dlg-agr-title" placeholder="Например: «Прощаемся перед уходом»" maxlength="80">
+    <input type="text" id="dlg-agr-title" placeholder="Например: «Прощаемся перед уходом»" maxlength="80" value="${escapeHtml(initialTitle)}">
 
     <label class="field-label">Детали</label>
-    <textarea id="dlg-agr-text" rows="4" placeholder="Что именно решили, как часто, с какого момента..." maxlength="1000"></textarea>
+    <textarea id="dlg-agr-text" rows="4" placeholder="Что именно решили, как часто, с какого момента..." maxlength="1000">${escapeHtml(initialText)}</textarea>
 
-    <button class="dialogue-btn" data-dlg-action="save-agreement" data-dlg-id="${conv.id}">Сохранить и подписать</button>
+    <button class="dialogue-btn" data-dlg-action="save-agreement" data-dlg-id="${conv.id}" id="dlg-agr-submit">${btnLabel}</button>
     <button class="dialogue-link" data-dlg-action="open-modal" data-dlg-id="${conv.id}">Назад</button>
   `;
+
+  if (draftByPartner) {
+    const titleEl = $("dlg-agr-title");
+    const textEl = $("dlg-agr-text");
+    const btnEl = $("dlg-agr-submit");
+    const check = () => {
+      const changed =
+        titleEl.value.trim() !== initialTitle ||
+        textEl.value.trim() !== initialText;
+      btnEl.textContent = changed ? "Предложить свою версию" : "Согласен и подписать";
+    };
+    titleEl.addEventListener("input", check);
+    textEl.addEventListener("input", check);
+  }
 }
 
 function renderDialogueSigning(conv) {
@@ -4633,10 +4750,6 @@ function renderDialogueSigning(conv) {
     <span class="dialogue__sign ${iSigned ? 'dialogue__sign--done' : 'dialogue__sign--waiting'}">${escapeHtml(myName)} ${iSigned ? '✓' : '…'}</span>
     <span class="dialogue__sign ${partnerSigned ? 'dialogue__sign--done' : 'dialogue__sign--waiting'}">${escapeHtml(partnerName)} ${partnerSigned ? '✓' : '…'}</span>
   `;
-
-  const previewSignPartner = iSigned && !partnerSigned
-    ? `<button class="dialogue-btn" style="margin-top:14px;background:linear-gradient(135deg,#8ab4d4,#4a7a9c);" data-dlg-action="sign-for-partner" data-dlg-id="${conv.id}">👁 Подписать за ${escapeHtml(partnerName)}</button>`
-    : "";
 
   const footerHtml = (!iSigned && !partnerSigned)
     ? `<div class="dialogue__partner-footer" style="margin-top:14px;">Режим завершится, когда подпишут оба.</div>`
@@ -4666,7 +4779,6 @@ function renderDialogueSigning(conv) {
       ${signsHtml}
     </div>
 
-    ${previewSignPartner}
     ${footerHtml}
   `;
 }
