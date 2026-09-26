@@ -1,4 +1,4 @@
-# HANDOFF — «Наш год» (v18)
+# HANDOFF — «Наш год» (v19)
 
 ## 1. Что это
 PWA для пар «Наш год — 365 вопросов». Один вопрос в день, ответы партнёров
@@ -10,7 +10,7 @@ PWA для пар «Наш год — 365 вопросов». Один вопр�
 - Firebase Auth + Firestore (проект our-year-1082f)
 - Чистые ES-модули, без сборки
 - PWA + Bubblewrap TWA (проект C:/nashgod-android)
-- Хостинг: GitHub Pages (foozyk.github.io)
+- Хостинг: GitHub Pages (foozyk.github.io), Jekyll отключён (.nojekyll)
 
 ## 3. Ключевые файлы
 - index.html — разметка всех экранов
@@ -20,6 +20,7 @@ PWA для пар «Наш год — 365 вопросов». Один вопр�
 - questions.js / words.js / lessons.js — контент
 - firebase-config.js — ключи Firebase
 - manifest.json, confetti.browser.min.js, icon-192/512.png
+- .nojekyll — отключает Jekyll на GitHub Pages
 - HANDOFF.md — этот документ
 
 ## 4. Разделы
@@ -29,7 +30,8 @@ PWA для пар «Наш год — 365 вопросов». Один вопр�
 - Мы — Слово дня, Луна, Игры (Квиз / Любовь / Правда), Уроки,
   Архив (хитмап / статистика / история)
 
-## 5. Что изменилось (26.09.2026)
+## 5. Что изменилось
+### 26.09.2026 (часть 1) — чёрный экран
 Починен чёрный экран на foozyk.github.io и в nashgod. Две причины:
 1) В style.css был НЕЗАКРЫТЫЙ список CSS-селекторов (~стр. 7610): висячая
    запятая после body.state-reconcile, из-за чего display:none !important
@@ -39,11 +41,28 @@ PWA для пар «Наш год — 365 вопросов». Один вопр�
    Переписан на clean-slate v21: сносит все кэши, ничего не перехватывает.
 Результат: сайт показывает экран «Сегодня». Работает на десктопе и телефоне.
 
+### 26.09.2026 (часть 2) — стилистика модалок
+3) .nojekyll: была опечатка (.nojekyl без второй L). Создан правильный
+   .nojekyll, битый удалён. Jekyll отключён → Pages отдаёт файлы «как есть».
+   assetlinks.json проверен — TWA работает.
+4) .topic-option: дублирующий старый блок (с backdrop-filter:blur(10px))
+   удалён — он делал кнопки тем «мутными/светлыми».
+5) .modal-content: теперь берёт палитру текущего экрана через color-mix
+   (--bg2 + 12% белого, --bg1 + 6% белого) — модалка в тон экрана, но светлее.
+6) Кнопки действия в модалках (#topic-confirm, #dlg-agr-submit,
+   #save-agreement) — единый нейтральный «стеклянный» стиль
+   (rgba(255,255,255,.08) фон, тонкая граница, box-shadow:none).
+   Убрано розовое свечение (var(--shadow-glow) = rgba(178,90,90,.40)).
+7) Удалены мусорные файлы: app backup.js, index-backup.html,
+   style-backup.css, style.css.bak (foozyk.github.io) + style.css.bak-before-A,
+   sw.js.bak, foozyk.github.io-main.zip (nashgod).
+
 ## 6. Затронутые файлы
-- style.css — закрыт список селекторов
-  (foozyk.github.io 19854be, nashgod 3bc9434)
-- sw.js — clean-slate v21
-  (foozyk.github.io 4b36ef7, nashgod 1087f41)
+- style.css — селекторы, .topic-option, .modal-content, кнопки модалок
+  (foozyk.github.io 19854be → 63e0496; nashgod 3bc9434 → 31697a2)
+- sw.js — clean-slate v21 (foozyk.github.io 4b36ef7, nashgod 1087f41)
+- HANDOFF.md — создан (v18 → v19)
+- .nojekyll — создан/исправлен (foozyk.github.io b406414)
 - app.js, index.html, words.js, lessons.js, questions.js — НЕ трогали
 
 ## 7. Что дальше
@@ -54,6 +73,11 @@ PWA для пар «Наш год — 365 вопросов». Один вопр�
   → рецепт: очистить кэш / переустановить PWA.
 - Незакрытые селекторы могут снова появиться при правках CSS
   → проверять баланс и структуру селекторов перед коммитом.
+- Дубли правил в CSS (наследие перехода светлая→тёмная тема): старые
+  могут оставлять «висячие» свойства (backdrop-filter, box-shadow).
+  Удалять старые блоки целиком, не полагаться на перекрытие.
+- Браузерный кеш маскирует правки. При «не поменялось» — проверять
+  getComputedStyle в Console, а не гадать.
 
 ## 9. Запретный список
 Не возвращать: Забота, Пульс месяца, Пульс партнёра, Задачи, Календарь,
@@ -76,7 +100,13 @@ S (Тихий час), J (Слепой обмен).
   или Application → Service Workers → Unregister + Clear site data.
 - Побочный эффект sw v21: предупреждение Chrome «Fetch event handler is
   recognized as no-op» — норм, можно убрать fetch-обработчик совсем.
-- Проверка в Console при чёрном экране: обход родителей —
+- Jekyll: отключён через .nojekyll (две L!). Если файл назвать .nojekyl —
+  Jekyll продолжит работать. _config.yml оставлен (не мешает).
+- Модалка .modal-content: фон = color-mix(--bg2 88% + #fff 12%) сверху,
+  color-mix(--bg1 94% + #fff 6%) снизу. Автоматически в тон экрана.
+- Кнопки модалок (#topic-confirm, #dlg-agr-submit, #save-agreement) —
+  одно правило, нейтральные, box-shadow:none (иначе розовое свечение).
+- Проверка при чёрном экране: обход родителей —
   (function(){var el=document.getElementById('main-screen'),r=[];while(el)
   {var cs=getComputedStyle(el);r.push((el.id||el.className||el.tagName)+
   ':disp='+cs.display);el=el.parentElement}return r.join(' | ')})()
