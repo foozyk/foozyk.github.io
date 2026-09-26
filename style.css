@@ -5055,8 +5055,11 @@ h3{ font-size:18px; margin:14px 0 10px; }
 
 /* ---------- МОДАЛКИ — косметика под новый стиль ---------- */
 .modal-content{
-  background:linear-gradient(160deg,#241e1c,#1a1614);
-  border:1px solid rgba(255,255,255,.10);
+  /* Модалка = палитра текущего экрана + 6-12% белого → тот же тон, но светлее */
+  background:linear-gradient(160deg,
+    color-mix(in srgb, var(--bg2, #241e1c) 88%, #ffffff 12%),
+    color-mix(in srgb, var(--bg1, #1a1614) 94%, #ffffff 6%)) !important;
+  border:1px solid color-mix(in srgb, var(--accent, #b25a5a) 22%, transparent);
   box-shadow:0 30px 70px rgba(0,0,0,.55);
 }
 .modal-content h3{
