@@ -3470,7 +3470,7 @@ body:has(.modal:not(.hidden)) {
 .dialogue-icon--16 { width: 16px; height: 16px; }
 .dialogue-icon--20 { width: 20px; height: 20px; }
 .dialogue-icon--22 { width: 22px; height: 22px; }
-.dialogue-icon--24 { width: 24px; height: 24px; }
+.dialogue-icon--24 { width: 20px; height: 20px; }
 .dialogue-icon--48 { width: 48px; height: 48px; }
 .dialogue-icon--56 { width: 56px; height: 56px; }
 .dialogue-icon--fill {
@@ -4595,13 +4595,13 @@ h3{ font-size:18px; margin:14px 0 10px; }
 
 /* ---------- ПОЛАРОИДЫ ---------- */
 .polaroid-stage{
-  position:relative; height:225px;
+  position:relative; height:210px;
   margin:0 auto 6px;
-  max-width:355px;
+  max-width:340px;
 }
 .polaroid-stage .polaroid{
   position:absolute;
-  width:155px;
+  width:140px;
   background:#efe6dd;
   border-radius:6px;
   padding:8px 8px 28px;
@@ -4614,8 +4614,8 @@ h3{ font-size:18px; margin:14px 0 10px; }
   display:block;
 }
 .polaroid-stage .polaroid.me{
-  left:calc(50% - 163px);
-  top:20px;
+  left:calc(50% - 148px);
+  top:18px;
   transform:rotate(-8deg) translateX(var(--tx,0));
   --tx:0px;
   z-index:1;
@@ -8074,3 +8074,13 @@ body::after {
 /* Когда пауза — чат скрывается, показывается ⏸ */
 .nav-btn[data-view="conversation"].has-pause .nav-icon .icon-chat { display: none; }
 .nav-btn[data-view="conversation"].has-pause .nav-icon .icon-pause { display: block; }
+
+/* ===== МОБИЛЬНАЯ ПОСАДКА ПОЛАРОИДОВ (узкие экраны) ===== */
+@media (max-width: 600px) {
+  .polaroid-stage { max-width: 100%; }
+  .polaroid-stage .polaroid { width: 116px; }
+  .polaroid-stage .polaroid.me { left: calc(50% - 126px); }
+  .polaroid-stage .polaroid.partner { left: calc(50% - 34px); }
+  .polaroid-stage .quick-ring { left: calc(100% - 2px); }
+  .polaroid-stage .quick-ring .q-btn { width: 22px; height: 22px; }
+}
