@@ -51,6 +51,7 @@ let conversations = [];
 let unsubConversations = null;
 let agreements = [];
 let unsubAgreements = null;
+function isConvClosed(conv){ if(!conv) return false; if(conv.hasAgreement) return true; return (agreements||[]).some(function(x){ return x.fromConversation === conv.id; }); }
 let customTopics = [];
 let unsubCustomTopics = null;
 let currentConversationId = null;
@@ -2842,7 +2843,7 @@ function buildConvCard(conv, partnerUid) {
   } else if (!myText && !partnerText) statusHtml = `<span class="status-dot waiting"></span> Никто ещё не написал`;
   else if (myText && !partnerText) statusHtml = `<span class="status-dot mine-done"></span> Вы написали, ждём партнёра`;
   else if (!myText && partnerText) statusHtml = `<span class="status-dot waiting"></span> Партнёр написал, ваша очередь`;
-  else if (conv.hasAgreement) statusHtml = `<span class="status-dot both-done"></span> ✓ Закрыто`;
+  else if (isConvClosed(conv)) statusHtml = `<span class="status-dot both-done"></span> ✓ Закрыто`;
   else statusHtml = `<span class="status-dot both-done"></span> Оба написали — можно договориться`;
 
   card.innerHTML = `
@@ -2853,7 +2854,7 @@ function buildConvCard(conv, partnerUid) {
   `;
   card.onclick = () => openConversation(conv.id);
   const delBtn = card.querySelector('[data-action="delete-conv"]');
-  if (delBtn) { if (conv.hasAgreement) delBtn.remove(); else delBtn.addEventListener("click", (e) => { e.stopPropagation(); deleteConversation(conv.id); }); }
+  if (delBtn) { if (isConvClosed(conv)) delBtn.remove(); else delBtn.addEventListener("click", (e) => { e.stopPropagation(); deleteConversation(conv.id); }); }
   return card;
 }
 function openTopicModal() {
@@ -3023,7 +3024,7 @@ function openConversation(convId) {
     partnerBox.textContent = partnerText;
     partnerBox.style.fontStyle = "normal";
     partnerBox.style.color = "";
-    if (conv.hasAgreement) {
+    if (isConvClosed(conv)) {
       agreementBtn.classList.add("hidden");
     } else {
       agreementBtn.classList.remove("hidden");
@@ -3045,7 +3046,7 @@ function openConversation(convId) {
     agreementBtn.classList.add("hidden");
   }
   const pauseBtn = $("conversation-pause-btn");
-  if (pauseBtn) pauseBtn.onclick = () => openPauseModal(conv.id); if (conv.hasAgreement) { saveBtn.classList.add("hidden"); agreementBtn.classList.add("hidden"); pauseBtn.classList.add("hidden"); $("conversation-my-text").readOnly = true; } else { $("conversation-my-text").readOnly = false; }
+  if (pauseBtn) pauseBtn.onclick = () => openPauseModal(conv.id); if (isConvClosed(conv)) { saveBtn.classList.add("hidden"); agreementBtn.classList.add("hidden"); pauseBtn.classList.add("hidden"); $("conversation-my-text").readOnly = true; } else { $("conversation-my-text").readOnly = false; }
   $("conversation-modal").classList.remove("hidden");
 }
 function closeConversationModal() {
