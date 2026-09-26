@@ -7612,7 +7612,9 @@ body.screen-talk,
 body.screen-rhythm,
 body.screen-us,
 body.state-quiet,
-body.state-reconcile,
+body.state-reconcile {
+  /* фон на body не вешаем — только на #main-screen::before */
+}
 
 /* Старые псевдоэлементы (блобы) отключаем — они конфликтуют */
 body::before,
