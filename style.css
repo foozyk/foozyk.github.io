@@ -5512,15 +5512,21 @@ input:focus, textarea:focus{
   color:var(--text);
   font-weight:600;
 }
-/* Кнопка «Начать разговор» — нейтральная, в тон .topic-option */
-#topic-confirm{
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.14);
-  color:var(--text);
+/* Кнопки действия в модалках — нейтральные «стеклянные», в тон .topic-option */
+#topic-confirm,
+#dlg-agr-submit{
+  background:rgba(255,255,255,.08) !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  color:var(--text) !important;
+  box-shadow:none !important;
+  border-radius:16px;
 }
-#topic-confirm:hover{ background:rgba(255,255,255,.11); opacity:1; transform:none; }
-#topic-confirm:active{ transform:scale(.98); }
-#topic-confirm:disabled{ opacity:.5; cursor:not-allowed; }
+#topic-confirm:hover,
+#dlg-agr-submit:hover{ background:rgba(255,255,255,.11) !important; opacity:1; transform:none; }
+#topic-confirm:active,
+#dlg-agr-submit:active{ transform:scale(.98); }
+#topic-confirm:disabled,
+#dlg-agr-submit:disabled{ opacity:.5; cursor:not-allowed; }
 
 /* ---------- МОДАЛКА «РАЗГОВОР» ---------- */
 .conversation-partner-text{
