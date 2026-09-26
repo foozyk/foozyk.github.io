@@ -1,4 +1,4 @@
-# HANDOFF — «Наш год» (v19)
+# HANDOFF — «Наш год» (v21)
 
 ## 1. Что это
 PWA для пар «Наш год — 365 вопросов». Один вопрос в день, ответы партнёров
@@ -13,8 +13,8 @@ PWA для пар «Наш год — 365 вопросов». Один вопр�
 - Хостинг: GitHub Pages (foozyk.github.io), Jekyll отключён (.nojekyll)
 
 ## 3. Ключевые файлы
-- index.html — разметка всех экранов
-- style.css — вся стилистика (~8070 строк)
+- index.html — разметка всех экранов (ссылка style.css?v=N — cache-bust!)
+- style.css — вся стилистика (~8100 строк)
 - app.js — логика (~5800 строк, ES-модуль)
 - sw.js — Service Worker (v21, clean-slate)
 - questions.js / words.js / lessons.js — контент
@@ -32,7 +32,6 @@ PWA для пар «Наш год — 365 вопросов». Один вопр�
 
 ## 5. Что изменилось
 ### 26.09.2026 (часть 1) — чёрный экран
-Починен чёрный экран на foozyk.github.io и в nashgod. Две причины:
 1) В style.css был НЕЗАКРЫТЫЙ список CSS-селекторов (~стр. 7610): висячая
    запятая после body.state-reconcile, из-за чего display:none !important
    склеивался с body и применялся к САМОМУ <body> → страница исчезала.
@@ -44,40 +43,54 @@ PWA для пар «Наш год — 365 вопросов». Один вопр�
 ### 26.09.2026 (часть 2) — стилистика модалок
 3) .nojekyll: была опечатка (.nojekyl без второй L). Создан правильный
    .nojekyll, битый удалён. Jekyll отключён → Pages отдаёт файлы «как есть».
-   assetlinks.json проверен — TWA работает.
 4) .topic-option: дублирующий старый блок (с backdrop-filter:blur(10px))
    удалён — он делал кнопки тем «мутными/светлыми».
-5) .modal-content: теперь берёт палитру текущего экрана через color-mix
-   (--bg2 + 12% белого, --bg1 + 6% белого) — модалка в тон экрана, но светлее.
+5) .modal-content: берёт палитру текущего экрана через color-mix
+   (--bg2 + 12% белого, --bg1 + 6% белого) — модалка в тон экрана, светлее.
 6) Кнопки действия в модалках (#topic-confirm, #dlg-agr-submit,
    #save-agreement) — единый нейтральный «стеклянный» стиль
-   (rgba(255,255,255,.08) фон, тонкая граница, box-shadow:none).
-   Убрано розовое свечение (var(--shadow-glow) = rgba(178,90,90,.40)).
+   (rgba(255,255,255,.08), тонкая граница, box-shadow:none).
+   Убрано розовое свечение (var(--shadow-glow)).
 7) Удалены мусорные файлы: app backup.js, index-backup.html,
-   style-backup.css, style.css.bak (foozyk.github.io) + style.css.bak-before-A,
-   sw.js.bak, foozyk.github.io-main.zip (nashgod).
+   style-backup.css, style.css.bak + sw.js.bak и пр.
+
+### 26.09.2026 (часть 3) — полароиды (мобильная посадка) — УТВЕРЖДЕНО
+Полароиды на «Сегодня» подогнаны под телефон. Итог:
+- База (десктоп >600px): .polaroid width 140px.
+- Мобильный @media (max-width: 600px):
+    .polaroid-stage { max-width:100% }
+    .polaroid { width:132px }
+    .polaroid.me { left: calc(50% - 126px) }
+    .polaroid.partner { left: calc(50% - 6px) }
+    .quick-ring { left: calc(100% - 8px) }
+    .quick-ring .q-btn { width:22px; height:22px }
+  Пара сближена (нахлёст ~12px) и по центру.
+- Эмодзи-рейл (.quick-ring, 5 реакций 🥺🤗😘❤️🔥) — по тапу на полароид.
+- Кэш: index.html → style.css?v=9 (при каждой правке CSS поднимать ?v=N).
+- Коммиты: nashgod a7e9e84, foozyk.github.io 2260223.
 
 ## 6. Затронутые файлы
-- style.css — селекторы, .topic-option, .modal-content, кнопки модалок
-  (foozyk.github.io 19854be → 63e0496; nashgod 3bc9434 → 31697a2)
-- sw.js — clean-slate v21 (foozyk.github.io 4b36ef7, nashgod 1087f41)
-- HANDOFF.md — создан (v18 → v19)
-- .nojekyll — создан/исправлен (foozyk.github.io b406414)
-- app.js, index.html, words.js, lessons.js, questions.js — НЕ трогали
+- style.css — селекторы, .topic-option, .modal-content, кнопки модалок,
+  мобильные полароиды (последнее: nashgod a7e9e84)
+- index.html — ссылка style.css?v=9 (cache-bust)
+- sw.js — clean-slate v21
+- HANDOFF.md — v19 → v20 → v21
+- .nojekyll — создан/исправлен
+- app.js, words.js, lessons.js, questions.js — НЕ трогали
 
 ## 7. Что дальше
-Убрать мёртвый код (чистка мёртвых CSS-правил / неиспользуемых функций).
+1) Синхронизировать HANDOFF (этот файл) в деплой-репо foozyk.github.io.
+2) Убрать мёртвый код (чистка мёртвых CSS-правил / неиспользуемых функций).
+3) ПРИОРИТЕТ: тесты вживую; push-уведомления (низкий).
 
 ## 8. Риски
-- Старый SW может снова «залипнуть» на телефоне/PWA у Руслана
-  → рецепт: очистить кэш / переустановить PWA.
-- Незакрытые селекторы могут снова появиться при правках CSS
-  → проверять баланс и структуру селекторов перед коммитом.
-- Дубли правил в CSS (наследие перехода светлая→тёмная тема): старые
-  могут оставлять «висячие» свойства (backdrop-filter, box-shadow).
-  Удалять старые блоки целиком, не полагаться на перекрытие.
-- Браузерный кеш маскирует правки. При «не поменялось» — проверять
-  getComputedStyle в Console, а не гадать.
+- ГЛАВНЫЙ: правки идут в ДВА репо (nashgod + foozyk.github.io). Если забыть
+  синк в foozyk.github.io — на сайте ничего не появится (уже случалось!).
+- Старый SW может «залипнуть» на телефоне/PWA → очистить кэш / переустановить.
+- Незакрытые селекторы могут снова появиться → проверять баланс { } в CSS.
+- Дубли правил в CSS — удалять старые блоки целиком, не полагаться на перекрытие.
+- Браузерный кеш маскирует правки → при «не поменялось» проверять
+  getComputedStyle в Console; поднимать ?v=N.
 
 ## 9. Запретный список
 Не возвращать: Забота, Пульс месяца, Пульс партнёра, Задачи, Календарь,
@@ -95,22 +108,23 @@ S (Тихий час), J (Слепой обмен).
 Новые фичи не добавлять до месяца наблюдений.
 
 ## 11. Технические заметки
+- ДЕПЛОЙ: источник C:/Users/Юлия/Desktop/«Наш год» → репо foozyk/nashgod.
+  Сайт отдаётся из C:/Users/Юлия/Desktop/_tmp_ghio → репо foozyk.github.io.
+  Процесс: правка в источнике → коммит+пуш в nashgod → копировать style.css
+  и index.html в _tmp_ghio → коммит+пуш в foozyk.github.io. Скрипта автосинка
+  нет, только вручную. НЕ удалять служебные файлы деплоя: .nojekyll,
+  .well-known/assetlinks.json, _config.yml, HANDOFF.md.
 - Фон: только #main-screen::before (fixed-слой). На body — нельзя.
-- Service Worker: для активации нового нужны закрыть ВСЕ вкладки сайта
-  или Application → Service Workers → Unregister + Clear site data.
-- Побочный эффект sw v21: предупреждение Chrome «Fetch event handler is
-  recognized as no-op» — норм, можно убрать fetch-обработчик совсем.
-- Jekyll: отключён через .nojekyll (две L!). Если файл назвать .nojekyl —
-  Jekyll продолжит работать. _config.yml оставлен (не мешает).
-- Модалка .modal-content: фон = color-mix(--bg2 88% + #fff 12%) сверху,
-  color-mix(--bg1 94% + #fff 6%) снизу. Автоматически в тон экрана.
+- Service Worker: активация нового — закрыть ВСЕ вкладки сайта или
+  Application → Service Workers → Unregister + Clear site data.
+- Jekyll: отключён через .nojekyll (две L!). Если назвать .nojekyl — не работает.
+- Модалка .modal-content: color-mix(--bg2 88% + #fff 12%) сверху,
+  color-mix(--bg1 94% + #fff 6%) снизу.
 - Кнопки модалок (#topic-confirm, #dlg-agr-submit, #save-agreement) —
-  одно правило, нейтральные, box-shadow:none (иначе розовое свечение).
-- Проверка при чёрном экране: обход родителей —
+  одно правило, нейтральные, box-shadow:none.
+- Проверка при чёрном экране (обход родителей в Console):
   (function(){var el=document.getElementById('main-screen'),r=[];while(el)
   {var cs=getComputedStyle(el);r.push((el.id||el.className||el.tagName)+
   ':disp='+cs.display);el=el.parentElement}return r.join(' | ')})()
   Если body: disp=none — виноват незакрытый список селекторов в CSS.
 - Проверка баланса скобок: { vs } в style.css.
-- Два репо: nashgod (приватный) и foozyk.github.io (публичный, отдаёт сайт).
-  Правки дублировать в оба.
