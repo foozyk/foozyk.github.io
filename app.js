@@ -555,7 +555,6 @@ function renderAboutSubTab() {
 function startMainApp() {
   showScreen("main");
   renderToday();
-  applySeasonTheme();
 
   conversationsInitialized = false;
   quizInitialized = false;
@@ -1362,7 +1361,6 @@ async function renderHistory() {
   }
 }
 
-
 /* ---------- ПРОФИЛИ ---------- */
 async function initProfile() {
   const partnerUid = currentCouple.members.find(uid => uid !== currentUser.uid);
@@ -1962,17 +1960,6 @@ function getCachedWeather() {
 }
 function setCachedWeather(data) {
   try { localStorage.setItem("weather-cache", JSON.stringify({ t: Date.now(), data })); } catch {}
-}
-function getCurrentSeason() {
-  const month = new Date().getMonth() + 1;
-  if (month === 12 || month <= 2) return "winter";
-  if (month <= 5) return "spring";
-  if (month <= 8) return "summer";
-  return "autumn";
-}
-function applySeasonTheme() {
-  document.body.classList.remove("season-winter", "season-spring", "season-summer", "season-autumn");
-  document.body.classList.add("season-" + getCurrentSeason());
 }
 function applyWeatherTheme(iconCode) {
   document.body.classList.remove("weather-sunny", "weather-cloudy", "weather-rainy", "weather-thunder", "weather-snowy");
@@ -3533,12 +3520,6 @@ function closeBannerEntry(entry) {
   }, 460);
 }
 
-// Совместимость со старым API: закрыть самый свежий баннер
-function closeBanner() {
-  const last = _activeBanners[_activeBanners.length - 1];
-  if (last) closeBannerEntry(last);
-}
-
 function showBanner(title, text, view, opts = {}) {
   const stack = ensureBannerStack();
 
@@ -3658,24 +3639,8 @@ function getThinkCooldownRemaining() {
   return remaining > 0 ? remaining : 0;
 }
 
-function updateThinkButtonState() {
-  const btn = $("think-btn");
-  if (!btn) return;
-
-  const remaining = getThinkCooldownRemaining();
-  if (remaining <= 0) {
-    btn.classList.remove("is-cooldown");
-    btn.innerHTML = `<span class="think-btn__emoji">❤️</span>`;
-  } else {
-    btn.classList.add("is-cooldown");
-    const min = Math.ceil(remaining / 60000);
-    const label = min >= 60 ? Math.ceil(min / 60) + "ч" : min + "м";
-    btn.innerHTML = `<span class="think-btn__cooldown">${label}</span>`;
-  }
-}
-
 function burstHearts() {
-  const btn = $("partner-polaroid") || $("think-btn");
+  const btn = $("partner-polaroid");
   if (!btn) return;
   const rect = btn.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
