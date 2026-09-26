@@ -1,4 +1,4 @@
-# HANDOFF — «Наш год» (v21)
+# HANDOFF — «Наш год» (v22)
 
 ## 1. Что это
 PWA для пар «Наш год — 365 вопросов». Один вопрос в день, ответы партнёров
@@ -33,29 +33,20 @@ PWA для пар «Наш год — 365 вопросов». Один вопр�
 ## 5. Что изменилось
 ### 26.09.2026 (часть 1) — чёрный экран
 1) В style.css был НЕЗАКРЫТЫЙ список CSS-селекторов (~стр. 7610): висячая
-   запятая после body.state-reconcile, из-за чего display:none !important
-   склеивался с body и применялся к САМОМУ <body> → страница исчезала.
-   Фикс: закрыть список пустым правилом {} перед комментарием.
+   запятая после body.state-reconcile → display:none !important попадал на
+   САМ <body> → страница исчезала. Фикс: закрыть список пустым правилом {}.
 2) Старый Service Worker (nash-god-v20) держал устаревший CSS в кэше.
    Переписан на clean-slate v21: сносит все кэши, ничего не перехватывает.
-Результат: сайт показывает экран «Сегодня». Работает на десктопе и телефоне.
 
 ### 26.09.2026 (часть 2) — стилистика модалок
-3) .nojekyll: была опечатка (.nojekyl без второй L). Создан правильный
-   .nojekyll, битый удалён. Jekyll отключён → Pages отдаёт файлы «как есть».
-4) .topic-option: дублирующий старый блок (с backdrop-filter:blur(10px))
-   удалён — он делал кнопки тем «мутными/светлыми».
-5) .modal-content: берёт палитру текущего экрана через color-mix
-   (--bg2 + 12% белого, --bg1 + 6% белого) — модалка в тон экрана, светлее.
-6) Кнопки действия в модалках (#topic-confirm, #dlg-agr-submit,
-   #save-agreement) — единый нейтральный «стеклянный» стиль
-   (rgba(255,255,255,.08), тонкая граница, box-shadow:none).
-   Убрано розовое свечение (var(--shadow-glow)).
-7) Удалены мусорные файлы: app backup.js, index-backup.html,
-   style-backup.css, style.css.bak + sw.js.bak и пр.
+3) .nojekyll: была опечатка (.nojekyl без второй L) — исправлено.
+4) .topic-option: удалён старый дублирующий блок с backdrop-filter:blur(10px).
+5) .modal-content: палитра экрана через color-mix.
+6) Кнопки модалок (#topic-confirm, #dlg-agr-submit, #save-agreement) —
+   нейтральный стеклянный стиль, убрано розовое свечение.
+7) Удалены мусорные файлы (бэкапы, zip).
 
 ### 26.09.2026 (часть 3) — полароиды (мобильная посадка) — УТВЕРЖДЕНО
-Полароиды на «Сегодня» подогнаны под телефон. Итог:
 - База (десктоп >600px): .polaroid width 140px.
 - Мобильный @media (max-width: 600px):
     .polaroid-stage { max-width:100% }
@@ -66,31 +57,48 @@ PWA для пар «Наш год — 365 вопросов». Один вопр�
     .quick-ring .q-btn { width:22px; height:22px }
   Пара сближена (нахлёст ~12px) и по центру.
 - Эмодзи-рейл (.quick-ring, 5 реакций 🥺🤗😘❤️🔥) — по тапу на полароид.
-- Кэш: index.html → style.css?v=9 (при каждой правке CSS поднимать ?v=N).
+- Кэш: index.html → style.css?v=10.
 - Коммиты: nashgod a7e9e84, foozyk.github.io 2260223.
 
+### 26.09.2026 (часть 4) — закрытые разговоры (isConvClosed)
+Проблема: разговор с созданной договорённостью оставался «активным»
+(статус «Оба написали», корзина). Причина: закрытие завязано только на
+флаг conv.hasAgreement, который ставится ЛИШЬ в момент создания
+договорённости (saveAgreement, fromConversation), а у старых разговоров
+флага нет.
+Решение — функция isConvClosed(conv) в app.js (после `let unsubAgreements = null;`):
+  function isConvClosed(conv){ if(!conv) return false; if(conv.hasAgreement)
+  return true; return (agreements||[]).some(function(x){
+  return x.fromConversation === conv.id; }); }
+Все 4 проверки conv.hasAgreement заменены на isConvClosed(conv):
+  ~2846 статус «✓ Закрыто»; ~2857 убрать корзину (delBtn.remove());
+  ~3027/3049 read-only (скрыть Обновить/Договориться/Мне нужно время,
+  textarea readOnly). ВНУТРИ функции остаётся conv.hasAgreement.
+Коммиты: nashgod 101fa00, foozyk.github.io 9e2b677. Проверка: node --check → 0.
+
 ## 6. Затронутые файлы
-- style.css — селекторы, .topic-option, .modal-content, кнопки модалок,
-  мобильные полароиды (последнее: nashgod a7e9e84)
-- index.html — ссылка style.css?v=9 (cache-bust)
+- style.css — селекторы, модалки, мобильные полароиды
+- app.js — isConvClosed + read-only закрытых разговоров (nashgod 101fa00)
+- index.html — ссылка style.css?v=10
 - sw.js — clean-slate v21
-- HANDOFF.md — v19 → v20 → v21
+- HANDOFF.md — v19 → v20 → v21 → v22
 - .nojekyll — создан/исправлен
-- app.js, words.js, lessons.js, questions.js — НЕ трогали
+- questions.js, words.js, lessons.js — НЕ трогали
 
 ## 7. Что дальше
-1) Синхронизировать HANDOFF (этот файл) в деплой-репо foozyk.github.io.
-2) Убрать мёртвый код (чистка мёртвых CSS-правил / неиспользуемых функций).
-3) ПРИОРИТЕТ: тесты вживую; push-уведомления (низкий).
+1) Убрать мёртвый код (чистка мёртвых CSS-правил / неиспользуемых функций).
+2) ПРИОРИТЕТ: тесты вживую; push-уведомления (низкий).
 
 ## 8. Риски
 - ГЛАВНЫЙ: правки идут в ДВА репо (nashgod + foozyk.github.io). Если забыть
-  синк в foozyk.github.io — на сайте ничего не появится (уже случалось!).
+  синк в foozyk.github.io — на сайте ничего не появится.
 - Старый SW может «залипнуть» на телефоне/PWA → очистить кэш / переустановить.
 - Незакрытые селекторы могут снова появиться → проверять баланс { } в CSS.
-- Дубли правил в CSS — удалять старые блоки целиком, не полагаться на перекрытие.
-- Браузерный кеш маскирует правки → при «не поменялось» проверять
-  getComputedStyle в Console; поднимать ?v=N.
+- Дубли правил в CSS — удалять старые блоки целиком.
+- Браузерный кеш маскирует правки → поднимать ?v=N, проверять getComputedStyle.
+- Shell MCP в сессии 26.09 был нестабилен (длинные/кириллица/многострочные
+  команды рвались и дублировались). Надёжный обход: команды выполняет
+  пользователь в своём PowerShell, ассистент диктует.
 
 ## 9. Запретный список
 Не возвращать: Забота, Пульс месяца, Пульс партнёра, Задачи, Календарь,
@@ -110,21 +118,19 @@ S (Тихий час), J (Слепой обмен).
 ## 11. Технические заметки
 - ДЕПЛОЙ: источник C:/Users/Юлия/Desktop/«Наш год» → репо foozyk/nashgod.
   Сайт отдаётся из C:/Users/Юлия/Desktop/_tmp_ghio → репо foozyk.github.io.
-  Процесс: правка в источнике → коммит+пуш в nashgod → копировать style.css
-  и index.html в _tmp_ghio → коммит+пуш в foozyk.github.io. Скрипта автосинка
-  нет, только вручную. НЕ удалять служебные файлы деплоя: .nojekyll,
+  Процесс: правка → коммит+пуш в nashgod → копировать app.js/style.css/
+  index.html в _tmp_ghio → коммит+пуш в foozyk.github.io. Скрипта автосинка
+  нет. НЕ удалять служебные файлы деплоя: .nojekyll,
   .well-known/assetlinks.json, _config.yml, HANDOFF.md.
 - Фон: только #main-screen::before (fixed-слой). На body — нельзя.
 - Service Worker: активация нового — закрыть ВСЕ вкладки сайта или
   Application → Service Workers → Unregister + Clear site data.
-- Jekyll: отключён через .nojekyll (две L!). Если назвать .nojekyl — не работает.
-- Модалка .modal-content: color-mix(--bg2 88% + #fff 12%) сверху,
-  color-mix(--bg1 94% + #fff 6%) снизу.
-- Кнопки модалок (#topic-confirm, #dlg-agr-submit, #save-agreement) —
-  одно правило, нейтральные, box-shadow:none.
+- Jekyll: отключён через .nojekyll (две L!).
+- Модалка .modal-content: color-mix(--bg2 88% + #fff 12%) / (--bg1 94% + #fff 6%).
+- Кнопки модалок — одно правило, box-shadow:none.
 - Проверка при чёрном экране (обход родителей в Console):
   (function(){var el=document.getElementById('main-screen'),r=[];while(el)
   {var cs=getComputedStyle(el);r.push((el.id||el.className||el.tagName)+
   ':disp='+cs.display);el=el.parentElement}return r.join(' | ')})()
   Если body: disp=none — виноват незакрытый список селекторов в CSS.
-- Проверка баланса скобок: { vs } в style.css.
+- Проверка синтаксиса JS: node --check app.js → EXIT=0.
