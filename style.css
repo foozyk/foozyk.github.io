@@ -4591,13 +4591,13 @@ h3{ font-size:18px; margin:14px 0 10px; }
 
 /* ---------- ПОЛАРОИДЫ ---------- */
 .polaroid-stage{
-  position:relative; height:210px;
+  position:relative; height:240px;
   margin:0 auto 6px;
-  max-width:340px;
+  max-width:385px;
 }
 .polaroid-stage .polaroid{
   position:absolute;
-  width:140px;
+  width:170px;
   background:#efe6dd;
   border-radius:6px;
   padding:8px 8px 28px;
@@ -4610,8 +4610,8 @@ h3{ font-size:18px; margin:14px 0 10px; }
   display:block;
 }
 .polaroid-stage .polaroid.me{
-  left:calc(50% - 148px);
-  top:18px;
+  left:calc(50% - 178px);
+  top:22px;
   transform:rotate(-8deg) translateX(var(--tx,0));
   --tx:0px;
   z-index:1;
