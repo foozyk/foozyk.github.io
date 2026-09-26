@@ -1340,29 +1340,7 @@ button.link:hover { transform: none; opacity: 0.7; }
 }
 
 
-.topic-list {
-  display: flex; flex-direction: column;
-  gap: 6px; max-height: 300px;
-  overflow-y: auto; margin-bottom: 6px;
-}
-.topic-option {
-  background: var(--input-bg);
-  backdrop-filter: blur(10px);
-  color: var(--text);
-  padding: 13px 16px;
-  border-radius: 14px;
-  text-align: left;
-  font-size: 13.5px; font-weight: 600;
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-sm);
-}
-.topic-option:hover { border-color: var(--accent); transform: none; opacity: 1; }
-.topic-option.selected {
-  background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(232, 160, 168, 0.3) 100%);
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 700;
-}
+/* .topic-list и .topic-option — см. актуальные правила в конце файла (тёмная тема) */
 
 .conversation-partner-text {
   background: var(--input-bg);
