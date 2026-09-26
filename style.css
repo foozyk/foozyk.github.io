@@ -5512,14 +5512,14 @@ input:focus, textarea:focus{
   color:var(--text);
   font-weight:600;
 }
-/* Кнопка «Начать разговор» — акцент экрана без градиента */
+/* Кнопка «Начать разговор» — нейтральная, в тон .topic-option */
 #topic-confirm{
-  background:var(--accent);
-  color:#ffffff;
-  border:0;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14);
+  color:var(--text);
 }
-#topic-confirm:hover{ filter:brightness(1.06); opacity:1; transform:none; }
-#topic-confirm:active{ transform:scale(.98); filter:brightness(.95); }
+#topic-confirm:hover{ background:rgba(255,255,255,.11); opacity:1; transform:none; }
+#topic-confirm:active{ transform:scale(.98); }
 #topic-confirm:disabled{ opacity:.5; cursor:not-allowed; }
 
 /* ---------- МОДАЛКА «РАЗГОВОР» ---------- */
