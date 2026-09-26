@@ -312,7 +312,7 @@ button.link:hover { transform: none; opacity: 0.7; }
   color: var(--muted);
   font-size: 13px;
   line-height: 1.55;
-  margin: 8px 0;
+  margin: 14px 0 20px;
   font-weight: 500;
 }
 /* Верхнее пояснение в секции — по центру, как раньше заголовок */
@@ -4595,13 +4595,13 @@ h3{ font-size:18px; margin:14px 0 10px; }
 
 /* ---------- ПОЛАРОИДЫ ---------- */
 .polaroid-stage{
-  position:relative; height:240px;
+  position:relative; height:225px;
   margin:0 auto 6px;
-  max-width:385px;
+  max-width:355px;
 }
 .polaroid-stage .polaroid{
   position:absolute;
-  width:170px;
+  width:155px;
   background:#efe6dd;
   border-radius:6px;
   padding:8px 8px 28px;
@@ -4614,8 +4614,8 @@ h3{ font-size:18px; margin:14px 0 10px; }
   display:block;
 }
 .polaroid-stage .polaroid.me{
-  left:calc(50% - 178px);
-  top:22px;
+  left:calc(50% - 163px);
+  top:20px;
   transform:rotate(-8deg) translateX(var(--tx,0));
   --tx:0px;
   z-index:1;
