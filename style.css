@@ -4513,15 +4513,8 @@ body.screen-us{
 }
 
 /* Новый дизайн — dark-first. Светлая тема совпадает с тёмной */
-}
 
 /* ---------- ФОН И БЛОБЫ ---------- */
-body{
-  background:linear-gradient(160deg,var(--bg1),var(--bg2) 58%,var(--bg3));
-  background-attachment:fixed;
-  color:var(--text);
-  transition:background 700ms cubic-bezier(.22,.61,.36,1), color .3s;
-}
 body::before, body::after{
   content:""; position:fixed; border-radius:50%;
   filter:blur(54px); pointer-events:none; z-index:0;
