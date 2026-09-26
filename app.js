@@ -2842,7 +2842,7 @@ function buildConvCard(conv, partnerUid) {
   } else if (!myText && !partnerText) statusHtml = `<span class="status-dot waiting"></span> Никто ещё не написал`;
   else if (myText && !partnerText) statusHtml = `<span class="status-dot mine-done"></span> Вы написали, ждём партнёра`;
   else if (!myText && partnerText) statusHtml = `<span class="status-dot waiting"></span> Партнёр написал, ваша очередь`;
-  else if (conv.hasAgreement) statusHtml = `<span class="status-dot both-done"></span> ✓ Договорённость создана`;
+  else if (conv.hasAgreement) statusHtml = `<span class="status-dot both-done"></span> ✓ Закрыто`;
   else statusHtml = `<span class="status-dot both-done"></span> Оба написали — можно договориться`;
 
   card.innerHTML = `
@@ -2853,7 +2853,7 @@ function buildConvCard(conv, partnerUid) {
   `;
   card.onclick = () => openConversation(conv.id);
   const delBtn = card.querySelector('[data-action="delete-conv"]');
-  if (delBtn) delBtn.addEventListener("click", (e) => { e.stopPropagation(); deleteConversation(conv.id); });
+  if (delBtn) { if (conv.hasAgreement) delBtn.remove(); else delBtn.addEventListener("click", (e) => { e.stopPropagation(); deleteConversation(conv.id); }); }
   return card;
 }
 function openTopicModal() {
@@ -3045,7 +3045,7 @@ function openConversation(convId) {
     agreementBtn.classList.add("hidden");
   }
   const pauseBtn = $("conversation-pause-btn");
-  if (pauseBtn) pauseBtn.onclick = () => openPauseModal(conv.id);
+  if (pauseBtn) pauseBtn.onclick = () => openPauseModal(conv.id); if (conv.hasAgreement) { saveBtn.classList.add("hidden"); agreementBtn.classList.add("hidden"); pauseBtn.classList.add("hidden"); $("conversation-my-text").readOnly = true; } else { $("conversation-my-text").readOnly = false; }
   $("conversation-modal").classList.remove("hidden");
 }
 function closeConversationModal() {
