@@ -8078,9 +8078,9 @@ body::after {
 /* ===== МОБИЛЬНАЯ ПОСАДКА ПОЛАРОИДОВ (узкие экраны) ===== */
 @media (max-width: 600px) {
   .polaroid-stage { max-width: 100%; }
-  .polaroid-stage .polaroid { width: 116px; }
-  .polaroid-stage .polaroid.me { left: calc(50% - 126px); }
-  .polaroid-stage .polaroid.partner { left: calc(50% - 34px); }
-  .polaroid-stage .quick-ring { left: calc(100% - 2px); }
+  .polaroid-stage .polaroid { width: 126px; }
+  .polaroid-stage .polaroid.me { left: calc(50% - 130px); }
+  .polaroid-stage .polaroid.partner { left: calc(50% + 4px); }
+  .polaroid-stage .quick-ring { left: calc(100% - 8px); }
   .polaroid-stage .quick-ring .q-btn { width: 22px; height: 22px; }
 }
