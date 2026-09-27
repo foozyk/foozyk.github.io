@@ -354,74 +354,11 @@ button.link:hover { transform: none; opacity: 0.7; }
 #main-screen.active { padding: 0; }
 
 /* ===== ШАПКА ===== */
-.header {
-  position: relative;
-  padding: 30px 20px 34px;
-  background:
-    radial-gradient(circle at 20% 15%, rgba(255, 210, 180, 0.4) 0%, transparent 45%),
-    radial-gradient(circle at 85% 80%, rgba(200, 120, 90, 0.5) 0%, transparent 50%),
-    linear-gradient(160deg, #8b3a3a 0%, #b25a5a 40%, #c9a961 80%, #8b3a3a 100%);
-  color: #fff;
-  overflow: hidden;
-  border-radius: 0 0 28px 28px;
-}
-.header::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(1.5px 1.5px at 15% 20%, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1px 1px at 75% 65%, rgba(255,255,255,0.4), transparent),
-    radial-gradient(1.5px 1.5px at 45% 40%, rgba(255,255,255,0.45), transparent),
-    radial-gradient(1px 1px at 88% 25%, rgba(255,255,255,0.4), transparent),
-    radial-gradient(1px 1px at 30% 80%, rgba(255,255,255,0.3), transparent);
-  pointer-events: none;
-}
-
-.header-top {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  position: relative;
-  z-index: 2;
-  margin-bottom: 14px;
-  min-height: 40px;
-}
-
-.gear-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  color: #fff;
-  cursor: pointer;
-  position: relative;
-  transition: transform 0.3s ease, background 0.2s;
-  padding: 0;
-  box-shadow: none;
-}
-.gear-btn:hover { opacity: 1; transform: scale(1.05); }
-.gear-btn:active { transform: scale(0.92); }
 .gear-btn.open {
   background: rgba(255,255,255,0.3);
   transform: rotate(90deg);
 }
 
-.header-polaroids {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding: 16px 0 22px;
-}
 .polaroid {
   background: #faf5ea;
   padding: 7px 7px 32px;
@@ -476,22 +413,6 @@ button.link:hover { transform: none; opacity: 0.7; }
   }
 }
 
-.polaroid-img {
-  width: 118px;
-  height: 118px;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 56px;
-  line-height: 1;
-  overflow: hidden;
-}
-.polaroid-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
 .polaroid-caption {
   position: absolute;
   bottom: 3px;
@@ -504,79 +425,6 @@ button.link:hover { transform: none; opacity: 0.7; }
   color: #3a2a1a;
   letter-spacing: 0.5px;
 }
-.tape {
-  display: none;
-}
-
-.header-title {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-}
-.header-headline {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-weight: 500;
-  font-size: 44px;
-  line-height: 1;
-  color: #fff;
-  margin-bottom: 12px;
-  text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-  letter-spacing: -0.5px;
-}
-
-.ornament {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-.ornament-line {
-  width: 40px;
-  height: 1px;
-  background: rgba(255,255,255,0.45);
-}
-.ornament-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.7);
-}
-.ornament-text {
-  font-family: 'Manrope', sans-serif;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.85);
-  letter-spacing: 3.5px;
-  text-transform: uppercase;
-}
-
-.header-days {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-.header-days-num {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-weight: 500;
-  font-size: 60px;
-  color: #fff;
-  line-height: 1;
-  text-shadow: 0 0 24px rgba(255, 220, 200, 0.5);
-}
-.header-days-lbl {
-  font-family: 'Manrope', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.75);
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  margin-left: 0;
-}
-
 /* Меню шестерёнки */
 .backdrop {
   position: fixed;
@@ -693,18 +541,6 @@ button.link:hover { transform: none; opacity: 0.7; }
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
-.progress-wrap {
-  height: 6px;
-  background: var(--card);
-  border-radius: 100px;
-  overflow: hidden;
-  margin-bottom: 6px;
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--glass-border);
-  max-width: 320px;
-  margin-left: auto;
-  margin-right: auto;
-}
 .progress-bar {
   height: 100%;
   background: linear-gradient(90deg, var(--accent) 0%, var(--accent-alt) 50%, var(--accent-gold) 100%);
@@ -723,11 +559,6 @@ button.link:hover { transform: none; opacity: 0.7; }
 }
 
 /* ===== ВИДЖЕТЫ ===== */
-.widgets-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
-}
 .moon-widget, .weather-widget {
   flex: 1;
   display: flex;
@@ -742,7 +573,6 @@ button.link:hover { transform: none; opacity: 0.7; }
   border: 1px solid var(--glass-border);
 }
 .moon-icon, .weather-icon { font-size: 26px; line-height: 1; }
-.moon-info, .weather-info { min-width: 0; }
 .moon-phase, .weather-temp {
   font-size: 12.5px; font-weight: 700; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -790,18 +620,6 @@ button.link:hover { transform: none; opacity: 0.7; }
 .moon-week-icon { font-size: 17px; line-height: 1.2; margin: 2px 0; }
 .moon-week-num { font-size: 10.5px; color: var(--text); font-weight: 600; }
 
-.moon-advice {
-  display: flex; gap: 10px; align-items: flex-start;
-  padding: 12px 14px;
-  background: var(--card);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--glass-border);
-  border-radius: 18px;
-  margin-bottom: 22px;
-  box-shadow: var(--shadow-sm);
-}
-.moon-advice-icon { font-size: 17px; flex-shrink: 0; }
 .moon-advice-text {
   font-size: 12.5px; color: var(--accent); line-height: 1.45; font-weight: 600;
 }
@@ -1346,30 +1164,6 @@ button.link:hover { transform: none; opacity: 0.7; }
 }
 
 /* ===== НИЖНЯЯ НАВИГАЦИЯ ===== */
-.bottom-nav {
-  position: fixed;
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 24px);
-  max-width: 520px;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  gap: 2px;
-  padding: 8px;
-  border-radius: 28px;
-  box-shadow:
-    0 12px 40px rgba(200, 120, 110, 0.18),
-    0 2px 8px rgba(0, 0, 0, 0.04);
-  z-index: 100;
-  transition: background 0.3s, border-color 0.3s;
-}
-
 .bottom-nav-item {
   position: relative;
   flex: 1;
@@ -1865,56 +1659,7 @@ body:not(.dark) .truth-level-btn {
    ========================================================== */
 
 /* Инфо-строка */
-.info-strip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(200, 120, 110, 0.08);
-  margin-bottom: 12px;
-  font-size: 12px;
-}
-.info-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-soft);
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 12px;
-  min-width: 0;
-}
-.info-item .ico {
-  font-size: 15px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.info-divider {
-  width: 1px;
-  height: 14px;
-  background: rgba(178, 90, 90, 0.2);
-  flex-shrink: 0;
-}
-
 /* Тонкая строка совета дня */
-.tip-line {
-  font-size: 11.5px;
-  color: var(--muted);
-  text-align: center;
-  margin-bottom: 14px;
-  padding: 0 8px;
-  line-height: 1.4;
-  font-style: italic;
-}
-.tip-line .tip-emoji { margin-right: 4px; }
-
 /* Плашки */
 /* Вопрос дня */
 .question-card {
@@ -1927,14 +1672,6 @@ body:not(.dark) .truth-level-btn {
   box-shadow: 0 8px 32px rgba(200, 120, 110, 0.14);
   margin-bottom: 16px;
 }
-.question-label {
-  font-size: 10px;
-  color: var(--accent, #b25a5a);
-  font-weight: 800;
-  margin-bottom: 10px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
 .question-card #current-question {
   font-family: 'Bodoni Moda', serif;
   font-style: italic;
@@ -1945,12 +1682,6 @@ body:not(.dark) .truth-level-btn {
   margin: 0;
   letter-spacing: -0.3px;
 }
-.mood-partner-name {
-  color: var(--text);
-  font-weight: 700;
-  font-style: normal;
-}
-
 /* ===== Строка «тема + прогресс» ===== */
 .progress-row {
   display: flex;
@@ -4959,8 +4690,6 @@ h3{ font-size:18px; margin:14px 0 10px; }
 }
 
 /* ---------- НИЖНЯЯ НАВИГАЦИЯ ---------- */
-.bottom-nav{ display:none !important; }
-
 .nav{
   position:fixed;
   left:50%;
@@ -5049,8 +4778,6 @@ button.link{
 button.link:hover{ color:var(--text); }
 
 /* Скрыть мёртвую старую шапку, если где-то осталась */
-.header{ display:none !important; }
-
 /* ---------- ЭКРАН ЗАГРУЗКИ / AUTH ---------- */
 #loading{ color:var(--muted); }
 #auth-screen h1{
