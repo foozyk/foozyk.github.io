@@ -2444,11 +2444,6 @@ body:has(.modal:not(.hidden)) {
   transform: none;
   opacity: 0.9;
 }
-.info-strip-b .ico {
-  font-size: 12px;
-  line-height: 1;
-  opacity: 0.9;
-}
 .info-strip-b .info-item .icon {
   width: 14px;
   height: 14px;
