@@ -1,10 +1,10 @@
 /* ==========================================================
-   НАШ ГОД — Service Worker (v23)
+   НАШ ГОД — Service Worker (v24)
    - clean-slate кэш (как в v22)
    - push-уведомления (Web Push VAPID)
    ========================================================== */
 
-const CACHE_NAME = "nash-god-v23";
+const CACHE_NAME = "nash-god-v24";
 
 const ASSETS = [
   "./",

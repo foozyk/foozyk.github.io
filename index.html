@@ -9,19 +9,20 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#171516">
+  <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Наш год">
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=12">
   <script src="confetti.browser.min.js"></script>
 </head>
 <body>
-  <!-- ===== ЗАСТАВКА ===== -->
-  <div id="splash" aria-hidden="true">
+
+  <div id="loading" class="screen active">
     <div class="splash-inner">
-      <svg viewBox="0 0 512 512" class="splash-logo" aria-hidden="true">
+      <svg viewBox="0 0 512 512" class="splash-logo" width="132" height="132" aria-hidden="true">
         <rect width="512" height="512" rx="112" fill="#171516"/>
         <g fill="none" stroke="#b25a5a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
           <path d="M110 160 L170 256 L110 352"/>
@@ -36,9 +37,6 @@
       <div class="splash-sub">365 вопросов друг другу</div>
     </div>
   </div>
-  <!-- ===== /ЗАСТАВКА ===== -->
-
-  <div id="loading" class="screen active"><p>Загрузка...</p></div>
 
   <div id="onboarding-screen" class="screen">
     <div class="onboarding">
@@ -860,26 +858,5 @@
   </script>
 
   <script type="module" src="app.js"></script>
-<script>
-(() => {
-  const MIN_MS = 700;
-  const MAX_MS = 4500;
-  const t0 = performance.now();
-  let done = false;
-  function hideSplash(){
-    if (done) return;
-    done = true;
-    const wait = Math.max(0, MIN_MS - (performance.now() - t0));
-    setTimeout(() => {
-      const s = document.getElementById('splash');
-      if (!s) return;
-      s.classList.add('hide');
-      setTimeout(() => s.remove(), 700);
-    }, wait);
-  }
-  window.__hideSplash = hideSplash;
-  setTimeout(hideSplash, MAX_MS);
-})();
-</script>
 </body>
 </html>
