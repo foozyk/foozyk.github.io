@@ -178,7 +178,6 @@ const screens = {
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.remove("active"));
   screens[name].classList.add("active");
-  if (name !== "loading" && window.__hideSplash) window.__hideSplash();
 }
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -1522,7 +1521,73 @@ function initNotifications() {
   $("notif-btn").onclick = toggleNotifications;
   setInterval(checkReminder, 60000);
   checkReminder();
+  if (localStorage.getItem("notif-enabled") === "1" && typeof Notification !== "undefined" && Notification.permission === "granted") {
+    registerPushSubscription();
+  }
 }
+
+/* ---------- Web Push (VAPID) ---------- */
+const VAPID_PUBLIC_KEY = "BFhoiRSlifBwf9BDkR5CxiaanhPzenpaxEIKInodx0vawXYSzs26tbROTjPwPuWJRIRSYgFZi90uGZiwyzhFDN4";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function registerPushSubscription() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    console.log("Push не поддерживается этим браузером");
+    return false;
+  }
+  if (!currentUser) {
+    console.log("Push: нет currentUser — подписка отложена");
+    return false;
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const json = sub.toJSON();
+    await setDoc(doc(db, "push_subscriptions", currentUser.uid), {
+      subscription: json,
+      uid: currentUser.uid,
+      coupleId: currentCoupleId || null,
+      updatedAt: serverTimestamp(),
+      userAgent: navigator.userAgent
+    });
+    console.log("Push subscription saved");
+    return true;
+  } catch (e) {
+    console.log("Push register error:", e);
+    return false;
+  }
+}
+
+async function unregisterPushSubscription() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+    }
+    if (currentUser) {
+      await deleteDoc(doc(db, "push_subscriptions", currentUser.uid));
+    }
+    console.log("Push unsubscribed");
+  } catch (e) {
+    console.log("Push unregister error:", e);
+  }
+}
+
 function updateNotifButton() {
   const enabled = localStorage.getItem("notif-enabled") === "1";
   const granted = typeof Notification !== "undefined" && Notification.permission === "granted";
@@ -1535,6 +1600,7 @@ async function toggleNotifications() {
   if (localStorage.getItem("notif-enabled") === "1") {
     localStorage.setItem("notif-enabled", "0");
     updateNotifButton();
+    unregisterPushSubscription();
     return;
   }
   if (typeof Notification === "undefined") {
@@ -1550,8 +1616,9 @@ async function toggleNotifications() {
   localStorage.setItem("notif-enabled", "1");
   updateNotifButton();
   try {
+    await registerPushSubscription();
     new Notification("Уведомления включены 💛", {
-      body: "Мы напомним вечером, если ты ещё не ответил(а) на вопрос дня.",
+      body: "Будем напоминать утром и вечером, если не ответишь.",
       icon: "./icon-192.png"
     });
   } catch (e) { console.log("Notif error:", e); }
