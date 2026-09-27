@@ -678,13 +678,6 @@ button.link:hover { transform: none; opacity: 0.7; }
 }
 
 /* ===== БЕЙДЖИ ===== */
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 18px;
-  justify-content: center;
-}
 .badge {
   background: var(--card);
   backdrop-filter: blur(14px);
@@ -700,20 +693,6 @@ button.link:hover { transform: none; opacity: 0.7; }
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
-.theme-badge {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-alt) 100%);
-  color: #fff;
-  border-color: var(--glass-border-soft);
-  font-weight: 800;
-  box-shadow: var(--shadow-glow);
-}
-.streak-badge {
-  background: linear-gradient(135deg, #ffb84d 0%, #d97706 100%);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.35);
-}
-
 .progress-wrap {
   height: 6px;
   background: var(--card);
@@ -1937,24 +1916,6 @@ body:not(.dark) .truth-level-btn {
 .tip-line .tip-emoji { margin-right: 4px; }
 
 /* Плашки */
-.badges-row {
-  display: flex;
-  justify-content: center;
-  gap: 5px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.badges-row .badge {
-  padding: 5px 12px;
-  font-size: 10px;
-}
-.badges-row .badge-accent {
-  background: linear-gradient(135deg, var(--accent, #b25a5a), var(--accent-alt, #e8a0a8));
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 3px 10px rgba(178, 90, 90, 0.3);
-}
-
 /* Вопрос дня */
 .question-card {
   padding: 22px 20px;
@@ -8073,6 +8034,7 @@ body::after {
 
 /* Когда пауза — чат скрывается, показывается ⏸ */
 .nav-btn[data-view="conversation"].has-pause .nav-icon .icon-chat { display: none; }
+.nav-btn[data-view="conversation"].has-pause .nav-icon .icon-pause { display: block; }
 
 /* ===== МОБИЛЬНАЯ ПОСАДКА ПОЛАРОИДОВ (узкие экраны) ===== */
 @media (max-width: 600px) {
@@ -8083,54 +8045,43 @@ body::after {
   .polaroid-stage .quick-ring { left: calc(100% - 8px); }
   .polaroid-stage .quick-ring .q-btn { width: 22px; height: 22px; }
 }
-.nav-btn[data-view="conversation"].has-pause .nav-icon .icon-pause { display: block; }
 
-/* ==================== ЗАСТАВКА (splash) ==================== */
-#splash{
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
+
+/* ---------- Splash ---------- */
+#loading{
   background: #171516;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 1;
-  transition: opacity .55s ease;
+  color: #faf5ea;
 }
-#splash.hide{
-  opacity: 0;
-  pointer-events: none;
-}
-#splash .splash-inner{
+#loading .splash-inner{
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  animation: splash-in .85s cubic-bezier(.22,.61,.36,1) both;
+  animation: splashIn .85s cubic-bezier(.22,.61,.36,1) both;
 }
-#splash .splash-logo{
+#loading .splash-logo{
   width: 132px;
   height: 132px;
   display: block;
+  border-radius: 28px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.5);
 }
-#splash .splash-title{
+#loading .splash-title{
   color: #faf5ea;
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-size: 32px;
-  font-weight: 400;
-  letter-spacing: .01em;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: .02em;
+  font-family: "DM Serif Display", serif;
 }
-#splash .splash-sub{
+#loading .splash-sub{
   color: #b9a79c;
-  font-family: 'Manrope', system-ui, sans-serif;
   font-size: 13px;
   letter-spacing: .08em;
 }
-@keyframes splash-in{
-  from{ opacity: 0; transform: scale(.94); }
-  to  { opacity: 1; transform: scale(1);   }
+@keyframes splashIn{
+  from { opacity: 0; transform: scale(.94); }
+  to   { opacity: 1; transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce){
-  #splash .splash-inner{ animation: none; }
-  #splash{ transition: none; }
+  #loading .splash-inner{ animation: none; }
 }
