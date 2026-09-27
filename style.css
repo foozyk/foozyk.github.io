@@ -80,7 +80,6 @@ h1, h2, h3 {
 }
 h1 { font-size: 34px; }
 h2 { font-size: 24px; margin: 20px 0 12px; }
-h3 { font-size: 19px; margin: 16px 0 10px; }
 p { margin-bottom: 10px; }
 a { color: var(--accent); }
 
@@ -90,10 +89,6 @@ a { color: var(--accent); }
   max-width: 640px;
   margin: 0 auto;
   min-height: 100vh;
-}
-.screen.active {
-  display: block;
-  animation: fadeIn 0.35s ease;
 }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
@@ -159,11 +154,6 @@ a { color: var(--accent); }
   font-size: 14px;
   font-weight: 600;
   box-shadow: none;
-}
-.tab.active {
-  background: var(--card-strong);
-  color: var(--accent);
-  box-shadow: var(--shadow-sm);
 }
 
 form { display: flex; flex-direction: column; gap: 10px; }
@@ -511,10 +501,6 @@ button.link:hover { transform: none; opacity: 0.7; }
   margin: 5px 14px;
 }
 .settings-item.danger { color: #ff9090; }
-.settings-item.danger .settings-icon {
-  background: rgba(255, 92, 92, 0.15);
-  border-color: rgba(255, 92, 92, 0.25);
-}
 
 /* ===== ВИДЫ ===== */
 #today-view, #conversation-view, #about-view {
@@ -625,22 +611,11 @@ button.link:hover { transform: none; opacity: 0.7; }
 }
 
 /* ===== ВОПРОС ДНЯ ===== */
-#current-question {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-size: 26px;
-  font-weight: 500;
-  line-height: 1.3;
-  color: var(--text);
-  margin: 22px 0 16px;
-  letter-spacing: -0.3px;
-}
 #my-answer {
   min-height: 120px;
   margin-bottom: 12px;
   font-family: 'Manrope', sans-serif;
 }
-#save-answer { width: 100%; margin-bottom: 8px; }
 #answer-status {
   text-align: center;
   font-weight: 600;
@@ -704,43 +679,8 @@ button.link:hover { transform: none; opacity: 0.7; }
 .empty-state-text { font-size: 13px; color: var(--muted); line-height: 1.5; font-weight: 500; }
 
 /* ===== РАЗГОВОРЫ ===== */
-.conv-section-title {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--accent);
-  margin: 22px 0 12px;
-}
 
-.add-agreement-btn {
-  width: 100%;
-  background: var(--card);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  color: var(--accent);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-sm);
-  font-size: 13.5px;
-  padding: 13px;
-  margin-bottom: 12px;
-  font-weight: 700;
-}
 
-.conv-card {
-  position: relative;
-  background: var(--card);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  padding: 16px 18px;
-  border-radius: 20px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--glass-border);
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.conv-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 .conv-card-title {
   font-family: 'Bodoni Moda', serif;
   font-size: 17px; font-weight: 500;
@@ -752,38 +692,9 @@ button.link:hover { transform: none; opacity: 0.7; }
   margin-bottom: 8px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.4px;
 }
-.conv-card-status {
-  font-size: 12.5px; color: var(--text-soft);
-  display: flex; align-items: center; gap: 6px; font-weight: 500;
-}
-.conv-delete-btn {
-  position: absolute; top: 12px; right: 12px;
-  background: transparent; color: var(--muted);
-  font-size: 15px; padding: 4px 8px;
-  border-radius: 10px; width: auto; height: auto;
-  line-height: 1; box-shadow: none;
-}
-.conv-delete-btn:hover { color: #c0392b; background: var(--card-strong); transform: none; }
 
-.status-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  display: inline-block; flex-shrink: 0;
-}
-.status-dot.waiting { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.6); }
-.status-dot.mine-done { background: #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.6); }
-.status-dot.both-done { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); }
 
 /* ===== ДОГОВОРЁННОСТИ ===== */
-.agreement-item {
-  background: var(--card);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  padding: 16px 18px;
-  border-radius: 20px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--glass-border);
-  margin-bottom: 10px;
-}
 .agreement-item.done { opacity: 0.55; }
 .agreement-title {
   font-family: 'Bodoni Moda', serif;
@@ -801,15 +712,6 @@ button.link:hover { transform: none; opacity: 0.7; }
   text-transform: uppercase; letter-spacing: 0.4px;
 }
 .agreement-actions { display: flex; gap: 8px; }
-.agreement-actions button {
-  flex: 1; font-size: 12px;
-  padding: 9px 10px; border-radius: 12px;
-  box-shadow: var(--shadow-sm);
-}
-.done-btn {
-  background: linear-gradient(135deg, #5a8b5a 0%, #3d6b3d 100%);
-  box-shadow: 0 4px 14px rgba(61, 107, 61, 0.3);
-}
 .delete-btn {
   background: var(--input-bg);
   color: #c0392b;
@@ -819,51 +721,12 @@ button.link:hover { transform: none; opacity: 0.7; }
 .done-title { color: var(--muted); font-size: 15px; }
 
 /* ===== ПОД-ТАБЫ ===== */
-.sub-tabs {
-  display: flex; gap: 6px;
-  background: var(--card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  padding: 5px; border-radius: 18px;
-  margin: 16px 0 20px;
-  box-shadow: var(--shadow-sm);
-}
-.sub-tab {
-  flex: 1; background: transparent;
-  color: var(--muted);
-  padding: 10px 4px; border-radius: 14px;
-  font-size: 12px; font-weight: 600;
-  box-shadow: none;
-  white-space: nowrap;
-}
-.sub-tab:hover { transform: none; opacity: 1; }
-.sub-tab.active {
-  background: var(--card-strong);
-  color: var(--accent);
-  box-shadow: var(--shadow-sm);
-}
 
 /* ===== КВИЗ ===== */
-.quiz-card {
-  background: var(--card);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  padding: 18px;
-  border-radius: 22px;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--glass-border);
-  margin-bottom: 12px;
-}
 .quiz-card h3 {
   margin-top: 0; font-size: 17px;
   color: var(--accent); font-style: italic;
 }
-.status-line {
-  font-size: 13.5px; color: var(--text-soft);
-  margin-bottom: 12px; line-height: 1.5; font-weight: 500;
-}
-.status-line strong { color: var(--accent); font-weight: 700; }
 
 .quiz-progress {
   text-align: center; font-size: 12px;
@@ -907,25 +770,11 @@ button.link:hover { transform: none; opacity: 0.7; }
   background: var(--accent-soft);
   transform: translateY(-1px);
 }
-.quiz-score {
-  font-family: 'Bodoni Moda', serif;
-  font-size: 42px; font-weight: 500;
-  font-style: italic;
-  color: var(--accent); text-align: center; margin: 12px 0;
-}
 .quiz-breakdown-item {
   background: var(--input-bg);
   backdrop-filter: blur(14px);
   padding: 14px; border-radius: 16px;
   margin-bottom: 8px; border: 1px solid var(--glass-border);
-}
-.quiz-breakdown-item .q-text {
-  font-size: 13.5px; font-weight: 700;
-  color: var(--text); margin-bottom: 8px; line-height: 1.4;
-}
-.quiz-breakdown-item .ans {
-  font-size: 12.5px; padding: 3px 0;
-  display: flex; align-items: center; gap: 6px; font-weight: 500;
 }
 .quiz-breakdown-item .ans.you { color: #3b82f6; }
 .quiz-breakdown-item .ans.partner { color: #22c55e; }
@@ -948,47 +797,8 @@ button.link:hover { transform: none; opacity: 0.7; }
   transition: width 0.35s;
   box-shadow: 0 0 10px rgba(232, 160, 168, 0.5);
 }
-.lovelang-primary {
-  font-family: 'Bodoni Moda', serif;
-  font-size: 30px; font-weight: 500;
-  font-style: italic;
-  color: var(--accent); text-align: center; margin: 8px 0 20px;
-}
-.lovelang-score-row {
-  display: grid; grid-template-columns: 110px 1fr 40px;
-  align-items: center; gap: 10px;
-  margin-bottom: 10px; font-size: 12.5px;
-}
-.lovelang-score-row .label { color: var(--text); font-weight: 600; }
-.lovelang-score-row .bar {
-  height: 8px; background: var(--input-bg);
-  border-radius: 100px; overflow: hidden;
-  border: 1px solid var(--glass-border);
-}
-.lovelang-score-row .bar > div {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-alt) 100%);
-  border-radius: 100px;
-  box-shadow: 0 0 8px rgba(232, 160, 168, 0.4);
-}
-.lovelang-score-row .num { color: var(--muted); font-weight: 700; text-align: right; }
-.lovelang-line { font-size: 13.5px; margin-bottom: 4px; color: var(--text); }
-.lovelang-line strong { color: var(--muted); font-weight: 600; }
 
 /* ===== СТАТИСТИКА ===== */
-.stats-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 10px; margin-bottom: 20px;
-}
-.stat-card {
-  background: var(--card);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  padding: 16px 12px;
-  border-radius: 20px; text-align: center;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--glass-border);
-}
 .stat-value {
   font-family: 'Bodoni Moda', serif;
   font-size: 26px; font-weight: 500;
@@ -997,52 +807,11 @@ button.link:hover { transform: none; opacity: 0.7; }
   margin-bottom: 4px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.stat-value.text { font-size: 15px; padding-top: 6px; font-style: normal; }
-.stat-label {
-  font-size: 10.5px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;
-}
 
 /* ===== ПУЛЬС МЕСЯЦА (сетка дней) ===== */
 /* ===== ИСТОРИЯ ===== */
-.history-item {
-  background: var(--card);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  padding: 16px 18px;
-  border-radius: 20px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--glass-border);
-  margin-bottom: 10px;
-}
-.history-day {
-  font-size: 11px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.6px;
-  font-weight: 700; margin-bottom: 6px;
-}
-.history-question {
-  font-family: 'Bodoni Moda', serif;
-  font-size: 16px; font-weight: 500;
-  color: var(--text); margin-bottom: 10px; line-height: 1.4;
-}
-.history-answer {
-  font-size: 13.5px; line-height: 1.55;
-  padding: 8px 0;
-  border-top: 1px solid var(--glass-border);
-  word-wrap: break-word;
-}
-.history-answer strong {
-  color: var(--accent); font-weight: 700;
-  display: inline-block; margin-right: 4px;
-}
-.history-answer.empty { color: var(--muted); font-style: italic; }
 
 /* ===== ЭКСПОРТ PDF ===== */
-.export-pdf-btn {
-  width: 100%;
-  background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%);
-  margin-bottom: 14px; font-size: 14px; padding: 16px;
-}
 
 .pdf-render-container {
   position: fixed; left: -9999px; top: 0;
@@ -1143,25 +912,7 @@ button.link:hover { transform: none; opacity: 0.7; }
 
 /* .topic-list и .topic-option — см. актуальные правила в конце файла (тёмная тема) */
 
-.conversation-partner-text {
-  background: var(--input-bg);
-  backdrop-filter: blur(14px);
-  padding: 14px 16px;
-  border-radius: 16px;
-  font-size: 14px; line-height: 1.55;
-  color: var(--text-soft);
-  margin-bottom: 12px;
-  word-wrap: break-word; white-space: pre-wrap;
-  min-height: 60px;
-  border: 1px solid var(--glass-border);
-  font-style: italic;
-}
 .conv-date { margin-top: -6px; margin-bottom: 14px; font-weight: 600; }
-.make-agreement-btn {
-  background: linear-gradient(135deg, #5a8b5a 0%, #3d6b3d 100%);
-  width: 100%; margin-top: 6px;
-  box-shadow: 0 6px 20px rgba(61, 107, 61, 0.3);
-}
 
 /* ===== НИЖНЯЯ НАВИГАЦИЯ ===== */
 .bottom-nav-item {
@@ -1218,41 +969,16 @@ button.link:hover { transform: none; opacity: 0.7; }
 /* ==========================================================
    ПРАВДА ИЛИ ДЕЙСТВИЕ
    ========================================================== */
-.truth-level-btn {
-  display: block; width: 100%;
-  padding: 22px 24px;
-  background: rgba(40, 25, 32, 0.55);
-  border: 1px solid rgba(232, 160, 168, 0.15);
-  border-radius: 20px;
-  cursor: pointer;
-  margin-bottom: 12px;
-  text-align: center;
-  transition: all 0.22s ease;
-  font-family: inherit;
-  color: inherit;
-  position: relative;
-  overflow: hidden;
-  box-shadow: none;
-}
 body:not(.dark) .truth-level-btn {
   background: var(--card);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-}
-.truth-level-btn:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent);
-  opacity: 1;
-  box-shadow: var(--shadow);
 }
 .truth-level-btn::before {
   content: ''; position: absolute; inset: 0;
   opacity: 0.15; pointer-events: none; transition: opacity 0.22s;
 }
 .truth-level-btn:hover::before { opacity: 0.25; }
-.truth-level-btn.level-1 { border-color: rgba(120, 190, 130, 0.25); }
-.truth-level-btn.level-2 { border-color: rgba(230, 180, 100, 0.25); }
-.truth-level-btn.level-3 { border-color: rgba(232, 100, 120, 0.3); }
 .truth-level-btn.level-1::before { background: radial-gradient(circle at 50% 50%, rgba(120, 190, 130, 0.6) 0%, transparent 70%); }
 .truth-level-btn.level-2::before { background: radial-gradient(circle at 50% 50%, rgba(230, 180, 100, 0.6) 0%, transparent 70%); }
 .truth-level-btn.level-3::before { background: radial-gradient(circle at 50% 50%, rgba(232, 100, 120, 0.6) 0%, transparent 70%); }
@@ -1270,16 +996,6 @@ body:not(.dark) .truth-level-btn {
   display: block; position: relative; z-index: 1;
 }
 
-.truth-progress {
-  text-align: center; font-size: 12px;
-  color: var(--muted); letter-spacing: 0.8px;
-  margin-bottom: 18px; text-transform: uppercase; font-weight: 700;
-}
-#truth-choose { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
-.truth-pick-btn {
-  padding: 18px; font-size: 16px;
-  font-weight: 700; letter-spacing: 0.3px; border-radius: 20px;
-}
 #truth-pick-truth {
   background: linear-gradient(135deg, #8b6da8 0%, #6a4d8a 100%);
   box-shadow: 0 8px 24px rgba(106, 77, 138, 0.35);
@@ -1288,77 +1004,18 @@ body:not(.dark) .truth-level-btn {
   background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
   box-shadow: 0 8px 24px rgba(180, 83, 9, 0.35);
 }
-#truth-card {
-  background: var(--card);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  padding: 24px; border-radius: 24px;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--glass-border);
-  margin-bottom: 16px;
-  animation: cardPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
 @keyframes cardPop {
   from { opacity: 0; transform: scale(0.92); }
   to { opacity: 1; transform: scale(1); }
-}
-.truth-card-type {
-  display: inline-block;
-  padding: 5px 14px; border-radius: 100px;
-  font-size: 10.5px; font-weight: 800;
-  letter-spacing: 1.5px; text-transform: uppercase;
-  color: white; margin-bottom: 16px;
-  background: linear-gradient(135deg, #8b6da8 0%, #6a4d8a 100%);
-  box-shadow: 0 4px 14px rgba(106, 77, 138, 0.4);
-}
-.truth-card-type.dare {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.4);
-}
-.truth-card-text {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-size: 22px; font-weight: 500;
-  line-height: 1.4; color: var(--text); margin-bottom: 20px;
-}
-#truth-done {
-  background: linear-gradient(135deg, #5a8b5a 0%, #3d6b3d 100%);
-  margin-bottom: 8px;
-  box-shadow: 0 6px 20px rgba(61, 107, 61, 0.35);
 }
 .truth-final-emoji {
   font-size: 56px; text-align: center;
   margin-bottom: 12px;
   animation: cardPop 0.5s ease-out;
 }
-.truth-final-title {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-size: 30px; font-weight: 500;
-  color: var(--accent); text-align: center; margin-bottom: 8px;
-}
-.truth-final-score {
-  font-size: 15px; color: var(--muted);
-  text-align: center; margin-bottom: 24px; font-weight: 500;
-}
 
 /* ===== РЕТРОСПЕКТИВА ===== */
-.retro-btn {
-  background: linear-gradient(135deg, #8b6da8 0%, #6a4d8a 100%);
-  margin-bottom: 10px; font-size: 14px;
-  padding: 16px; width: 100%;
-  box-shadow: 0 8px 24px rgba(106, 77, 138, 0.35);
-}
 .retro-section { margin-bottom: 24px; }
-.retro-section-title {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-size: 18px; font-weight: 500;
-  color: var(--accent); margin-bottom: 12px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--glass-border);
-}
-.retro-numbers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .retro-number {
   background: var(--card);
   backdrop-filter: blur(14px);
@@ -1373,10 +1030,6 @@ body:not(.dark) .truth-level-btn {
   font-size: 24px; font-weight: 500;
   color: var(--accent); line-height: 1.1; margin-bottom: 4px;
 }
-.retro-number-label {
-  font-size: 10.5px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;
-}
 .retro-top-item {
   background: var(--card);
   backdrop-filter: blur(14px);
@@ -1386,21 +1039,10 @@ body:not(.dark) .truth-level-btn {
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--glass-border);
 }
-.retro-top-item strong { color: var(--accent); font-weight: 700; }
-.retro-top-item .retro-count { float: right; font-weight: 700; color: var(--accent); }
-.retro-words { display: flex; flex-wrap: wrap; gap: 8px; }
-.retro-word {
-  padding: 8px 14px; border-radius: 100px;
-  background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(232, 160, 168, 0.4) 100%);
-  color: var(--accent); font-weight: 700; line-height: 1;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--glass-border);
-}
 .retro-word.size-1 { font-size: 12px; }
 .retro-word.size-2 { font-size: 15px; }
 .retro-word.size-3 { font-size: 18px; }
 .retro-word.size-4 { font-size: 22px; }
-.retro-word.size-5 { font-size: 26px; font-family: 'Bodoni Moda', serif; }
 .retro-quote {
   background: var(--card);
   backdrop-filter: blur(14px);
@@ -1412,14 +1054,6 @@ body:not(.dark) .truth-level-btn {
   font-size: 16px; line-height: 1.55;
   color: var(--text);
   box-shadow: var(--shadow-sm);
-}
-.retro-quote .retro-quote-day {
-  display: block;
-  font-family: 'Manrope', sans-serif;
-  font-style: normal;
-  font-size: 10.5px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 1px;
-  margin-bottom: 6px; font-weight: 700;
 }
 .retro-empty {
   text-align: center; padding: 24px 16px;
@@ -1465,144 +1099,18 @@ body:not(.dark) .truth-level-btn {
 /* ==========================================================
    ХИТМАП ГОДА + ПРОСМОТР ДНЯ
    ========================================================== */
-.heatmap-card {
-  padding: 22px 20px; border-radius: 22px;
-  border: 1px solid var(--glass-border);
-  background: var(--card);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: var(--shadow); margin-bottom: 22px;
-}
-.hm-header {
-  display: flex; justify-content: space-between;
-  align-items: flex-start; margin-bottom: 18px; gap: 10px;
-}
-.hm-title {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-size: 20px; font-weight: 500;
-  color: var(--text);
-}
-.hm-subtitle {
-  font-size: 11px; color: var(--muted);
-  margin-top: 3px; font-weight: 500; letter-spacing: 0.2px;
-}
-.hm-streak {
-  display: flex; align-items: center; gap: 4px;
-  padding: 6px 10px;
-  background: linear-gradient(135deg, #ffb84d 0%, #d97706 100%);
-  border-radius: 100px; color: #fff;
-  font-size: 11px; font-weight: 800;
-  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.35);
-  flex-shrink: 0;
-}
 .hm-streak.hidden { display: none; }
-.hm-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
-.hm-stat {
-  text-align: center; padding: 10px 6px;
-  border-radius: 14px;
-  background: var(--input-bg);
-  border: 1px solid var(--glass-border);
-}
 .hm-stat-value {
   font-family: 'Bodoni Moda', serif;
   font-style: italic;
   font-size: 22px; font-weight: 500;
   color: var(--accent); line-height: 1; margin-bottom: 4px;
 }
-.hm-stat-label {
-  font-size: 9.5px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
-}
-.hm-scroll { overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
 .hm-scroll::-webkit-scrollbar { height: 4px; }
-.hm-scroll::-webkit-scrollbar-thumb { background: rgba(178, 90, 90, 0.3); border-radius: 4px; }
-.hm-months {
-  display: flex; margin-left: 26px; margin-bottom: 6px;
-  font-size: 10px; color: var(--muted);
-  font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.5px; min-width: max-content;
-}
 .hm-month { flex-shrink: 0; }
-.hm-grid-wrapper { display: flex; gap: 6px; min-width: max-content; }
-.hm-day-labels { display: flex; flex-direction: column; gap: 3px; padding-top: 1px; flex-shrink: 0; }
-.hm-day-label {
-  height: 11px; font-size: 9px;
-  color: var(--muted); font-weight: 700;
-  display: flex; align-items: center; text-transform: uppercase;
-}
-.hm-grid {
-  display: grid; grid-auto-flow: column;
-  grid-template-rows: repeat(7, 11px);
-  gap: 3px; flex-shrink: 0;
-}
-.hm-cell {
-  width: 11px; height: 11px;
-  border-radius: 3px;
-  transition: transform 0.15s, box-shadow 0.15s;
-  cursor: pointer;
-}
-.hm-cell:hover { transform: scale(1.4); z-index: 2; }
-.hm-cell.empty { background: rgba(200, 160, 155, 0.18); }
-.hm-cell.future {
-  background: rgba(200, 160, 155, 0.06);
-  border: 1px dashed rgba(200, 160, 155, 0.15);
-}
-.hm-cell.one { background: rgba(232, 160, 168, 0.5); }
-.hm-cell.both {
-  background: linear-gradient(135deg, #b25a5a, #e8a0a8);
-  box-shadow: 0 0 8px rgba(178, 90, 90, 0.3);
-}
-.hm-legend {
-  display: flex; align-items: center; gap: 6px;
-  margin-top: 16px; font-size: 10px; justify-content: flex-end;
-}
-.hm-legend-text { color: var(--muted); font-weight: 600; letter-spacing: 0.3px; }
 .hm-legend-cells { display: flex; gap: 3px; }
-.hm-legend-cells .hm-cell { width: 11px; height: 11px; cursor: default; }
 .hm-legend-cells .hm-cell:hover { transform: none; }
 
-.day-view-question {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-size: 19px; font-weight: 500;
-  color: var(--accent); line-height: 1.4;
-  margin-bottom: 18px;
-  padding: 14px 16px;
-  background: var(--input-bg);
-  border-radius: 16px;
-  border: 1px solid var(--glass-border);
-}
-.day-view-answers { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-.day-view-answer {
-  padding: 14px 16px 14px 20px;
-  border-radius: 16px;
-  background: var(--input-bg);
-  border: 1px solid var(--glass-border);
-  position: relative;
-}
-.day-view-answer::before {
-  content: '';
-  position: absolute; left: 0; top: 12px; bottom: 12px;
-  width: 3px; border-radius: 0 3px 3px 0;
-  background: linear-gradient(180deg, var(--accent), var(--accent-alt));
-}
-.day-view-answer.partner::before {
-  background: linear-gradient(180deg, var(--accent-gold), var(--accent-alt));
-}
-.day-view-answer-label {
-  font-size: 10.5px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 1px;
-  font-weight: 800; margin-bottom: 6px;
-}
-.day-view-answer-text {
-  font-size: 14.5px; line-height: 1.55;
-  color: var(--text);
-  word-wrap: break-word; white-space: pre-wrap;
-}
-.day-view-answer-text:empty::before {
-  content: "—"; color: var(--muted); font-style: italic;
-}
 
 /* ===== ЧИТАЕМОСТЬ НЕАКТИВНЫХ В ТЁМНОЙ ТЕМЕ ===== */
 
@@ -1662,16 +1170,6 @@ body:not(.dark) .truth-level-btn {
 /* Тонкая строка совета дня */
 /* Плашки */
 /* Вопрос дня */
-.question-card {
-  padding: 22px 20px;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px rgba(200, 120, 110, 0.14);
-  margin-bottom: 16px;
-}
 .question-card #current-question {
   font-family: 'Bodoni Moda', serif;
   font-style: italic;
@@ -1793,11 +1291,6 @@ body:not(.dark) .truth-level-btn {
   border: 1px solid transparent;
 }
 
-#save-answer.state-idle {
-  background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent-alt) 100%);
-  color: #ffffff;
-  box-shadow: var(--shadow-glow);
-}
 
 #save-answer.state-saved {
   background: rgba(90, 139, 90, 0.15);
@@ -2137,21 +1630,12 @@ body:not(.dark) .app-banner__progress {
 /* ==========================================================
    ПОД-ПОД-ТАБЫ (внутри «Игры»)
    ========================================================== */
-.sub-sub-tabs {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 16px;
-}
 .sub-tab.sub-sub {
   flex: 1;
   padding: 8px 4px;
   font-size: 11px;
   border: 1px solid rgba(178, 90, 90, 0.15);
   background: rgba(255, 240, 235, 0.3);
-}
-.sub-tab.sub-sub.active {
-  border-color: var(--accent);
-  background: var(--card-strong);
 }
 
 /* ==========================================================
@@ -2570,40 +2054,9 @@ body:has(.modal:not(.hidden)) {
 /* ==========================================================
    ПРИМИРЕНИЕ — режим «Разговора»
    ========================================================== */
-:root {
-  --dialogue-accent: var(--accent, #4a7a9c);
-}
 
-.dialogue-start-btn {
-  display: block;
-  width: 100%;
-  padding: 16px 18px;
-  background: linear-gradient(180deg, #eef5fa 0%, #dceaf3 100%);
-  border: 1px solid rgba(74, 122, 156, 0.3);
-  border-radius: 16px;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 14.5px;
-  font-weight: 700;
-  cursor: pointer;
-  text-align: left;
-  margin-bottom: 12px;
-  transition: all 0.15s;
-  box-shadow: none;
-}
 
 /* old override removed */
-.dialogue-start-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(45, 95, 122, 0.15);
-  opacity: 1;
-}
-.dialogue-start-btn__title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 3px;
-}
 .dialogue-start-btn__sub {
   display: block;
   font-size: 11.5px;
@@ -2665,16 +2118,6 @@ body:has(.modal:not(.hidden)) {
   transform: scale(0.94);
 }
 
-.dialogue__subtitle {
-  font-family: 'Bodoni Moda', serif;
-  font-style: italic;
-  font-size: 22px;
-  font-weight: 500;
-  color: var(--text);
-  text-align: center;
-  margin-bottom: 16px;
-  line-height: 1.25;
-}
 
 .dialogue__mood-list {
   display: flex;
@@ -2682,66 +2125,13 @@ body:has(.modal:not(.hidden)) {
   gap: 8px;
   margin-bottom: 16px;
 }
-.dialogue-mood {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 16px;
-  background: rgba(255, 255, 255, 0.055);
-  border: 1.5px solid rgba(255, 255, 255, 0.09);
-  border-radius: 14px;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  transition: background .2s, border-color .2s;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  box-shadow: none;
-}
-.dialogue-mood:hover { border-color: var(--dialogue-accent); transform: none; opacity: 1; }
-.dialogue-mood.active {
-  background: rgba(74, 122, 156, 0.12);
-  border-color: var(--dialogue-accent);
-  color: var(--text);
-}
-.dialogue-mood__icon {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  color: var(--dialogue-accent);
-}
 
-.dialogue-btn {
-  display: block;
-  width: 100%;
-  padding: 15px;
-  border-radius: 16px;
-  border: none;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  color: #fff;
-  background: var(--accent);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent);
-  transition: all 0.15s;
-  margin-bottom: 8px;
-}
-.dialogue-btn:hover { transform: translateY(-1px); opacity: 0.95; }
 .dialogue-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
-.dialogue-btn--danger {
-  background: rgba(178, 90, 90, 0.08);
-  color: var(--accent);
-  border: 1px solid rgba(178, 90, 90, 0.25);
-  box-shadow: none;
-}
-.dialogue-btn--danger:hover { background: rgba(178, 90, 90, 0.15); }
 .dialogue-btn__sub {
   display: block;
   text-align: center;
@@ -2751,22 +2141,6 @@ body:has(.modal:not(.hidden)) {
   margin-top: -4px;
   margin-bottom: 10px;
 }
-.dialogue-link {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  text-align: center;
-  color: var(--dialogue-accent);
-  font-size: 13px;
-  font-weight: 600;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  margin-top: 4px;
-  text-decoration: underline;
-  box-shadow: none;
-}
-.dialogue-link:hover { opacity: 0.8; transform: none; }
 .dialogue-link--muted { color: var(--muted); }
 
 .dialogue__waiting { text-align: center; padding: 12px 0; }
@@ -2901,24 +2275,6 @@ body:has(.modal:not(.hidden)) {
 }
 .dialogue__secondary-link:hover { opacity: 0.7; transform: none; }
 
-.dialogue__context {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 100px;
-  background: rgba(74, 122, 156, 0.12);
-  border: 1px solid rgba(74, 122, 156, 0.28);
-  margin: 0 auto 18px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text);
-}
-.dialogue__context-icon {
-  width: 16px;
-  height: 16px;
-  color: var(--dialogue-accent);
-}
 .dialogue__partner-box {
   padding: 14px 16px;
   background: rgba(74, 122, 156, 0.07);
@@ -2975,22 +2331,6 @@ body:has(.modal:not(.hidden)) {
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 16px;
-}
-.dialogue__sign {
-  padding: 6px 14px;
-  border-radius: 100px;
-  font-size: 12px;
-  font-weight: 700;
-}
-.dialogue__sign--done {
-  background: rgba(90, 139, 90, 0.15);
-  color: #4a8b4a;
-  border: 1px solid rgba(90, 139, 90, 0.35);
-}
-.dialogue__sign--waiting {
-  background: rgba(74, 122, 156, 0.1);
-  color: var(--muted);
-  border: 1px dashed rgba(74, 122, 156, 0.3);
 }
 
 .dialogue__done { text-align: center; padding: 26px 0 18px; }
@@ -3106,40 +2446,9 @@ body:has(.modal:not(.hidden)) {
   font-size: 17px;
   color: var(--text);
 }
-.conv-card--reconcile .conv-card__icon {
-  width: 20px; height: 20px;
-  color: var(--dialogue-accent);
-}
-.conv-card--reconcile .conv-card__badge {
-  position: absolute;
-  top: 12px; right: 12px;
-  width: 16px; height: 16px;
-  color: var(--dialogue-accent);
-}
-.conv-card--reconcile .conv-card__badge svg {
-  width: 100%; height: 100%;
-  display: block;
-}
-.status-dot--invite {
-  background: #4a7a9c;
-  box-shadow: 0 0 8px rgba(74, 122, 156, 0.6);
-  animation: statusPulse 1.8s ease-in-out infinite;
-}
 @keyframes statusPulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.3); opacity: 0.6; }
-}
-.status-dot--talking {
-  background: #f59e0b;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
-}
-.status-dot--signing {
-  background: #a855f7;
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
-}
-.status-dot--done {
-  background: #22c55e;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
 }
 
 /* ==========================================================
@@ -3338,91 +2647,12 @@ body:not(.dark) #rhythm-view {
 #rhythm-view > .hint { margin: 0 0 18px; }
 
 /* Полоса пульса */
-.feed-pulse {
-  background: var(--card);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  border-radius: 22px;
-  padding: 18px 16px 14px;
-  box-shadow: var(--shadow);
-  margin-bottom: 18px;
-}
-.feed-pulse__head {
-  display: flex; justify-content: space-between; align-items: baseline;
-  margin-bottom: 14px; padding: 0 2px;
-}
-.feed-pulse__title {
-  font-family: 'Bodoni Moda', serif; font-style: italic;
-  font-size: 17px; font-weight: 500; color: var(--text);
-}
-.feed-pulse__hint {
-  font-size: 10px; font-weight: 800; letter-spacing: 0.8px;
-  text-transform: uppercase; color: var(--muted);
-}
-.feed-pulse__strip {
-  display: flex; gap: 4px; overflow-x: auto;
-  padding-bottom: 6px; scrollbar-width: none;
-}
 .feed-pulse__strip::-webkit-scrollbar { display: none; }
-.pulse-cell {
-  flex-shrink: 0; width: 36px;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  cursor: pointer; padding: 5px 3px;
-  border-radius: 12px; transition: background 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-.pulse-cell {
-  padding: 4px 2px 2px;
-  background: transparent;
-}
-.pulse-cell__emoji {
-  width: 32px; height: 32px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 17px; line-height: 1;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  position: relative;
-  transition: background 0.15s, border-color 0.15s;
-}
-.pulse-cell:hover .pulse-cell__emoji {
-  background: rgba(178, 90, 90, 0.12);
-}
-.pulse-cell.is-today .pulse-cell__emoji {
-  background: rgba(178, 90, 90, 0.18);
-  border-color: rgba(178, 90, 90, 0.35);
-}
-.pulse-cell__emoji.is-empty {
-  color: rgba(178, 90, 90, 0.35);
-  font-size: 13px; font-weight: 700;
-}
-.pulse-cell__emoji.has-mine::after {
-  content: ''; position: absolute; bottom: -3px; right: -3px;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid var(--card-strong);
-}
-.pulse-cell__marker {
-  height: 7px; display: flex; gap: 2px;
-  align-items: center; justify-content: center;
-}
-.marker-dot { width: 5px; height: 5px; border-radius: 50%; }
 .marker-dot.qod { background: var(--accent); }
 .marker-dot.conv { background: #4a7a9c; }
 .marker-dot.agr { background: #4a8b4a; }
 .marker-dot.reconcile { background: #8b6da8; }
-.marker-dot.note { background: var(--accent-gold); }
 
-.feed-pulse__legend {
-  display: flex; flex-wrap: wrap; gap: 10px 12px;
-  margin-top: 14px; padding-top: 12px;
-  border-top: 1px solid var(--glass-border);
-}
-.legend-item {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 10.5px; color: var(--muted);
-  font-weight: 600; letter-spacing: 0.2px;
-}
 .legend-item .marker-dot { width: 6px; height: 6px; }
 
 /* Чипсы фильтра */
@@ -3459,128 +2689,21 @@ body:not(.dark) #rhythm-view {
     margin: auto;
   }
 }
-.feed-chip {
-  flex-shrink: 0;
-  background: transparent;
-  color: var(--muted);
-  padding: 9px 14px;
-  border-radius: 14px;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  box-shadow: none;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.18s;
-  -webkit-tap-highlight-color: transparent;
-}
-.feed-chip:hover { transform: none; opacity: 1; color: var(--text-soft); }
-.feed-chip.active {
-  background: var(--card-strong);
-  color: var(--accent);
-  box-shadow: var(--shadow-sm);
-}
 
 /* Лента */
-.feed-timeline { display: flex; flex-direction: column; gap: 22px; }
-.feed-day {
-  display: flex; flex-direction: column; gap: 10px;
-  padding: 4px; border-radius: 16px;
-}
-.feed-day__head {
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 4px; margin-bottom: 2px;
-}
-.feed-day__dot {
-  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
-  box-shadow: 0 0 10px rgba(178, 90, 90, 0.5);
-}
 .feed-day__date {
   font-family: 'Bodoni Moda', serif; font-style: italic;
   font-size: 17px; font-weight: 500; color: var(--text);
 }
-.feed-day__weekday {
-  font-size: 10px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700;
-}
-.feed-day__moods { margin-left: auto; display: flex; gap: 5px; font-size: 16px; }
 .feed-day__moods span { line-height: 1; }
 
-.feed-card {
-  background: var(--card);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  display: flex; gap: 12px; align-items: flex-start;
-}
-.feed-card__icon {
-  width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 17px;
-}
-.feed-card__icon.qod { background: rgba(178, 90, 90, 0.15); }
-.feed-card__icon.conv { background: rgba(74, 122, 156, 0.18); }
-.feed-card__icon.agr { background: rgba(74, 139, 74, 0.18); }
-.feed-card__icon.reconcile { background: rgba(139, 109, 168, 0.18); }
-.feed-card__icon.note { background: rgba(201, 169, 97, 0.22); }
 .feed-card__body { flex: 1; min-width: 0; }
-.feed-card__type {
-  font-size: 9.5px; font-weight: 800; letter-spacing: 1.1px;
-  text-transform: uppercase; margin-bottom: 4px;
-}
 .feed-card__type.qod { color: var(--accent); }
-.feed-card__type.conv { color: var(--dialogue-accent); }
 .feed-card__type.agr { color: #4a8b4a; }
 .feed-card__type.reconcile { color: #8b6da8; }
 .feed-card__type.note { color: var(--accent-gold); }
-.feed-card__title {
-  font-family: 'Bodoni Moda', serif; font-size: 16px;
-  font-weight: 500; line-height: 1.35;
-  color: var(--text); margin-bottom: 5px;
-}
-.feed-card__text {
-  font-size: 13px; color: var(--text-soft); line-height: 1.55;
-  display: -webkit-box; -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical; overflow: hidden;
-}
-.feed-card__meta {
-  font-size: 11px; color: var(--muted);
-  margin-top: 8px; font-weight: 600;
-  letter-spacing: 0.2px;
-}
-.feed-card__mark {
-  position: absolute; top: 14px; right: 16px;
-  font-size: 13px; opacity: 0.75;
-}
-.feed-card--note {
-  background: linear-gradient(180deg, rgba(255, 250, 240, 0.92), rgba(253, 240, 220, 0.75));
-  border-color: rgba(201, 169, 97, 0.35);
-}
 
 /* Кнопка «+ Заметка» */
-.feed-day__actions { display: flex; justify-content: flex-end; padding: 0 4px; }
-.add-note-btn {
-  background: var(--card);
-  border: 1px dashed rgba(178, 90, 90, 0.4);
-  color: var(--accent);
-  padding: 8px 14px;
-  border-radius: 100px;
-  font-family: inherit;
-  font-size: 11.5px; font-weight: 700;
-  cursor: pointer; box-shadow: none;
-  transition: all 0.15s;
-  letter-spacing: 0.2px;
-}
-.add-note-btn:hover {
-  background: rgba(178, 90, 90, 0.08);
-  transform: translateY(-1px);
-}
 /* ==========================================================
    УРОК НЕДЕЛИ — карточка + модалка
    ========================================================== */
@@ -3655,13 +2778,6 @@ body:not(.dark) #rhythm-view {
   align-items: center;
   margin-bottom: 20px;
 }
-.lesson-modal__label {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  color: var(--accent-alt);
-}
 .lesson-modal__close {
   width: 32px !important;
   height: 32px;
@@ -3688,89 +2804,14 @@ body:not(.dark) #rhythm-view {
   margin-bottom: 20px;
   letter-spacing: -0.4px;
 }
-.lesson-modal__body p {
-  font-size: 15px;
-  line-height: 1.65;
-  color: var(--text-soft);
-  margin-bottom: 14px;
-}
 .lesson-modal__body p:last-child { margin-bottom: 0; }
-.lesson-try {
-  padding: 18px 20px;
-  margin-top: 20px;
-  background: linear-gradient(135deg, rgba(178, 90, 90, 0.15), rgba(232, 160, 168, 0.08));
-  border: 1px dashed rgba(232, 160, 168, 0.4);
-  border-radius: 18px;
-}
-.lesson-try__label {
-  font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  color: var(--accent-alt);
-  margin-bottom: 8px;
-}
-.lesson-try__text {
-  font-size: 14.5px;
-  line-height: 1.55;
-  color: var(--text);
-  font-weight: 500;
-}
-.lesson-modal__footer {
-  display: flex;
-  gap: 8px;
-  margin-top: 24px;
-}
-.lesson-modal__btn {
-  flex: 1;
-  padding: 14px;
-  border: none;
-  border-radius: 16px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: none;
-}
 .lesson-modal__btn--primary {
   background: linear-gradient(135deg, var(--accent-dark), var(--accent-alt));
   color: #1a0a0e;
   box-shadow: var(--shadow-glow);
 }
-.lesson-modal__btn--ghost {
-  background: rgba(232, 160, 168, 0.1);
-  color: var(--muted);
-}
 
 /* Список уроков в «Мы» */
-.lesson-item {
-  padding: 14px 18px;
-  background: var(--card);
-  border: 1px solid var(--glass-border);
-  border-radius: 18px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.lesson-item:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
-}
-.lesson-item__week {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--accent-alt);
-  margin-bottom: 5px;
-}
-.lesson-item__title {
-  font-family: 'Bodoni Moda', serif;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text);
-  line-height: 1.3;
-}
 
 /* ==========================================================
    ФИЧИ ВОЛНЫ 1 — пауза, тихий день, урок в моменте
@@ -3799,50 +2840,15 @@ body:not(.dark) #rhythm-view {
   padding: 0;
   box-shadow: none;
 }
-.quiet-icon:hover { transform: scale(1.08); color: var(--accent); border-color: var(--accent); opacity: 1; }
-.quiet-icon.is-active {
-  background: linear-gradient(135deg,#7a6d8a,#5a4a6a);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 4px 14px rgba(90,70,110,.4);
-}
 .quiet-icon svg { width: 17px; height: 17px; }
 
-.question-card.is-quiet {
-  background: linear-gradient(180deg, rgba(220,215,225,.5), rgba(200,195,210,.3));
-  border-color: rgba(140,130,155,.3);
-}
 .question-card.is-quiet .question-label,
 .question-card.is-quiet #current-question { display: none; }
 
-.quiet-state { display: none; text-align: center; padding: 6px 0; }
 .question-card.is-quiet .quiet-state { display: block; }
 .quiet-state__icon { font-size: 38px; line-height: 1; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(90,70,110,.35)); }
-.quiet-state__title { font-family: 'Bodoni Moda', serif; font-style: italic; font-size: 22px; color: #5a4a6a; margin-bottom: 6px; }
-.quiet-state__text { font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 280px; margin: 0 auto; }
 
 /* --- Кнопка «Мне нужно время» --- */
-.btn-pause {
-  width: 100%;
-  padding: 13px 18px;
-  border-radius: 16px;
-  font-size: 14px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: #8a6a4a;
-  background: rgba(138,106,74,.1);
-  border: 1px dashed rgba(138,106,74,.4);
-  cursor: pointer;
-  transition: all .15s;
-  margin-top: 12px;
-  font-family: inherit;
-  box-shadow: none;
-}
-.btn-pause:hover { background: rgba(138,106,74,.16); border-color: #8a6a4a; transform: none; opacity: 1; }
-.btn-pause svg { width: 16px; height: 16px; flex-shrink: 0; }
 
 /* --- Модалка паузы и тихого дня --- */
 .pause-modal__hero { text-align: center; padding: 8px 0 18px; }
@@ -3858,28 +2864,6 @@ body:not(.dark) #rhythm-view {
 .pause-modal__title { font-family: 'Bodoni Moda', serif; font-style: italic; font-size: 24px; color: var(--text); margin-bottom: 10px; }
 .pause-modal__text { font-size: 13.5px; color: var(--text-soft); line-height: 1.55; max-width: 340px; margin: 0 auto; }
 
-.pause-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 20px 0 8px; }
-.pause-option {
-  padding: 16px 12px;
-  border-radius: 16px;
-  text-align: center;
-  font-family: inherit;
-  background: var(--input-bg);
-  border: 1.5px solid var(--glass-border);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all .15s;
-  box-shadow: none;
-}
-.pause-option:hover { border-color: #8a6a4a; transform: none; opacity: 1; }
-.pause-option.active {
-  background: linear-gradient(135deg, rgba(138,106,74,.1), rgba(138,106,74,.18));
-  border-color: #8a6a4a;
-  color: #8a6a4a;
-  box-shadow: 0 4px 14px rgba(138,106,74,.2);
-}
 
 /* --- Состояние «пауза» внутри детали --- */
 .paused-state {
@@ -3913,20 +2897,6 @@ body:not(.dark) #rhythm-view {
 .paused-state__text { font-size: 13px; color: var(--text-soft); line-height: 1.5; max-width: 300px; margin: 0 auto 14px; }
 
 /* --- Бейдж паузы в карточке списка --- */
-.conv-card--paused { border-color: rgba(138,106,74,.35); }
-.conv-card__paused-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 100px;
-  background: rgba(138,106,74,.12);
-  color: #8a6a4a;
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: .4px;
-  text-transform: uppercase;
-}
 .status-dot.paused { background: #8a6a4a; box-shadow: 0 0 8px rgba(138,106,74,.5); }
 
 /* --- «Обучение в моменте» — подсказка урока --- */
@@ -4097,9 +3067,6 @@ body:not(.dark) #rhythm-view {
 }
 
 /* Для примирения — своя полоса в синей палитре */
-#dialogue-modal .modal-content::before {
-  background: linear-gradient(90deg, #4a7a9c 0%, #6aacc0 50%, #2d5f7a 100%);
-}
 
 /* ==========================================================
    СКРЫТИЕ ДУБЛИРУЮЩИХ «ОТМЕНА» / «ЗАКРЫТЬ»
@@ -4160,26 +3127,6 @@ body:not(.dark) #rhythm-view {
 }
 
 /* Палитры по состояниям и экранам */
-body.state-quiet{
-  --bg1:#1a1820; --bg2:#3d3548; --bg3:#7b6f8a; --accent:#8a7ba8;
-  --blob1:rgba(180,170,210,.14); --blob2:rgba(120,130,160,.12);
-}
-body.state-reconcile{
-  --bg1:#14181c; --bg2:#2a3742; --bg3:#5b7488; --accent:#6d8fa8;
-  --blob1:rgba(160,190,215,.14); --blob2:rgba(120,140,170,.12);
-}
-body.screen-talk{
-  --bg1:#141719; --bg2:#293338; --bg3:#59645e; --accent:#a9b7aa;
-  --blob1:rgba(155,180,173,.14); --blob2:rgba(196,158,139,.12);
-}
-body.screen-rhythm{
-  --bg1:#181514; --bg2:#3d322c; --bg3:#8a6a5a; --accent:#c08a72;
-  --blob1:rgba(220,180,150,.16); --blob2:rgba(180,130,110,.12);
-}
-body.screen-us{
-  --bg1:#151817; --bg2:#303b35; --bg3:#7d8b79; --accent:#b8b89c;
-  --blob1:rgba(185,190,155,.14); --blob2:rgba(184,143,125,.12);
-}
 
 /* Новый дизайн — dark-first. Светлая тема совпадает с тёмной */
 
@@ -4724,7 +3671,6 @@ h3{ font-size:18px; margin:14px 0 10px; }
 }
 .nav-btn:hover{ opacity:1; transform:none; background:transparent; }
 .nav-btn:active{ transform:scale(.94); }
-.nav-btn.active{ color:var(--text); background:rgba(255,255,255,.08); }
 .nav-icon{ font-size:15px; line-height:1; }
 .nav-label{ font-size:10px; }
 
