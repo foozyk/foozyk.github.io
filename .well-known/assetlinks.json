@@ -3,6 +3,6 @@
   "target": {
     "namespace": "android_app",
     "package_name": "io.github.foozyk.twa",
-    "sha256_cert_fingerprints": ["07:B4:94:C2:87:7A:90:47:69:83:6E:E5:B3:5A:4D:B3:D9:FA:D1:6E:57:86:C0:84:12:4E:16:57:CB:4E:94:6C"]
+    "sha256_cert_fingerprints": ["63:8E:E2:77:8B:44:16:3C:B1:B6:AB:2D:97:F3:FC:67:CE:FB:58:C8:21:68:5B:20:07:37:DC:BB:E9:A1:55:AC"]
   }
 }]
