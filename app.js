@@ -178,6 +178,7 @@ const screens = {
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.remove("active"));
   screens[name].classList.add("active");
+  if (name !== "loading" && window.__hideSplash) window.__hideSplash();
 }
 function escapeHtml(str) {
   const div = document.createElement("div");

@@ -1,9 +1,9 @@
 /* ==========================================================
-   НАШ ГОД — Service Worker (v21, clean-slate)
+   НАШ ГОД — Service Worker (v22, clean-slate)
    Самоочистка: сносим все старые кэши и снимаем себя.
    ========================================================== */
 
-const CACHE_NAME = "nash-god-v21";
+const CACHE_NAME = "nash-god-v22";
 
 const ASSETS = [
   "./",
@@ -16,7 +16,13 @@ const ASSETS = [
   "./firebase-config.js",
   "./manifest.json",
   "./confetti.browser.min.js",
-  "./icon-192.png"
+  "./icon.svg",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./icon-maskable.svg",
+  "./icon-maskable-192.png",
+  "./icon-maskable-512.png",
+  "./apple-touch-icon.png"
 ];
 
 self.addEventListener("install", (event) => {

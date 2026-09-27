@@ -8073,7 +8073,6 @@ body::after {
 
 /* Когда пауза — чат скрывается, показывается ⏸ */
 .nav-btn[data-view="conversation"].has-pause .nav-icon .icon-chat { display: none; }
-.nav-btn[data-view="conversation"].has-pause .nav-icon .icon-pause { display: block; }
 
 /* ===== МОБИЛЬНАЯ ПОСАДКА ПОЛАРОИДОВ (узкие экраны) ===== */
 @media (max-width: 600px) {
@@ -8083,4 +8082,55 @@ body::after {
   .polaroid-stage .polaroid.partner { left: calc(50% - 6px); }
   .polaroid-stage .quick-ring { left: calc(100% - 8px); }
   .polaroid-stage .quick-ring .q-btn { width: 22px; height: 22px; }
+}
+.nav-btn[data-view="conversation"].has-pause .nav-icon .icon-pause { display: block; }
+
+/* ==================== ЗАСТАВКА (splash) ==================== */
+#splash{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #171516;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity .55s ease;
+}
+#splash.hide{
+  opacity: 0;
+  pointer-events: none;
+}
+#splash .splash-inner{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  animation: splash-in .85s cubic-bezier(.22,.61,.36,1) both;
+}
+#splash .splash-logo{
+  width: 132px;
+  height: 132px;
+  display: block;
+}
+#splash .splash-title{
+  color: #faf5ea;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: .01em;
+}
+#splash .splash-sub{
+  color: #b9a79c;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 13px;
+  letter-spacing: .08em;
+}
+@keyframes splash-in{
+  from{ opacity: 0; transform: scale(.94); }
+  to  { opacity: 1; transform: scale(1);   }
+}
+@media (prefers-reduced-motion: reduce){
+  #splash .splash-inner{ animation: none; }
+  #splash{ transition: none; }
 }

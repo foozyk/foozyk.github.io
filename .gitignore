@@ -1,0 +1,5 @@
+node_modules/
+package.json
+package-lock.json
+*.bak
+_gen_icons.js
