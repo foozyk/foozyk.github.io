@@ -19,6 +19,7 @@ import { initLessons, renderLessonsList } from "./js/lessons-ui.js";
 import { state } from "./js/state.js";
 import { initWord, renderWordCard } from "./js/word-of-day.js";
 import { renderLessonHint, bindLessonHint } from "./js/lesson-hint.js";
+import { initQuietFeature, initSkipFeature, isQuietDay, applyQuietDayState, quietDayKey, skipDayKey, applySkipDayState, closeQuietModal, closeSkipModal } from "./js/day-states.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -99,6 +100,8 @@ Object.defineProperties(state, {
   cachedDayTime:   { get: () => cachedDayTime,   set: v => { cachedDayTime = v; } },
   db:              { get: () => db },
   auth:            { get: () => auth },
+  quietDayActive:  { get: () => quietDayActive,  set: v => { quietDayActive = v; } },
+  skipDayActive:   { get: () => skipDayActive,   set: v => { skipDayActive = v; } },
   getCurrentDay:   { get: () => getCurrentDay }
 });
 
@@ -628,7 +631,7 @@ function startDayWatcher() {
       renderWordCard();
       todayAnswers = [];
       updateTodayView();
-      quietDayActive = isQuietDay();
+      state.quietDayActive = isQuietDay();
       applyQuietDayState();
     }
   }, 60000);
@@ -1698,16 +1701,16 @@ function renderTodayMood() {
   const skip = todayMoods.skip || {};
   const mySkip = !!skip[currentUser.uid];
   const partnerSkip = !!skip[partnerUid];
-  if (mySkip !== skipDayActive) {
-    skipDayActive = mySkip;
+  if (mySkip !== state.skipDayActive) {
+    state.skipDayActive = mySkip;
     if (mySkip) localStorage.setItem(skipDayKey(), "1");
     else localStorage.removeItem(skipDayKey());
     applySkipDayState();
   }
 
   // Своё состояние: Firestore — источник истины
-  if (myQuiet !== quietDayActive) {
-    quietDayActive = myQuiet;
+  if (myQuiet !== state.quietDayActive) {
+    state.quietDayActive = myQuiet;
     if (myQuiet) localStorage.setItem(quietDayKey(), "1");
     else localStorage.removeItem(quietDayKey());
     applyQuietDayState();
@@ -5397,191 +5400,6 @@ function initPauseFeature() {
   if (confirm) confirm.onclick = confirmPause;
 }
 
-/* ==========================================================
-   ФИЧА №3 — «Тихий день»
-   ========================================================== */
-
-function quietDayKey() {
-  const d = new Date();
-  return `quiet-${currentCoupleId}-${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-}
-
-function isQuietDay() {
-  return localStorage.getItem(quietDayKey()) === "1";
-}
-
-async function setQuietDay(val) {
-  // 1. Сразу локально — мгновенный отклик UI
-  if (val) localStorage.setItem(quietDayKey(), "1");
-  else localStorage.removeItem(quietDayKey());
-  quietDayActive = val;
-  applyQuietDayState();
-
-  // Взаимоисключение с «Пропустить день»
-  if (val && skipDayActive) {
-    skipDayActive = false;
-    localStorage.removeItem(skipDayKey());
-    applySkipDayState();
-  }
-
-  // 2. Затем в Firestore — чтобы партнёр увидел
-  if (!currentCoupleId || !currentUser) return;
-  try {
-    const day = getCurrentDay();
-    const ref = doc(db, "couples", currentCoupleId, "moods", String(day));
-    const snap = await getDoc(ref);
-    const data = snap.exists() ? snap.data() : {};
-    const quiet = { ...(data.quiet || {}) };
-    if (val) quiet[currentUser.uid] = true;
-    else delete quiet[currentUser.uid];
-    await setDoc(ref, { day, quiet }, { merge: true });
-  } catch (e) {
-    console.error("Quiet day sync error:", e);
-  }
-}
-
-function applyQuietDayState() {
-  const card = $("questionCard");
-  const icon = $("quietIconBtn");
-  const area = $("answerArea");
-  document.body.classList.toggle("state-quiet", quietDayActive);
-  if (!card || !icon) return;
-  card.classList.toggle("is-quiet", quietDayActive);
-  icon.classList.toggle("is-active", quietDayActive);
-  if (area) area.classList.toggle("hidden", quietDayActive);
-}
-
-function openQuietModal() {
-  const m = $("quiet-modal");
-  if (m) m.classList.remove("hidden");
-  vibrate(10);
-}
-
-function closeQuietModal() {
-  const m = $("quiet-modal");
-  if (m) m.classList.add("hidden");
-}
-
-function initQuietFeature() {
-  quietDayActive = isQuietDay();
-  applyQuietDayState();
-
-  const icon = $("quietIconBtn");
-  if (icon) {
-    icon.onclick = () => {
-      if (quietDayActive) {
-        setQuietDay(false);
-        vibrate(10);
-      } else {
-        openQuietModal();
-      }
-    };
-  }
-
-  const backdrop = $("quiet-backdrop");
-  if (backdrop) backdrop.onclick = closeQuietModal;
-  const cancel = $("quiet-cancel");
-  if (cancel) cancel.onclick = closeQuietModal;
-  const confirm = $("quiet-confirm");
-  if (confirm) {
-    confirm.onclick = async () => {
-      closeQuietModal();
-      vibrate(15);
-      await setQuietDay(true);
-    };
-  }
-}
-
-
-
-/* ==========================================================
-   ЕДИНЫЙ ОБРАБОТЧИК КРЕСТИКА ЗАКРЫТИЯ МОДАЛОК
-   ========================================================== */
-
-
-/* ==========================================================
-   АНТИ-БОЛЬ — «Пропустить день»
-   ========================================================== */
-
-function skipDayKey() {
-  const d = new Date();
-  return `skip-${currentCoupleId}-${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-}
-
-function isSkipDay() {
-  return localStorage.getItem(skipDayKey()) === "1";
-}
-
-async function setSkipDay(val) {
-  if (val) localStorage.setItem(skipDayKey(), "1");
-  else localStorage.removeItem(skipDayKey());
-  skipDayActive = val;
-  applySkipDayState();
-  // Взаимоисключение с тихим днём
-  if (val && quietDayActive) await setQuietDay(false);
-  if (!currentCoupleId || !currentUser) return;
-  try {
-    const day = getCurrentDay();
-    const ref = doc(db, "couples", currentCoupleId, "moods", String(day));
-    const snap = await getDoc(ref);
-    const data = snap.exists() ? snap.data() : {};
-    const skip = { ...(data.skip || {}) };
-    if (val) skip[currentUser.uid] = true;
-    else delete skip[currentUser.uid];
-    await setDoc(ref, { day, skip }, { merge: true });
-  } catch (e) {
-    console.error("Skip day sync error:", e);
-  }
-}
-
-function applySkipDayState() {
-  const card = $("questionCard");
-  const icon = $("skipIconBtn");
-  const area = $("answerArea");
-  document.body.classList.toggle("state-skip", skipDayActive);
-  if (card) card.classList.toggle("is-skip", skipDayActive);
-  if (icon) icon.classList.toggle("is-active", skipDayActive);
-  if (area) area.classList.toggle("hidden", skipDayActive || quietDayActive);
-}
-
-function openSkipModal() {
-  const m = $("skip-modal");
-  if (m) m.classList.remove("hidden");
-  vibrate(10);
-}
-
-function closeSkipModal() {
-  const m = $("skip-modal");
-  if (m) m.classList.add("hidden");
-}
-
-function initSkipFeature() {
-  skipDayActive = isSkipDay();
-  applySkipDayState();
-  const icon = $("skipIconBtn");
-  if (icon) {
-    icon.onclick = () => {
-      if (skipDayActive) {
-        setSkipDay(false);
-        vibrate(10);
-      } else {
-        openSkipModal();
-      }
-    };
-  }
-  const backdrop = $("skip-backdrop");
-  if (backdrop) backdrop.onclick = closeSkipModal;
-  const cancel = $("skip-cancel");
-  if (cancel) cancel.onclick = closeSkipModal;
-  const confirm = $("skip-confirm");
-  if (confirm) {
-    confirm.onclick = async () => {
-      closeSkipModal();
-      vibrate(15);
-      await setSkipDay(true);
-    };
-  }
-}
 
 const MODAL_CLOSE_FNS = {
   closeProfileModal,
