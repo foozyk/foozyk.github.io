@@ -3828,13 +3828,9 @@ input:focus, textarea:focus{
 }
 
 /* Примирение — холодная палитра, синий акцент */
-#reconcile-btn{}
-/* removed */
 #reconcile-btn .dialogue-start-btn__title svg{ color:#6d8fa8; }
 
 /* «Начать разговор» — тёплый акцент */
-#new-conversation-btn{}
-/* removed */
 #new-conversation-btn .dialogue-start-btn__title svg{ color:var(--accent); }
 
 /* ---------- ЗАГОЛОВКИ СЕКЦИЙ ---------- */
