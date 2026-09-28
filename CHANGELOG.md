@@ -140,5 +140,13 @@ app.js: 5820 → 5461 стр. Механика: колбэки (bindLessonHint(c
 
 Осталось: Пауза в разговорах (~135 стр, 6-8 точек связи), Примирение, Ритм.
 
+---
+
+## v30.1 — 28.09.2026 — Вынос Паузы в js/pause.js
+
+- js/pause.js: 12 функций паузы в разговорах. Мост state расширен (ro): conversations, currentConversationId, _currentDialogueId, openConversation, renderDialogueContent.
+- app.js: 5461 → 5300 стр. Коммиты: nashgod 5e2d320, deploy b08b6b3.
+- БАГ при выносе: regex-замена имени conversations испортила строковый аргумент в doc() и не был импортирован Firebase. Фикс: nashgod 22c63f7, deploy c178f2f. Проверено — работает.
+
 Формат записи: `## vN — дата — краткое название`, далее подразделы по типам правок.*
 *Хочешь проверить, что было в предыдущих версиях — ищи в HANDOFF.md или git log.*

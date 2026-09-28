@@ -186,13 +186,13 @@ Deploy-репо: Set-Location -LiteralPath 'C:\Users\Юлия\Desktop\_tmp_ghio'
 - Размер: 181 392 б
 
 ### Текущее состояние репо (28.09.2026)
-- nashgod HEAD: 67a73d6; deploy HEAD: f455a05
+- nashgod HEAD: 22c63f7; deploy HEAD: c178f2f
 - Оба ## main...origin/main (синхронны, дерево чистое)
 - Сайт работает
 
 ### Рефакторинг app.js — вынос модулей (28.09.2026)
 Стратегия: мост js/state.js (Object.defineProperties, геттеры/сеттеры) — app.js владеет переменными, модули читают/пишут через state.*. Вынос секции = удалить блок из app.js, создать модуль, добавить импорт. Проверки после каждого: node --check app.js + модуль, node tools/check.js, ручная проверка в приложении.
-Вынесено: js/state.js (мост), js/word-of-day.js (108 стр), js/lesson-hint.js (69 стр), js/day-states.js (182 стр). app.js: 5820 → 5461 стр.
+Вынесено: js/state.js (мост), js/word-of-day.js (108 стр), js/lesson-hint.js (69 стр), js/day-states.js (182 стр), js/pause.js (111 стр). app.js: 5820 → 5300 стр. ГРАБЛИ: regex-замена имени conversations попала в строку внутри doc() и порвала путь Firestore; импорты Firebase в модуль добавлять вручную.
 Приём: колбэк вместо прямой связи (bindLessonHint(conv, renderDialogueContent)); для флагов — state.quietDayActive/skipDayActive (rw).
 Скрипт выноса: .cjs (НЕ .mjs — require), p=process.argv[2], границы по номерам строк, латиница в коде.
 
@@ -208,5 +208,5 @@ Deploy-репо: Set-Location -LiteralPath 'C:\Users\Юлия\Desktop\_tmp_ghio'
 - [ВЫПОЛНЕНО] Вынос js/word-of-day.js (Слово дня, 108 стр). nashgod c139ca8.
 - [ВЫПОЛНЕНО] Вынос js/lesson-hint.js (Обучение в моменте, 69 стр). nashgod fc6b367.
 - [ВЫПОЛНЕНО] Вынос js/day-states.js (Тихий день + Пропустить день, 182 стр). nashgod 67a73d6.
-- [ОСТАЛОСЬ] Пауза в разговорах (~135 стр, блок 5244-5401) — СЛОЖНАЯ: 6-8 точек связи с ядром (conversations, currentConversationId, _currentDialogueId, openConversation, renderDialogueContent). Выносить аккуратно с колбэками.
+- [ВЫПОЛНЕНО] Вынос js/pause.js (Пауза, 111 стр). nashgod 5e2d320, фикс 22c63f7.
 - Далее: Примирение (~969 стр), Ритм, ядро 1-3450.
