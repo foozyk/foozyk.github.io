@@ -18,6 +18,7 @@ import { initMoonModal, openMoonModal, closeMoonModal } from "./js/moon.js";
 import { initLessons, renderLessonsList } from "./js/lessons-ui.js";
 import { state } from "./js/state.js";
 import { initWord, renderWordCard } from "./js/word-of-day.js";
+import { renderLessonHint, bindLessonHint } from "./js/lesson-hint.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -84,7 +85,6 @@ let _selectedPulseEmoji = null;
 let pauseTimerInterval = null;
 let _pauseTargetConvId = null;
 let _pauseSelectedMinutes = 30;
-let _lessonExpanded = false;
 let _pendingTopic = null;
 
 /* ---------- МОСТ СОСТОЯНИЯ (C-4) ---------- */
@@ -4305,7 +4305,7 @@ function renderDialoguePartnerScreen(conv) {
       </div>
     </div>
   `;
-  bindLessonHint(conv);
+  bindLessonHint(conv, renderDialogueContent);
 }
 
 async function acceptDialogue(convId) {
@@ -4366,7 +4366,7 @@ function renderDialogueTalking(conv) {
       Мне нужно время
     </button>
   `;
-  bindLessonHint(conv);
+  bindLessonHint(conv, renderDialogueContent);
 }
 async function saveDialogueAgreement(convId) {
   const conv = conversations.find(c => c.id === convId);
@@ -5492,76 +5492,7 @@ function initQuietFeature() {
   }
 }
 
-/* ==========================================================
-   ФИЧА №8 — «Обучение в моменте» (60 сек)
-   ========================================================== */
 
-function getLessonSnippet() {
-  return lessons.find(l => l.week === 8) || lessons[0];
-}
-
-function lessonReadKey() {
-  const d = new Date();
-  return `lesson-read-${currentCoupleId}-${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-}
-
-function isLessonReadToday() {
-  if (!currentCoupleId) return false;
-  return localStorage.getItem(lessonReadKey()) === "1";
-}
-
-function markLessonRead() {
-  if (!currentCoupleId) return;
-  localStorage.setItem(lessonReadKey(), "1");
-}
-
-function renderLessonHint() {
-  const lesson = getLessonSnippet();
-  if (!lesson) return "";
-
-  const read = isLessonReadToday();
-  const showRead = read && !_lessonExpanded;
-
-  const toggleLabel = _lessonExpanded ? 'Свернуть' : (read ? '✓ Прочитано' : 'Развернуть');
-  const classes = [
-    'lesson-hint',
-    _lessonExpanded ? 'is-expanded' : '',
-    showRead ? 'is-read' : ''
-  ].filter(Boolean).join(' ');
-
-  return `
-    <div class="${classes}" id="lessonHint">
-      <div class="lesson-hint__head">
-        <div class="lesson-hint__icon">📖</div>
-        <div>
-          <div class="lesson-hint__label">Урок в моменте</div>
-          <div class="lesson-hint__time">60 секунд</div>
-        </div>
-      </div>
-      <div class="lesson-hint__title">${escapeHtml(lesson.title)}</div>
-      <div class="lesson-hint__snippet">${escapeHtml(lesson.body[0] || '')}</div>
-      <div class="lesson-hint__more">
-        ${lesson.body.slice(1).map(p => `<p>${escapeHtml(p)}</p>`).join("")}
-        ${lesson.try ? `<div class="lesson-hint__try"><b>Попробуй сегодня:</b> ${escapeHtml(lesson.try)}</div>` : ""}
-      </div>
-      <span class="lesson-hint__toggle">
-        <span>${toggleLabel}</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
-      </span>
-    </div>
-  `;
-}
-
-function bindLessonHint(conv) {
-  const hint = $("lessonHint");
-  if (!hint) return;
-  hint.onclick = (e) => {
-    if (e.target.closest("button")) return;
-    _lessonExpanded = !_lessonExpanded;
-    if (_lessonExpanded) markLessonRead();
-    renderDialogueContent(conv);
-  };
-}
 
 /* ==========================================================
    ЕДИНЫЙ ОБРАБОТЧИК КРЕСТИКА ЗАКРЫТИЯ МОДАЛОК
