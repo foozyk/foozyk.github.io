@@ -2068,8 +2068,6 @@ function initWeatherModal() {
   if (bd) bd.onclick = closeWeatherModal;
   const cl = $("weather-modal-close");
   if (cl) cl.onclick = closeWeatherModal;
-  const cl2 = $("weather-modal-close-btn");
-  if (cl2) cl2.onclick = closeWeatherModal;
 }
 function weatherEmoji(code) {
   const map = {
