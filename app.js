@@ -16,6 +16,7 @@ import { gendered, escapeHtml, formatDate, plural, pluralDays, getInitials, hash
 import { $, vibrate } from "./js/dom.js";
 import { initMoonModal, openMoonModal, closeMoonModal } from "./js/moon.js";
 import { initLessons, renderLessonsList } from "./js/lessons-ui.js";
+import { state } from "./js/state.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -84,6 +85,20 @@ let _pauseTargetConvId = null;
 let _pauseSelectedMinutes = 30;
 let _lessonExpanded = false;
 let _pendingTopic = null;
+
+/* ---------- МОСТ СОСТОЯНИЯ (C-4) ---------- */
+/* Открывает переменные ядра для модулей через объект state. */
+/* app.js продолжает работать с локальными let/const как прежде — ничего не меняется. */
+Object.defineProperties(state, {
+  currentUser:     { get: () => currentUser,     set: v => { currentUser = v; } },
+  currentCoupleId: { get: () => currentCoupleId, set: v => { currentCoupleId = v; } },
+  currentCouple:   { get: () => currentCouple,   set: v => { currentCouple = v; } },
+  unsubCouple:     { get: () => unsubCouple,     set: v => { unsubCouple = v; } },
+  cachedDay:       { get: () => cachedDay,       set: v => { cachedDay = v; } },
+  cachedDayTime:   { get: () => cachedDayTime,   set: v => { cachedDayTime = v; } },
+  db:              { get: () => db },
+  auth:            { get: () => auth }
+});
 
 const PAUSE_OPTIONS = [
   { label: '15 минут', minutes: 15 },
