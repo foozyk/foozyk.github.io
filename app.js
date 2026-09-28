@@ -2020,7 +2020,7 @@ function renderWeather(data) {
   const iconEl = $("weather-icon");
   if (iconEl) iconEl.textContent = weatherEmoji(iconCode);
   const tempEl = $("weather-temp");
-  if (tempEl) tempEl.textContent = temp + "° · " + desc;
+  if (tempEl) tempEl.textContent = temp + "°";
 
   const descHidden = $("weather-desc");
   if (descHidden) descHidden.textContent = capitalize(desc) + (city ? " · " + city : "");
