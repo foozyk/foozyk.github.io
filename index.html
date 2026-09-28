@@ -333,10 +333,10 @@
             <span class="sky-text" id="moon-day">—</span>
           </button>
           <span class="sky-divider"></span>
-          <div class="sky-item" id="weather-widget">
+          <button class="sky-item" id="weather-widget" type="button">
             <span class="sky-ico" id="weather-icon">🌧</span>
             <span class="sky-text" id="weather-temp">—</span>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -738,6 +738,33 @@
         <div class="moon-week" id="moon-week"></div>
       </div>
       <button id="moon-modal-close-btn" class="link">Закрыть</button>
+    </div>
+  </div>
+
+
+
+  <div id="weather-modal" class="modal hidden">
+    <div class="modal-backdrop" id="weather-backdrop"></div>
+    <div class="modal-content">
+      <div class="moon-modal__head">
+        <div class="moon-modal__label">Погода</div>
+        <button class="moon-modal__close" id="weather-modal-close" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="moon-modal__hero">
+        <div class="moon-modal__icon" id="weather-modal-icon">-</div>
+        <div class="moon-modal__phase" id="weather-modal-temp">-</div>
+        <div class="moon-modal__day" id="weather-modal-desc">-</div>
+      </div>
+      <div class="weather-modal__grid">
+        <div class="weather-modal__cell"><div class="weather-modal__cell-label">Ощущается</div><div class="weather-modal__cell-value" id="weather-feels-like">-</div></div>
+        <div class="weather-modal__cell"><div class="weather-modal__cell-label">Влажность</div><div class="weather-modal__cell-value" id="weather-humidity">-</div></div>
+        <div class="weather-modal__cell"><div class="weather-modal__cell-label">Ветер</div><div class="weather-modal__cell-value" id="weather-wind">-</div></div>
+        <div class="weather-modal__cell"><div class="weather-modal__cell-label">Давление</div><div class="weather-modal__cell-value" id="weather-pressure">-</div></div>
+        <div class="weather-modal__cell"><div class="weather-modal__cell-label">Рассвет</div><div class="weather-modal__cell-value" id="weather-sunrise">-</div></div>
+        <div class="weather-modal__cell"><div class="weather-modal__cell-label">Закат</div><div class="weather-modal__cell-value" id="weather-sunset">-</div></div>
+      </div>
+      <div class="weather-modal__footer" id="weather-updated">-</div>
+      <button id="weather-modal-close-btn" class="link">Закрыть</button>
     </div>
   </div>
 

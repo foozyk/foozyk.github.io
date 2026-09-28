@@ -536,6 +536,7 @@ function startMainApp() {
   if (localStorage.getItem("moon-visible") === "0") hideMoonBlocks();
 
   initWeather();
+  initWeatherModal();
   listenForAnswers();
   initProfile();
   initNotifications();
@@ -2026,6 +2027,49 @@ function renderWeather(data) {
   if (descHidden) descHidden.textContent = capitalize(desc) + (city ? " · " + city : "");
 
   applyWeatherTheme(iconCode);
+
+  // Заполняем модалку погоды
+  const wmIcon = $("weather-modal-icon");
+  if (wmIcon) wmIcon.textContent = weatherEmoji(iconCode);
+  const wmTemp = $("weather-modal-temp");
+  if (wmTemp) wmTemp.textContent = temp + "°";
+  const wmDesc = $("weather-modal-desc");
+  if (wmDesc) wmDesc.textContent = capitalize(desc) + (city ? " · " + city : "");
+  const wFeels = $("weather-feels-like");
+  if (wFeels && data.main.feels_like != null) wFeels.textContent = Math.round(data.main.feels_like) + "°";
+  const wHum = $("weather-humidity");
+  if (wHum && data.main.humidity != null) wHum.textContent = data.main.humidity + "%";
+  const wWind = $("weather-wind");
+  if (wWind && data.wind && data.wind.speed != null) wWind.textContent = Math.round(data.wind.speed) + " м/с";
+  const wPress = $("weather-pressure");
+  if (wPress && data.main.pressure != null) wPress.textContent = Math.round(data.main.pressure * 0.750062) + " мм";
+  const wSunr = $("weather-sunrise");
+  if (wSunr && data.sys && data.sys.sunrise) wSunr.textContent = new Date(data.sys.sunrise * 1000).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  const wSuns = $("weather-sunset");
+  if (wSuns && data.sys && data.sys.sunset) wSuns.textContent = new Date(data.sys.sunset * 1000).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  const wUpd = $("weather-updated");
+  if (wUpd) wUpd.textContent = "Обновлено в " + new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+}
+
+function openWeatherModal() {
+  const m = $("weather-modal");
+  if (!m) return;
+  m.classList.remove("hidden");
+  vibrate(10);
+}
+function closeWeatherModal() {
+  const m = $("weather-modal");
+  if (m) m.classList.add("hidden");
+}
+function initWeatherModal() {
+  const item = $("weather-widget");
+  if (item) item.onclick = openWeatherModal;
+  const bd = $("weather-backdrop");
+  if (bd) bd.onclick = closeWeatherModal;
+  const cl = $("weather-modal-close");
+  if (cl) cl.onclick = closeWeatherModal;
+  const cl2 = $("weather-modal-close-btn");
+  if (cl2) cl2.onclick = closeWeatherModal;
 }
 function weatherEmoji(code) {
   const map = {

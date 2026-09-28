@@ -6826,3 +6826,25 @@ body.state-skip {
   --accent:#8a7ba8;
   --blob1:rgba(180,170,210,.10); --blob2:rgba(140,120,160,.10);
 }
+
+
+/* Sky-row: центрирование (вариант А) */
+.sky-item { flex: 1 1 0; justify-content: center; }
+
+/* Модалка погоды (вариант В) */
+.weather-modal__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0 4px; }
+.weather-modal__cell { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 10px 12px; text-align: center; }
+.weather-modal__cell-label { font-size: 11px; color: var(--muted); letter-spacing: .3px; margin-bottom: 4px; }
+.weather-modal__cell-value { font-size: 15px; font-weight: 700; color: var(--text); }
+.weather-modal__footer { text-align: center; font-size: 11.5px; color: var(--muted); margin: 14px 0 6px; }
+
+
+/* Sky-row: центрирование (вариант А) */
+.sky-item { flex: 1 1 0; justify-content: center; }
+
+/* Модалка погоды (вариант В) */
+.weather-modal__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0 4px; }
+.weather-modal__cell { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 10px 12px; text-align: center; }
+.weather-modal__cell-label { font-size: 11px; color: var(--muted); letter-spacing: .3px; margin-bottom: 4px; }
+.weather-modal__cell-value { font-size: 15px; font-weight: 700; color: var(--text); }
+.weather-modal__footer { text-align: center; font-size: 11.5px; color: var(--muted); margin: 14px 0 6px; }
