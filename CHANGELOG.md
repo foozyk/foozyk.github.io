@@ -148,5 +148,14 @@ app.js: 5820 → 5461 стр. Механика: колбэки (bindLessonHint(c
 - app.js: 5461 → 5300 стр. Коммиты: nashgod 5e2d320, deploy b08b6b3.
 - БАГ при выносе: regex-замена имени conversations испортила строковый аргумент в doc() и не был импортирован Firebase. Фикс: nashgod 22c63f7, deploy c178f2f. Проверено — работает.
 
+---
+
+## v30.2 — 28.09.2026 — Вынос Ритма в js/rhythm.js
+
+- js/rhythm.js: 12 функций (initRhythm, renderRhythm, renderRhythmTimeline, renderPulseStrip, listenForJournalNotes, getDayDate, dayFromTimestamp, loadRhythmData, collectEventsByDay, openNoteSheet, closeNoteSheet, saveNote).
+- Мост state расширен (ro): currentView, getQuestionForDay, getDialogueFeelingInfo, initReveal. Переменные Ритма (journalNotes, rhythmFilter, _rhythmCache, _noteDayKey) переехали в модуль.
+- app.js: 5300 → 4939 стр. Коммиты: nashgod 2a0ca2a, deploy 594e406.
+- Проверка в приложении — ОЖИДАЕТСЯ (Ритм-лента, пульс-полоса, заметка дня).
+
 Формат записи: `## vN — дата — краткое название`, далее подразделы по типам правок.*
 *Хочешь проверить, что было в предыдущих версиях — ищи в HANDOFF.md или git log.*
