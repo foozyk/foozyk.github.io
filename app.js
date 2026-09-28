@@ -20,6 +20,7 @@ import { state } from "./js/state.js";
 import { initWord, renderWordCard } from "./js/word-of-day.js";
 import { renderLessonHint, bindLessonHint } from "./js/lesson-hint.js";
 import { initQuietFeature, initSkipFeature, isQuietDay, applyQuietDayState, quietDayKey, skipDayKey, applySkipDayState, closeQuietModal, closeSkipModal } from "./js/day-states.js";
+import { isConvPaused, getConvPauseRemaining, formatPauseRemaining, startPauseTimer, renderPauseNavIndicator, openPauseModal, cancelPause, closePauseModal, initPauseFeature } from "./js/pause.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -83,9 +84,6 @@ let dayWatcherInterval = null;
 let quietDayActive = false;
 let skipDayActive = false;
 let _selectedPulseEmoji = null;
-let pauseTimerInterval = null;
-let _pauseTargetConvId = null;
-let _pauseSelectedMinutes = 30;
 let _pendingTopic = null;
 
 /* ---------- МОСТ СОСТОЯНИЯ (C-4) ---------- */
@@ -100,17 +98,16 @@ Object.defineProperties(state, {
   cachedDayTime:   { get: () => cachedDayTime,   set: v => { cachedDayTime = v; } },
   db:              { get: () => db },
   auth:            { get: () => auth },
+  conversations:        { get: () => conversations },
+  currentConversationId:{ get: () => currentConversationId },
+  _currentDialogueId:   { get: () => _currentDialogueId },
+  openConversation:     { get: () => openConversation },
+  renderDialogueContent:{ get: () => renderDialogueContent },
   quietDayActive:  { get: () => quietDayActive,  set: v => { quietDayActive = v; } },
   skipDayActive:   { get: () => skipDayActive,   set: v => { skipDayActive = v; } },
   getCurrentDay:   { get: () => getCurrentDay }
 });
 
-const PAUSE_OPTIONS = [
-  { label: '15 минут', minutes: 15 },
-  { label: '30 минут', minutes: 30 },
-  { label: '1 час',    minutes: 60 },
-  { label: 'До завтра', untilTomorrow: true }
-];
 
 /* ---------- ВИБРАЦИЯ ---------- */
 
@@ -5241,164 +5238,6 @@ async function saveNote() {
    ФИЧА №2 — «Мне нужно время» (пауза, по контекстам)
    ========================================================== */
 
-function isConvPaused(conv) {
-  if (!conv || !conv.pausedUntil) return false;
-  const until = conv.pausedUntil.toMillis ? conv.pausedUntil.toMillis() : Number(conv.pausedUntil);
-  return until > Date.now();
-}
-
-function getConvPauseRemaining(conv) {
-  if (!conv || !conv.pausedUntil) return 0;
-  const until = conv.pausedUntil.toMillis ? conv.pausedUntil.toMillis() : Number(conv.pausedUntil);
-  return Math.max(0, until - Date.now());
-}
-
-function formatPauseRemaining(ms) {
-  if (ms <= 0) return '0:00';
-  const totalSec = Math.floor(ms / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (h > 0) return `${h}ч ${String(m).padStart(2, '0')}м`;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-function startPauseTimer() {
-  if (pauseTimerInterval) return;
-  pauseTimerInterval = setInterval(tickPauseTimer, 1000);
-  tickPauseTimer();
-}
-
-function tickPauseTimer() {
-  const active = conversations.filter(isConvPaused);
-
-  document.querySelectorAll('[data-pause-countdown]').forEach(el => {
-    const id = el.dataset.pauseId;
-    const conv = conversations.find(c => c.id === id);
-    if (conv && isConvPaused(conv)) {
-      el.textContent = formatPauseRemaining(getConvPauseRemaining(conv));
-    }
-  });
-
-  renderPauseNavIndicator();
-
-  if (active.length === 0) {
-    clearInterval(pauseTimerInterval);
-    pauseTimerInterval = null;
-  }
-
-  if (currentConversationId) {
-    const c = conversations.find(x => x.id === currentConversationId);
-    const modal = $("conversation-modal");
-    if (c && modal && !modal.classList.contains("hidden") && !isConvPaused(c)) {
-      openConversation(currentConversationId);
-    }
-  }
-  if (_currentDialogueId) {
-    const c = conversations.find(x => x.id === _currentDialogueId);
-    const modal = $("dialogue-modal");
-    if (c && modal && !modal.classList.contains("hidden") && !isConvPaused(c)) {
-      renderDialogueContent(c);
-    }
-  }
-}
-
-function renderPauseNavIndicator() {
-  const btn = document.querySelector('.nav-btn[data-view="conversation"]');
-  if (!btn) return;
-  const active = conversations.filter(isConvPaused);
-  btn.classList.toggle("has-pause", active.length > 0);
-}
-
-function openPauseModal(convId) {
-  const conv = conversations.find(c => c.id === convId);
-  if (!conv) return;
-  _pauseTargetConvId = convId;
-  _pauseSelectedMinutes = 30;
-  renderPauseOptions();
-  $("pause-modal").classList.remove("hidden");
-  vibrate(10);
-}
-
-function renderPauseOptions() {
-  const box = $("pause-options");
-  if (!box) return;
-  box.innerHTML = PAUSE_OPTIONS.map((opt, i) => {
-    const isActive = (opt.minutes === _pauseSelectedMinutes) ||
-                     (opt.untilTomorrow && _pauseSelectedMinutes === null);
-    return `<button class="pause-option${isActive ? ' active' : ''}" data-idx="${i}">${opt.label}</button>`;
-  }).join("");
-  box.querySelectorAll(".pause-option").forEach((btn, i) => {
-    btn.onclick = () => {
-      _pauseSelectedMinutes = PAUSE_OPTIONS[i].untilTomorrow ? null : PAUSE_OPTIONS[i].minutes;
-      renderPauseOptions();
-    };
-  });
-}
-
-function closePauseModal() {
-  const m = $("pause-modal");
-  if (m) m.classList.add("hidden");
-  _pauseTargetConvId = null;
-}
-
-async function confirmPause() {
-  if (!_pauseTargetConvId) return;
-  const opt = PAUSE_OPTIONS.find(o =>
-    o.untilTomorrow ? _pauseSelectedMinutes === null : o.minutes === _pauseSelectedMinutes
-  ) || PAUSE_OPTIONS[1];
-
-  let until;
-  if (opt.untilTomorrow) {
-    const t = new Date();
-    t.setDate(t.getDate() + 1);
-    t.setHours(0, 0, 0, 0);
-    until = Timestamp.fromDate(t);
-  } else {
-    until = Timestamp.fromMillis(Date.now() + opt.minutes * 60 * 1000);
-  }
-
-  const btn = $("pause-confirm");
-  if (btn) btn.disabled = true;
-  try {
-    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", _pauseTargetConvId), {
-      pausedUntil: until,
-      pausedBy: currentUser.uid,
-      pausedLabel: opt.label
-    });
-    closePauseModal();
-    startPauseTimer();
-    vibrate(15);
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка: " + e.message);
-  } finally {
-    if (btn) btn.disabled = false;
-  }
-}
-
-async function cancelPause(convId) {
-  try {
-    await updateDoc(doc(db, "couples", currentCoupleId, "conversations", convId), {
-      pausedUntil: null,
-      pausedBy: null,
-      pausedLabel: null
-    });
-    vibrate(10);
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка: " + e.message);
-  }
-}
-
-function initPauseFeature() {
-  const backdrop = $("pause-backdrop");
-  if (backdrop) backdrop.onclick = closePauseModal;
-  const cancel = $("pause-cancel-btn");
-  if (cancel) cancel.onclick = closePauseModal;
-  const confirm = $("pause-confirm");
-  if (confirm) confirm.onclick = confirmPause;
-}
 
 
 const MODAL_CLOSE_FNS = {
