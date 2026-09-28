@@ -148,6 +148,13 @@
 - ВАЖНО: Chrome headless снимает только splash/экран до логина (интерфейс «Сегодня» требует Firebase-auth). Для интерфейса после входа — скриншот от пользователя.
 - Артефакты чистки CSS (в .gitignore, на диске): _old.css, parser.js, rep.js, css-duplicates.txt
 
+### Окружение (Python, Node)
+- Python 3.12.10 установлен 28.09.2026 через winget: `winget install --id Python.Python.3.12 --scope user` (без прав админа).
+- Путь: `C:\Users\Юлия\AppData\Local\Programs\Python\Python312\python.exe`, pip 25.0.1. numpy/pandas/sympy — нет.
+- MCP: `python_status` → available:true; `python_exec` работает (изолированная песочница: без пакетов/сети, только временный cwd, 30 сек / 60 КБ кода).
+- Баг хоста: в выводе путь показывается как `C:\Users\????\...` (кириллица «Юлия» бьётся) — косметика, всё работает.
+- Правило: python_exec — только для расчётов; правки файлов проекта (CSS/HTML/git) — через shell+PowerShell.
+- Node.js v24.21.0 уже стоял и работает.
 ### Команды git (полный путь, git не в PATH)
 Скопируй в PowerShell (по одной строке):
 
