@@ -12,6 +12,10 @@ import { firebaseConfig } from "./firebase-config.js";
 import { questions } from "./questions.js";
 import { words } from "./words.js";
 import { lessons } from "./lessons.js";
+import { gendered, escapeHtml, formatDate, plural, pluralDays, getInitials, hashString, urlBase64ToUint8Array, capitalize } from "./js/helpers.js";
+import { $, vibrate } from "./js/dom.js";
+import { initMoonModal, openMoonModal, closeMoonModal } from "./js/moon.js";
+import { initLessons, renderLessonsList } from "./js/lessons-ui.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -19,15 +23,8 @@ const db = getFirestore(app);
 
 const WEATHER_API_KEY = "6cb4ed33606386df572e12ae5e9c7e5c";
 
-const $ = (id) => document.getElementById(id);
 
 /* Склонение по полу. gender: "male" | "female" | "" */
-function gendered(profile, maleForm, femaleForm) {
-  const g = profile?.gender;
-  if (g === "male") return maleForm;
-  if (g === "female") return femaleForm;
-  return `${maleForm}(а)`;
-}
 
 let currentUser = null;
 let currentCoupleId = null;
@@ -80,6 +77,7 @@ let dayWatcherInterval = null;
 
 /* ---------- ФИЧИ ВОЛНЫ 1 ---------- */
 let quietDayActive = false;
+let skipDayActive = false;
 let _selectedPulseEmoji = null;
 let pauseTimerInterval = null;
 let _pauseTargetConvId = null;
@@ -95,11 +93,6 @@ const PAUSE_OPTIONS = [
 ];
 
 /* ---------- ВИБРАЦИЯ ---------- */
-function vibrate(pattern) {
-  if (typeof navigator === "undefined") return;
-  if (typeof navigator.vibrate !== "function") return;
-  try { navigator.vibrate(pattern); } catch (e) {}
-}
 
 /* ---------- ПОЯВЛЕНИЕ КАРТОЧЕК ПРИ СКРОЛЛЕ ---------- */
 let revealObserver = null;
@@ -178,27 +171,6 @@ const screens = {
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.remove("active"));
   screens[name].classList.add("active");
-}
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str ?? "";
-  return div.innerHTML;
-}
-function formatDate(ts) {
-  if (!ts) return "";
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-}
-function plural(n, one, few, many) {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return many;
-  if (mod10 === 1) return one;
-  if (mod10 >= 2 && mod10 <= 4) return few;
-  return many;
-}
-function pluralDays(n) {
-  return plural(n, "день", "дня", "дней");
 }
 
 /* ---------- TOAST ---------- */
@@ -587,6 +559,7 @@ function startMainApp() {
   initLessons();
   initPauseFeature();
   initQuietFeature();
+  initSkipFeature();
 
   startDayWatcher();
 
@@ -1441,19 +1414,6 @@ function renderOnePolaroid(polaroidId, nameId, profile, fallbackName) {
     polaroidEl.style.fontStyle = "italic";
   }
 }
-function getInitials(name) {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
-function hashString(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
 function openProfileModal() {
   vibrate(10);
   $("profile-name").value = myProfile?.displayName || "";
@@ -1529,14 +1489,6 @@ function initNotifications() {
 /* ---------- Web Push (VAPID) ---------- */
 const VAPID_PUBLIC_KEY = "BFhoiRSlifBwf9BDkR5CxiaanhPzenpaxEIKInodx0vawXYSzs26tbROTjPwPuWJRIRSYgFZi90uGZiwyzhFDN4";
 
-function urlBase64ToUint8Array(base64String) {
-  const padding = "=".repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-  return outputArray;
-}
 
 async function registerPushSubscription() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -1724,6 +1676,17 @@ function renderTodayMood() {
   const myQuiet = !!quiet[currentUser.uid];
   const partnerQuiet = !!quiet[partnerUid];
 
+  // --- Пропустить день: синхронизация ---
+  const skip = todayMoods.skip || {};
+  const mySkip = !!skip[currentUser.uid];
+  const partnerSkip = !!skip[partnerUid];
+  if (mySkip !== skipDayActive) {
+    skipDayActive = mySkip;
+    if (mySkip) localStorage.setItem(skipDayKey(), "1");
+    else localStorage.removeItem(skipDayKey());
+    applySkipDayState();
+  }
+
   // Своё состояние: Firestore — источник истины
   if (myQuiet !== quietDayActive) {
     quietDayActive = myQuiet;
@@ -1736,7 +1699,7 @@ function renderTodayMood() {
   // Если у меня тихий день — свой кружок скрыт. Партнёр всё равно видит 🌙 у меня.
   const meDot = $("pulse-me");
   if (meDot) {
-    if (myQuiet) {
+    if (myQuiet || mySkip) {
       meDot.classList.add("pulse-dot--hidden");
     } else {
       meDot.classList.remove("pulse-dot--hidden");
@@ -1756,12 +1719,16 @@ function renderTodayMood() {
   // Тихий день перекрывает пульс: показываем 🌙 в фиолетовом кружке
   const partnerDot = $("pulse-partner");
   if (partnerDot) {
-    if (partnerQuiet) {
+    if (partnerSkip) {
+      partnerDot.textContent = "🌫";
+      partnerDot.classList.remove("pulse-dot--empty", "pulse-dot--pulse", "pulse-dot--quiet");
+      partnerDot.classList.add("pulse-dot--skip");
+    } else if (partnerQuiet) {
       partnerDot.textContent = "🌙";
-      partnerDot.classList.remove("pulse-dot--empty", "pulse-dot--pulse");
+      partnerDot.classList.remove("pulse-dot--empty", "pulse-dot--pulse", "pulse-dot--skip");
       partnerDot.classList.add("pulse-dot--quiet");
     } else {
-      partnerDot.classList.remove("pulse-dot--quiet");
+      partnerDot.classList.remove("pulse-dot--quiet", "pulse-dot--skip");
       if (partnerMood) {
         partnerDot.textContent = partnerMood;
         partnerDot.classList.remove("pulse-dot--empty");
@@ -1793,7 +1760,7 @@ function renderTodayMood() {
   if (moodLine) {
     const notes = todayMoods.notes || {};
     const partnerNote = (notes[partnerUid] || "").trim();
-    if (partnerMood && partnerNote && !partnerQuiet) {
+    if (partnerMood && partnerNote && !partnerQuiet && !partnerSkip) {
       const partnerDisplayName = partnerProfile?.displayName?.trim() || "Партнёр";
       moodLine.innerHTML = `
         <span class="partner-mood-line__emoji">${partnerMood}</span>
@@ -2073,10 +2040,6 @@ function weatherEmoji(code) {
     "50d": "🌫", "50n": "🌫"
   };
   return map[code] || "🌡";
-}
-function capitalize(s) {
-  if (!s) return "";
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /* ---------- ЯЗЫКИ ЛЮБВИ ---------- */
@@ -3985,35 +3948,8 @@ function closeWordModal() {
   const m = $("word-modal");
   if (m) m.classList.add("hidden");
 }
-/* ==========================================================
-   МОДАЛКА «ЛУННЫЙ КАЛЕНДАРЬ»
-   ========================================================== */
 
-function initMoonModal() {
-  const item = $("moon-info-item");
-  if (item) item.onclick = openMoonModal;
 
-  const backdrop = $("moon-backdrop");
-  if (backdrop) backdrop.onclick = closeMoonModal;
-
-  const closeBtn = $("moon-modal-close");
-  if (closeBtn) closeBtn.onclick = closeMoonModal;
-
-  const closeBtn2 = $("moon-modal-close-btn");
-  if (closeBtn2) closeBtn2.onclick = closeMoonModal;
-}
-
-function openMoonModal() {
-  const m = $("moon-modal");
-  if (!m) return;
-  m.classList.remove("hidden");
-  vibrate(10);
-}
-
-function closeMoonModal() {
-  const m = $("moon-modal");
-  if (m) m.classList.add("hidden");
-}
 /* ==========================================================
    ПРИМИРЕНИЕ — режим внутри «Разговора»
    ========================================================== */
@@ -5350,159 +5286,6 @@ async function saveNote() {
 }
 
 /* ==========================================================
-   УРОК НЕДЕЛИ
-   ========================================================== */
-
-function getWeekOfYear() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  const diff = now - start;
-  const dayOfYear = Math.floor(diff / 86400000) + 1;
-  return Math.ceil(dayOfYear / 7);
-}
-
-function getLessonForWeek(week) {
-  const idx = (week - 1) % lessons.length;
-  return lessons[idx];
-}
-
-function isLessonDayVisible() {
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = Вс, 1 = Пн, ..., 6 = Сб
-  const seed = now.getFullYear() * 1000 + (now.getMonth() * 100) + now.getDate();
-  const lessonDay = seed % 7;
-  return dayOfWeek === lessonDay;
-}
-
-function initLessons() {
-  const card = $("lesson-card");
-  if (card) card.onclick = openLessonModal;
-
-  const backdrop = $("lesson-backdrop");
-  if (backdrop) backdrop.onclick = closeLessonModal;
-
-  renderLessonCard();
-}
-
-function renderLessonCard() {
-  const card = $("lesson-card");
-  if (!card) return;
-  if (!isLessonDayVisible()) {
-    card.style.display = "none";
-    return;
-  }
-  const week = getWeekOfYear();
-  const lesson = getLessonForWeek(week);
-  if (!lesson) return;
-  const titleEl = $("lesson-card-title");
-  if (titleEl) titleEl.textContent = lesson.title;
-  card.style.display = "";
-}
-
-function openLessonModal() {
-  const week = getWeekOfYear();
-  const lesson = getLessonForWeek(week);
-  if (!lesson) return;
-
-  const content = $("lesson-modal-content");
-  if (!content) return;
-
-  const bodyHtml = lesson.body.map(p => `<p>${escapeHtml(p)}</p>`).join("");
-  const tryHtml = lesson.try
-    ? `<div class="lesson-try">
-         <div class="lesson-try__label">Попробуй сегодня</div>
-         <div class="lesson-try__text">${escapeHtml(lesson.try)}</div>
-       </div>`
-    : "";
-
-  content.innerHTML = `
-    <div class="lesson-modal__head">
-      <div class="lesson-modal__label">Урок недели</div>
-      <button class="lesson-modal__close" id="lesson-modal-close" aria-label="Закрыть">✕</button>
-    </div>
-    <div class="lesson-modal__title">${escapeHtml(lesson.title)}</div>
-    <div class="lesson-modal__body">${bodyHtml}</div>
-    ${tryHtml}
-    <div class="lesson-modal__footer">
-      <button class="lesson-modal__btn lesson-modal__btn--ghost" id="lesson-later">Позже</button>
-      <button class="lesson-modal__btn lesson-modal__btn--primary" id="lesson-done">Понятно</button>
-    </div>
-  `;
-
-  $("lesson-modal-close").onclick = closeLessonModal;
-  $("lesson-later").onclick = closeLessonModal;
-  $("lesson-done").onclick = closeLessonModal;
-
-  $("lesson-modal").classList.remove("hidden");
-  vibrate(10);
-}
-
-function closeLessonModal() {
-  const m = $("lesson-modal");
-  if (m) m.classList.add("hidden");
-}
-
-function renderLessonsList() {
-  const box = $("lessons-list");
-  if (!box) return;
-
-  const week = getWeekOfYear();
-  box.innerHTML = "";
-
-  const past = lessons.filter(l => l.week <= week).sort((a, b) => b.week - a.week);
-
-  if (past.length === 0) {
-    box.innerHTML = `<div class="hint" style="text-align:center; padding: 24px 16px;">Уроки появятся по мере хода года 💛</div>`;
-    return;
-  }
-
-  past.forEach(l => {
-    const el = document.createElement("div");
-    el.className = "lesson-item fade-in-up";
-    el.innerHTML = `
-      <div class="lesson-item__week">Урок ${l.week}</div>
-      <div class="lesson-item__title">${escapeHtml(l.title)}</div>
-    `;
-    el.onclick = () => openLessonModalByWeek(l.week);
-    box.appendChild(el);
-  });
-}
-
-function openLessonModalByWeek(week) {
-  const lesson = lessons.find(l => l.week === week);
-  if (!lesson) return;
-  const content = $("lesson-modal-content");
-  if (!content) return;
-
-  const bodyHtml = lesson.body.map(p => `<p>${escapeHtml(p)}</p>`).join("");
-  const tryHtml = lesson.try
-    ? `<div class="lesson-try">
-         <div class="lesson-try__label">Попробуй сегодня</div>
-         <div class="lesson-try__text">${escapeHtml(lesson.try)}</div>
-       </div>`
-    : "";
-
-  content.innerHTML = `
-    <div class="lesson-modal__head">
-      <div class="lesson-modal__label">Урок ${lesson.week}</div>
-      <button class="lesson-modal__close" id="lesson-modal-close" aria-label="Закрыть">✕</button>
-    </div>
-    <div class="lesson-modal__title">${escapeHtml(lesson.title)}</div>
-    <div class="lesson-modal__body">${bodyHtml}</div>
-    ${tryHtml}
-    <div class="lesson-modal__footer">
-      <button class="lesson-modal__btn lesson-modal__btn--primary" id="lesson-done">Закрыть</button>
-    </div>
-  `;
-
-  $("lesson-modal-close").onclick = closeLessonModal;
-  $("lesson-done").onclick = closeLessonModal;
-
-  $("lesson-modal").classList.remove("hidden");
-  vibrate(10);
-}
-
-/* ==========================================================
    ФИЧА №2 — «Мне нужно время» (пауза, по контекстам)
    ========================================================== */
 
@@ -5685,6 +5468,13 @@ async function setQuietDay(val) {
   quietDayActive = val;
   applyQuietDayState();
 
+  // Взаимоисключение с «Пропустить день»
+  if (val && skipDayActive) {
+    skipDayActive = false;
+    localStorage.removeItem(skipDayKey());
+    applySkipDayState();
+  }
+
   // 2. Затем в Firestore — чтобы партнёр увидел
   if (!currentCoupleId || !currentUser) return;
   try {
@@ -5828,6 +5618,91 @@ function bindLessonHint(conv) {
    ЕДИНЫЙ ОБРАБОТЧИК КРЕСТИКА ЗАКРЫТИЯ МОДАЛОК
    ========================================================== */
 
+
+/* ==========================================================
+   АНТИ-БОЛЬ — «Пропустить день»
+   ========================================================== */
+
+function skipDayKey() {
+  const d = new Date();
+  return `skip-${currentCoupleId}-${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function isSkipDay() {
+  return localStorage.getItem(skipDayKey()) === "1";
+}
+
+async function setSkipDay(val) {
+  if (val) localStorage.setItem(skipDayKey(), "1");
+  else localStorage.removeItem(skipDayKey());
+  skipDayActive = val;
+  applySkipDayState();
+  // Взаимоисключение с тихим днём
+  if (val && quietDayActive) await setQuietDay(false);
+  if (!currentCoupleId || !currentUser) return;
+  try {
+    const day = getCurrentDay();
+    const ref = doc(db, "couples", currentCoupleId, "moods", String(day));
+    const snap = await getDoc(ref);
+    const data = snap.exists() ? snap.data() : {};
+    const skip = { ...(data.skip || {}) };
+    if (val) skip[currentUser.uid] = true;
+    else delete skip[currentUser.uid];
+    await setDoc(ref, { day, skip }, { merge: true });
+  } catch (e) {
+    console.error("Skip day sync error:", e);
+  }
+}
+
+function applySkipDayState() {
+  const card = $("questionCard");
+  const icon = $("skipIconBtn");
+  const area = $("answerArea");
+  document.body.classList.toggle("state-skip", skipDayActive);
+  if (card) card.classList.toggle("is-skip", skipDayActive);
+  if (icon) icon.classList.toggle("is-active", skipDayActive);
+  if (area) area.classList.toggle("hidden", skipDayActive || quietDayActive);
+}
+
+function openSkipModal() {
+  const m = $("skip-modal");
+  if (m) m.classList.remove("hidden");
+  vibrate(10);
+}
+
+function closeSkipModal() {
+  const m = $("skip-modal");
+  if (m) m.classList.add("hidden");
+}
+
+function initSkipFeature() {
+  skipDayActive = isSkipDay();
+  applySkipDayState();
+  const icon = $("skipIconBtn");
+  if (icon) {
+    icon.onclick = () => {
+      if (skipDayActive) {
+        setSkipDay(false);
+        vibrate(10);
+      } else {
+        openSkipModal();
+      }
+    };
+  }
+  const backdrop = $("skip-backdrop");
+  if (backdrop) backdrop.onclick = closeSkipModal;
+  const cancel = $("skip-cancel");
+  if (cancel) cancel.onclick = closeSkipModal;
+  const confirm = $("skip-confirm");
+  if (confirm) {
+    confirm.onclick = async () => {
+      closeSkipModal();
+      vibrate(15);
+      await setSkipDay(true);
+    };
+  }
+}
+
 const MODAL_CLOSE_FNS = {
   closeProfileModal,
   closeTopicModal,
@@ -5836,6 +5711,7 @@ const MODAL_CLOSE_FNS = {
   closePulseModal,
   closePauseModal,
   closeQuietModal,
+  closeSkipModal,
   closeRetro,
   closeDayView,
   closeNoteSheet,

@@ -6749,3 +6749,80 @@ body::after {
 @media (prefers-reduced-motion: reduce){
   #loading .splash-inner{ animation: none; }
 }
+
+
+/* ==========================================================
+   АНТИ-БОЛЬ — «Пропустить день»
+   ========================================================== */
+
+.skip-icon {
+  position: absolute;
+  top: 14px;
+  right: 54px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .2s;
+  z-index: 2;
+  padding: 0;
+  box-shadow: none;
+}
+.skip-icon svg { width: 16px; height: 16px; }
+.skip-icon:hover { color: var(--text); border-color: var(--accent); opacity: 1; transform: none; }
+.skip-icon.is-active {
+  background: var(--accent);
+  color: #221816;
+  border-color: transparent;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.question-card.is-skip {
+  background: linear-gradient(180deg, rgba(138,123,168,.18), rgba(138,123,168,.06));
+  border-color: rgba(138,123,168,.3);
+}
+.question-card.is-skip .eyebrow,
+.question-card.is-skip #current-question,
+.question-card.is-skip .rule { display: none; }
+
+.skip-state { display: none; text-align: center; padding: 6px 0; }
+.question-card.is-skip .skip-state { display: block; }
+.skip-state__icon { font-size: 38px; line-height: 1; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(90,70,110,.3)); }
+.skip-state__title {
+  font-family: "DM Serif Display", serif; font-style: normal;
+  font-size: 22px; color: var(--text-soft);
+  margin-bottom: 6px;
+}
+.skip-state__text {
+  font-size: 13px; color: var(--muted);
+  line-height: 1.5; max-width: 280px; margin: 0 auto;
+}
+
+/* Партнёр в «пропустить день» — серо-фиолетовый кружок с облачком */
+.pulse-dot--skip {
+  background: linear-gradient(135deg, #a89db5, #7b6f8a);
+  color: #ffffff;
+  border-color: #d5cde0;
+  box-shadow:
+    0 4px 12px rgba(90, 70, 110, 0.35),
+    0 0 0 3px rgba(138, 125, 154, 0.15);
+  font-size: 17px;
+}
+
+/* Фон bar — спокойнее, чем у quiet */
+body.state-skip {
+  --nav: rgba(55, 48, 66, 0.82);
+}
+
+/* Фоновая палитра для пропуска — серо-лиловая, спокойная */
+body.state-skip {
+  --bg1:#1c1a22; --bg2:#3d3548; --bg3:#877c96;
+  --accent:#8a7ba8;
+  --blob1:rgba(180,170,210,.10); --blob2:rgba(140,120,160,.10);
+}
