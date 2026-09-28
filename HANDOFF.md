@@ -1,4 +1,4 @@
-# HANDOFF — «Наш год» · v25 · 27.09.2026
+# HANDOFF — «Наш год» · v26 · 28.09.2026
 
 ## 1. Что это
 «Наш год — 365 вопросов» — PWA-приложение для пар (Руслан + Юля). Один вопрос в день, ответы открываются когда ответили оба. Плюс: игры, уроки, архив. Установлено как TWA-приложение на Android + PWA в браузере. Живёт по адресу https://foozyk.github.io.
@@ -182,3 +182,46 @@ Deploy-репо: Set-Location -LiteralPath 'C:\Users\Юлия\foozyk.github.io'
 - nashgod HEAD: 3fde9be; deploy HEAD: d4465ba
 - Оба ## main...origin/main (синхронны, дерево чистое)
 - Сайт работает
+
+## 6. Что изменилось в v26 (28.09.2026) — рефакторинг app.js, вариант C
+
+### 6.1 Итог
+Монолит app.js начал разбираться на ES-модули. app.js: 225 726 → 218 284 б (−7.4 КБ).
+Создана папка js/ с 4 модулями. Приложение подключено как <script type="module"> (было и раньше).
+Сайт проверен вживую — работает. Все коммиты в nashgod, запушены, дерево чистое.
+
+### 6.2 Новые модули (js/)
+- js/helpers.js (1877 б) — 9 чистых функций: gendered, escapeHtml, formatDate, plural, pluralDays, getInitials, hashString, urlBase64ToUint8Array, capitalize.
+- js/dom.js — $ (getElementById) + vibrate.
+- js/moon.js — initMoonModal, openMoonModal, closeMoonModal (модалка «Лунный календарь»).
+- js/lessons-ui.js (159 строк) — 9 функций «Урока недели»: getWeekOfYear, getLessonForWeek, isLessonDayVisible, initLessons, renderLessonCard, openLessonModal, closeLessonModal, renderLessonsList, openLessonModalByWeek.
+
+### 6.3 Импорты в app.js (после строки import helpers.js)
+- import { gendered, escapeHtml, formatDate, plural, pluralDays, getInitials, hashString, urlBase64ToUint8Array, capitalize } from "./js/helpers.js";
+- import { $, vibrate } from "./js/dom.js";
+- import { initMoonModal, openMoonModal, closeMoonModal } from "./js/moon.js";
+- import { initLessons, renderLessonsList } from "./js/lessons-ui.js";
+
+### 6.4 Коммиты (nashgod)
+- C-1: 1df181e — extract pure helpers to js/helpers.js
+- C-2: ab1580e — extract dom.js ($, vibrate) and moon.js
+- C-3: 0111638 — extract lessons-ui.js (урок недели, 9 функций)
+До C: c6ffb91 (HANDOFF v25).
+
+### 6.5 Проверки
+- node --check всех файлов = OK (EXIT=0)
+- tools/check.js зелёный: app.js 218284, style.css 181392, index.html 45826, sw.js 2244, CSS скобки 1129/1129
+- git: ## main...origin/main, дерево чистое
+
+### 6.6 Что дальше (следующий шаг — C-4)
+Оставшиеся крупные секции завязаны на глобалы ядра и требуют модуля состояния:
+- Слово дня, Фичи №2/3/8 (пауза / тихий день / обучение), Примирение (~969 строк), Ритм, ядро строки 1–3450.
+- Глобалы: currentUser (145 исп.), currentCoupleId (74), db (73), currentCouple (47), auth (20), unsubCouple (7), cachedDay (7), cachedDayTime (4).
+- C-4 = создать js/state.js с общими переменными (геттеры/сеттеры), затем выносить секции по одной.
+
+### 6.7 Технические заметки
+- Метод выноса: Node-скрипт через PowerShell here-string (@'...'@ + WriteAllText UTF-8 без BOM), резка app.js по номерам строк, добавление export, node --check, замена через Copy-Item.
+- ГРАНИЦЫ (важно): секция «Урок недели» в старом app.js = строки 5269–5421 (резать L.slice(5268,5421)). Off-by-one при резке → SyntaxError.
+- node --check работает с ESM-файлами (import) — EXIT=0 корректен.
+- MCP в этой сессии часто рвал вызовы (Invalid tool format) — работать короткими командами.
+- Имя модуля «Урока недели» — lessons-ui.js (НЕ lessons.js, чтобы не конфликтовать с данными lessons.js).
