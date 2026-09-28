@@ -157,5 +157,15 @@ app.js: 5820 → 5461 стр. Механика: колбэки (bindLessonHint(c
 - app.js: 5300 → 4939 стр. Коммиты: nashgod 2a0ca2a, deploy 594e406.
 - Проверка в приложении — ОЖИДАЕТСЯ (Ритм-лента, пульс-полоса, заметка дня).
 
+---
+
+## v30.3 — 28.09.2026 — Вынос Примирения в js/dialogue.js
+
+- js/dialogue.js: 26 экспортов, 38 функций, 967 строк (DIALOGUE_FEELINGS, DIALOGUE_ICONS, openFeelingPicker, renderDialogueContent, все render*/sign*/save* функции). Импорт Firebase + pause.js + helpers.
+- Мост state дополнен (rw): _currentDialogueId (добавлен set), partnerProfile, myProfile (get+set).
+- app.js: 196682 -> 158386 б (-38 КБ), 4939 -> 3974 стр. Коммиты: nashgod b0782bf, deploy 7e2d9ef.
+- ГРАБЛИ: regex-замена _currentDialogueId превратила объявление в 'let state._currentDialogueId' (невалидно) - объявление вернули в app.js. При замене имён переменных проверять объявления.
+- Проверка в приложении - ОЖИДАЕТСЯ (примирение: чувство, шаги invite/talking/signing/done, подписи).
+
 Формат записи: `## vN — дата — краткое название`, далее подразделы по типам правок.*
 *Хочешь проверить, что было в предыдущих версиях — ищи в HANDOFF.md или git log.*
