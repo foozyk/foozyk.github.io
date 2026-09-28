@@ -1,3 +1,4 @@
+import { doc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 import { $, vibrate } from "./dom.js";
 import { escapeHtml } from "./helpers.js";
 import { state } from "./state.js";
@@ -132,7 +133,7 @@ export async function confirmPause() {
   const btn = $("pause-confirm");
   if (btn) btn.disabled = true;
   try {
-    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "state.conversations", _pauseTargetConvId), {
+    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", _pauseTargetConvId), {
       pausedUntil: until,
       pausedBy: state.currentUser.uid,
       pausedLabel: opt.label
@@ -150,7 +151,7 @@ export async function confirmPause() {
 
 export async function cancelPause(convId) {
   try {
-    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "state.conversations", convId), {
+    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId), {
       pausedUntil: null,
       pausedBy: null,
       pausedLabel: null
