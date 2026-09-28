@@ -802,7 +802,7 @@ button.link:hover { transform: none; opacity: 0.7; }
 .stat-value {
   font-family: 'Bodoni Moda', serif;
   font-size: 26px; font-weight: 500;
-  font-style: italic;
+  font-style: normal;
   color: var(--accent); line-height: 1.1;
   margin-bottom: 4px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -1102,7 +1102,7 @@ body:not(.dark) .truth-level-btn {
 .hm-streak.hidden { display: none; }
 .hm-stat-value {
   font-family: 'Bodoni Moda', serif;
-  font-style: italic;
+  font-style: normal;
   font-size: 22px; font-weight: 500;
   color: var(--accent); line-height: 1; margin-bottom: 4px;
 }

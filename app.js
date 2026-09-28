@@ -442,7 +442,7 @@ function switchNav(view) {
 }
 
 /* ---------- ПОД-ТАБЫ «Мы» ---------- */
-let currentAboutSubTab = "archive";       // "games" | "archive"
+let currentAboutSubTab = "lessons";       // "games" | "lessons" | "archive"
 let currentAboutGamesSubTab = "quiz";     // "quiz" | "lovelang" | "truth"
 
 function initAboutSubTabs() {
