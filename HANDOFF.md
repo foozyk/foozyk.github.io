@@ -185,10 +185,16 @@ Deploy-репо: Set-Location -LiteralPath 'C:\Users\Юлия\Desktop\_tmp_ghio'
 - Скобки { }: 1129/1129
 - Размер: 181 392 б
 
-### Текущее состояние репо (27.09.2026)
-- nashgod HEAD: 3fde9be; deploy HEAD: d4465ba
+### Текущее состояние репо (28.09.2026)
+- nashgod HEAD: 67a73d6; deploy HEAD: f455a05
 - Оба ## main...origin/main (синхронны, дерево чистое)
 - Сайт работает
+
+### Рефакторинг app.js — вынос модулей (28.09.2026)
+Стратегия: мост js/state.js (Object.defineProperties, геттеры/сеттеры) — app.js владеет переменными, модули читают/пишут через state.*. Вынос секции = удалить блок из app.js, создать модуль, добавить импорт. Проверки после каждого: node --check app.js + модуль, node tools/check.js, ручная проверка в приложении.
+Вынесено: js/state.js (мост), js/word-of-day.js (108 стр), js/lesson-hint.js (69 стр), js/day-states.js (182 стр). app.js: 5820 → 5461 стр.
+Приём: колбэк вместо прямой связи (bindLessonHint(conv, renderDialogueContent)); для флагов — state.quietDayActive/skipDayActive (rw).
+Скрипт выноса: .cjs (НЕ .mjs — require), p=process.argv[2], границы по номерам строк, латиница в коде.
 
 ## 12. Про память и надёжность (важно!)
 
@@ -199,4 +205,8 @@ Deploy-репо: Set-Location -LiteralPath 'C:\Users\Юлия\Desktop\_tmp_ghio'
 ## 13. Что дальше (накопительно)
 
 - [ВЫПОЛНЕНО] C-4: создан js/state.js — мост к ядру app.js через Object.defineProperties (геттеры/сеттеры). Модули читают/пишут state.currentUser, state.db и т.д. app.js не тронут, всё работает. Коммиты: nashgod 98a9df2, deploy cf6340d.
-- После C-4 — вынос оставшихся крупных секций по одной.
+- [ВЫПОЛНЕНО] Вынос js/word-of-day.js (Слово дня, 108 стр). nashgod c139ca8.
+- [ВЫПОЛНЕНО] Вынос js/lesson-hint.js (Обучение в моменте, 69 стр). nashgod fc6b367.
+- [ВЫПОЛНЕНО] Вынос js/day-states.js (Тихий день + Пропустить день, 182 стр). nashgod 67a73d6.
+- [ОСТАЛОСЬ] Пауза в разговорах (~135 стр, блок 5244-5401) — СЛОЖНАЯ: 6-8 точек связи с ядром (conversations, currentConversationId, _currentDialogueId, openConversation, renderDialogueContent). Выносить аккуратно с колбэками.
+- Далее: Примирение (~969 стр), Ритм, ядро 1-3450.
