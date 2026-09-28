@@ -13,7 +13,7 @@
 - Тема: тёплая палитра #171516, #b25a5a, #faf5ea
 
 ## 3. Ключевые файлы
-Рабочая папка: C:\Users\Юлия\Desktop\Наш год (репо nashgod) + C:\Users\Юлия\foozyk.github.io (прод Pages)
+Рабочая папка: C:\Users\Юлия\Desktop\Наш год (репо nashgod) + C:\Users\Юлия\Desktop\_tmp_ghio (прод Pages)
 - index.html (45 826 б) — вся разметка, #loading (splash), SVG 132x132
 - style.css (181 392 б) — стили. ПОСЛЕ чистки B: 214 099 -> 181 392 (-26 КБ)
 - app.js (225 726 б) — вся логика + Web Push
@@ -165,7 +165,7 @@ Set-Location -LiteralPath 'C:\Users\Юлия\Desktop\Наш год'
 & $g commit -m "сообщение"
 & $g push origin main
 
-Deploy-репо: Set-Location -LiteralPath 'C:\Users\Юлия\foozyk.github.io'
+Deploy-репо: Set-Location -LiteralPath 'C:\Users\Юлия\Desktop\_tmp_ghio'
 
 ### Зрение (НОВОЕ в v25)
 - Я ВИЖУ скриншоты, прикреплённые в чат (проверено 27.09 на скриншоте приложения с телефона)
@@ -198,5 +198,5 @@ Deploy-репо: Set-Location -LiteralPath 'C:\Users\Юлия\foozyk.github.io'
 
 ## 13. Что дальше (накопительно)
 
-- C-4: создать js/state.js (общие переменные ядра: currentUser, currentCoupleId, db, currentCouple, auth, unsubCouple, cachedDay, cachedDayTime). Разблокирует вынос Слова дня, Фич №2/3/8, Примирения, Ритма.
+- [ВЫПОЛНЕНО] C-4: создан js/state.js — мост к ядру app.js через Object.defineProperties (геттеры/сеттеры). Модули читают/пишут state.currentUser, state.db и т.д. app.js не тронут, всё работает. Коммиты: nashgod 98a9df2, deploy cf6340d.
 - После C-4 — вынос оставшихся крупных секций по одной.
