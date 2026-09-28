@@ -1,0 +1,973 @@
+import { doc, updateDoc, deleteDoc, setDoc, getDoc, collection, addDoc, Timestamp, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { $, vibrate } from "./dom.js";
+import { escapeHtml, formatDate } from "./helpers.js";
+import { state } from "./state.js";
+import { isConvPaused, getConvPauseRemaining, formatPauseRemaining, openPauseModal, cancelPause } from "./pause.js";
+
+/* ==========================================================
+   ПРИМИРЕНИЕ — режим внутри «Разговора»
+   ========================================================== */
+
+const DIALOGUE_ICONS = {
+  dove: `<svg class="dialogue-icon" viewBox="0 0 24 24"><path d="M21 5 C18 5 16 6 14.5 8 C14 7 13 6.5 11.5 6.5 C8 6.5 5 9 5 12 L5 13 L2 14 L5 15 C5.5 18 8.5 21 13 21 C17.5 21 21 17.5 21 13 Z"/><path d="M12 8.5 L12 13"/><path d="M19 8 L20.5 6"/></svg>`,
+  brokenHeart: `<svg class="dialogue-icon" viewBox="0 0 24 24"><path d="M12 21 C12 21 3 14 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 11.5 4 12 5 C12.5 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 14 12 21 12 21 Z"/><path d="M12 5 L10.5 9 L13.5 11 L12 15"/></svg>`,
+  question: `<svg class="dialogue-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5 C9.5 8 10.7 7 12 7 C13.3 7 14.5 8 14.5 9.5 C14.5 11 13 12 12 12 L12 14"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg>`,
+  drop: `<svg class="dialogue-icon" viewBox="0 0 24 24"><path d="M12 3 C12 3 6 10 6 14 C6 17.3 8.7 20 12 20 C15.3 20 18 17.3 18 14 C18 10 12 3 12 3 Z"/></svg>`,
+  lightning: `<svg class="dialogue-icon" viewBox="0 0 24 24"><path d="M13 2 L4 13 L11 13 L11 22 L20 11 L13 11 Z"/></svg>`,
+  hand: `<svg class="dialogue-icon" viewBox="0 0 24 24"><path d="M9 6 L9 12"/><path d="M12 4 L12 12"/><path d="M15 6 L15 12"/><path d="M6 13 C6 17 8.5 20 12 20 C15.5 20 18 17 18 13"/></svg>`,
+  heart: `<svg class="dialogue-icon dialogue-icon--fill" viewBox="0 0 24 24"><path d="M12 21 C12 21 3 14 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 11.5 4 12 5 C12.5 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 14 12 21 12 21 Z"/></svg>`,
+};
+
+const DIALOGUE_FEELINGS = [
+  { key: "обида",          label: "Обида",           icon: "brokenHeart" },
+  { key: "недопонимание",  label: "Недопонимание",   icon: "question" },
+  { key: "грусть",         label: "Просто грустно",  icon: "drop" },
+  { key: "раздражение",    label: "Раздражение",     icon: "lightning" },
+  { key: "поддержка",      label: "Нужна поддержка", icon: "hand" },
+];
+
+export function getDialogueFeelingInfo(key) {
+  return DIALOGUE_FEELINGS.find(f => f.key === key) || DIALOGUE_FEELINGS[0];
+}
+
+function getFeelingIcon(key, extraClass) {
+  const f = getDialogueFeelingInfo(key);
+  const svg = DIALOGUE_ICONS[f.icon] || "";
+  if (!extraClass) return svg;
+  return svg.replace('class="dialogue-icon"', `class="dialogue-icon ${extraClass}"`);
+}
+
+function getActiveReconcile() {
+  return state.conversations.find(c => c.mode === "reconcile" && c.phase !== "done") || null;
+}
+
+function getPartnerNameForDialogue() {
+  return state.partnerProfile?.displayName?.trim() || "Партнёр";
+}
+function getMyNameForDialogue() {
+  return state.myProfile?.displayName?.trim() || "Вы";
+}
+
+export function initDialogue() {
+  const btn = $("reconcile-btn");
+  if (btn) btn.onclick = onReconcileClick;
+  const backdrop = $("dialogue-backdrop");
+  if (backdrop) backdrop.onclick = closeDialogueModal;
+
+  const content = $("dialogue-modal-content");
+  if (content && content.dataset.dlgBound !== "1") {
+    content.dataset.dlgBound = "1";
+    content.addEventListener("click", (e) => {
+      const el = e.target.closest("[data-dlg-action]");
+      if (!el) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const action = el.dataset.dlgAction;
+      const id = el.dataset.dlgId;
+      const key = el.dataset.dlgKey;
+
+      switch (action) {
+        case "close":            closeDialogueModal(); break;
+        case "pick-feeling":     pickDialogueFeeling(key); break;
+        case "submit-feeling":   submitDialogueFeeling(); break;
+        case "cancel-dialogue":  cancelDialogue(id); break;
+        case "accept":           acceptDialogue(id); break;
+        case "save-text":        saveDialogueText(id); break;
+        case "save-and-ready":   saveAndReadyDialogue(id); break;
+        case "open-agreement":   openDialogueAgreement(id); break;
+        case "cancel-ready":     cancelReadyToSign(id); break;
+        case "save-agreement":   saveDialogueAgreement(id); break;
+        case "cancel-draft":     cancelDraft(id); break;
+        case "force-finalize":   forceFinalizeDraft(id); break;
+        case "sign":             signDialogue(id); break;
+        case "sign-for-partner": signForPartner(id); break;
+        case "open-modal":       openDialogueModal(id); break;
+        case "cancel-old-new":   cancelOldDialogueAndStartNew(id); break;
+        case "open-pause":       openPauseModal(id); break;
+        case "cancel-pause":     cancelPause(id); break;
+      }
+    });
+  }
+}
+
+export function onReconcileClick() {
+  vibrate(10);
+  const active = getActiveReconcile();
+  if (active) {
+    openDialogueBlockModal(active);
+  } else {
+    openFeelingPicker();
+  }
+}
+
+export function openDialogueBlockModal(conv) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const iAmInitiator = conv.initiatedBy === state.currentUser.uid;
+  const partnerName = getPartnerNameForDialogue();
+  const dateStr = formatDate(conv.createdAt);
+
+  let meta = "";
+  if (conv.phase === "invite") {
+    meta = iAmInitiator
+      ? `от ${dateStr} · ждём <strong>${escapeHtml(partnerName)}</strong>`
+      : `от ${dateStr} · <strong>${escapeHtml(partnerName)}</strong> ждёт твоего ответа`;
+  } else if (conv.phase === "talking") {
+    meta = `от ${dateStr} · оба пишете`;
+  } else if (conv.phase === "signing") {
+    meta = `от ${dateStr} · к подписи`;
+  }
+
+  const actionsHtml = iAmInitiator
+    ? `
+      <button class="dialogue-btn dialogue-btn--danger" data-dlg-action="cancel-old-new" data-dlg-id="${conv.id}">Отменить старое</button>
+      <span class="dialogue-btn__sub">Сможешь создать новое</span>
+      <button class="dialogue-link dialogue-link--muted" data-dlg-action="close">Отмена</button>
+    `
+    : `
+      <div class="dialogue__block-footer">
+        Закрыть это примирение может только <strong>${escapeHtml(partnerName)}</strong>
+      </div>
+      <button class="dialogue-link dialogue-link--muted" style="margin-top:12px;" data-dlg-action="close">Отмена</button>
+    `;
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div class="dialogue__block-icon">${DIALOGUE_ICONS.dove}</div>
+    <div class="dialogue__block-title">У вас уже идёт примирение</div>
+
+    <div class="dialogue__block-feeling">
+      <span class="dialogue__block-feeling-icon">${getFeelingIcon(conv.feeling)}</span>
+      <span>${escapeHtml(f.label)}</span>
+    </div>
+    <div class="dialogue__block-meta">${meta}</div>
+
+    <button class="dialogue-btn" data-dlg-action="open-modal" data-dlg-id="${conv.id}">Открыть его</button>
+    ${actionsHtml}
+  `;
+
+  $("dialogue-modal").classList.remove("hidden");
+}
+
+export async function cancelOldDialogueAndStartNew(convId) {
+  if (!confirm("Отменить старое примирение и создать новое?")) return;
+  try {
+    await deleteDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId));
+    closeDialogueModal();
+    setTimeout(openFeelingPicker, 200);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+let _tmpDialogueFeeling = null;
+let _tmpDialogueReason = "";
+
+export function openFeelingPicker() {
+  _tmpDialogueFeeling = null;
+  _tmpDialogueReason = "";
+
+  const partnerName = getPartnerNameForDialogue();
+
+  const moodsHtml = DIALOGUE_FEELINGS.map(f => `
+    <button class="dialogue-mood" data-dlg-action="pick-feeling" data-dlg-key="${f.key}" data-key="${f.key}">
+      <span class="dialogue-mood__icon">${DIALOGUE_ICONS[f.icon]}</span>
+      <span>${escapeHtml(f.label)}</span>
+    </button>
+  `).join("");
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div class="dialogue__head">
+      <div class="dialogue__label">Примирение</div>
+      <button class="dialogue__close" data-dlg-action="close">✕</button>
+    </div>
+
+    <div class="dialogue__subtitle">Что сейчас между вами?</div>
+
+    <div class="dialogue__mood-list" id="dialogue-mood-list">
+      ${moodsHtml}
+    </div>
+
+    <label class="field-label">Что случилось? <span class="optional">(необязательно)</span></label>
+    <textarea id="dialogue-reason-input" rows="2" placeholder="Коротко, чтобы ${escapeHtml(partnerName)} понял..."></textarea>
+
+    <button class="dialogue-btn" id="dialogue-submit-btn" disabled data-dlg-action="submit-feeling">Предложить примирение</button>
+  `;
+
+  const ta = $("dialogue-reason-input");
+  ta.addEventListener("input", () => { _tmpDialogueReason = ta.value; });
+
+  $("dialogue-modal").classList.remove("hidden");
+}
+
+export function pickDialogueFeeling(key) {
+  vibrate(10);
+  _tmpDialogueFeeling = key;
+  document.querySelectorAll("#dialogue-mood-list .dialogue-mood").forEach(b => {
+    b.classList.toggle("active", b.dataset.key === key);
+  });
+  const submitBtn = $("dialogue-submit-btn");
+  if (submitBtn) submitBtn.disabled = false;
+}
+
+export async function submitDialogueFeeling() {
+  if (!_tmpDialogueFeeling) return;
+  const btn = $("dialogue-submit-btn");
+  btn.disabled = true;
+  try {
+    await addDoc(collection(state.db, "couples", state.currentCoupleId, "conversations"), {
+      mode: "reconcile",
+      phase: "invite",
+      initiatedBy: state.currentUser.uid,
+      feeling: _tmpDialogueFeeling,
+      reason: _tmpDialogueReason.trim(),
+      texts: {},
+      signatures: {},
+      createdBy: state.currentUser.uid,
+      createdAt: serverTimestamp()
+    });
+    vibrate(15);
+    closeDialogueModal();
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+    btn.disabled = false;
+  }
+}
+
+export function openDialogueModal(convId) {
+  const conv = state.conversations.find(c => c.id === convId);
+  if (!conv) return;
+
+  state._currentDialogueId = convId;
+  renderDialogueContent(conv);
+
+  $("dialogue-modal").classList.remove("hidden");
+  document.body.classList.add("state-reconcile");
+  vibrate(10);
+}
+
+export function renderDialogueContent(conv) {
+  // Если в примирении пауза — показываем paused-state вместо всего остального
+  if (isConvPaused(conv)) {
+    const f = getDialogueFeelingInfo(conv.feeling);
+    const content = $("dialogue-modal-content");
+    content.innerHTML = `
+      <div class="dialogue__head">
+        <div class="dialogue__label">Примирение</div>
+        <button class="dialogue__close" data-dlg-action="close">✕</button>
+      </div>
+      <div style="text-align:center;">
+        <div class="dialogue__context">
+          <span class="dialogue__context-icon">${getFeelingIcon(conv.feeling)}</span>
+          <span>${escapeHtml(f.label)}</span>
+        </div>
+      </div>
+      <div class="paused-state">
+        <div class="paused-state__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        </div>
+        <div class="paused-state__title">Пауза</div>
+        <div class="paused-state__origin">в этом примирении · <b>${escapeHtml(conv.pausedLabel || '')}</b></div>
+        <div class="paused-state__countdown" data-pause-countdown data-pause-id="${conv.id}">${formatPauseRemaining(getConvPauseRemaining(conv))}</div>
+        <div class="paused-state__text">Ты взял(а) время подумать. Партнёр видит знак именно здесь и ждёт — без давления.</div>
+        <button class="btn-pause" data-dlg-action="cancel-pause" data-dlg-id="${conv.id}" style="margin-top:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          Снять паузу
+        </button>
+      </div>
+    `;
+    startPauseTimer();
+    return;
+  }
+
+  if (conv.phase === "done") {
+    renderDialogueDone(conv);
+  } else if (conv.phase === "invite") {
+    if (conv.initiatedBy === state.currentUser.uid) renderDialogueWaiting(conv);
+    else renderDialoguePartnerScreen(conv);
+  } else if (conv.phase === "talking") {
+    const partnerUid = state.currentCouple.members.find(uid => uid !== state.currentUser.uid);
+    const ready = conv.readyToSign || {};
+    const iReady = !!ready[state.currentUser.uid];
+    const partnerReady = !!ready[partnerUid];
+    const draft = conv.draftAgreement;
+
+    if (iReady && partnerReady) {
+      if (draft && draft.by === state.currentUser.uid) {
+        renderDialogueWaitingDraft(conv);
+      } else {
+        renderDialogueAgreementForm(conv);
+      }
+    } else if (iReady && !partnerReady) {
+      renderDialogueWaitingAgreement(conv);
+    } else {
+      renderDialogueTalking(conv);
+    }
+  } else if (conv.phase === "signing") {
+    renderDialogueSigning(conv);
+  }
+}
+
+export function closeDialogueModal() {
+  const m = $("dialogue-modal");
+  if (m) m.classList.add("hidden");
+  document.body.classList.remove("state-reconcile");
+  state._currentDialogueId = null;
+}
+
+function renderDialogueWaiting(conv) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const partnerName = getPartnerNameForDialogue();
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div class="dialogue__waiting">
+      <div class="dialogue__waiting-icon">${DIALOGUE_ICONS.dove}</div>
+
+      <div class="dialogue__feeling-hero">
+        <div class="dialogue__feeling-hero-label">Между вами</div>
+        <div class="dialogue__feeling-hero-value">
+          <span class="dialogue__feeling-hero-icon">${getFeelingIcon(conv.feeling)}</span>
+          <span>${escapeHtml(f.label)}</span>
+        </div>
+      </div>
+
+      <div class="dialogue__waiting-title">Ждём ${escapeHtml(partnerName)}</div>
+      <div class="dialogue__waiting-text">
+        Вы предложили примирение.<br>
+        Как только ${escapeHtml(partnerName)} откроет — начнём.
+      </div>
+
+      <button class="dialogue-btn" data-dlg-action="close">Понятно</button>
+      <button class="dialogue-link dialogue-link--muted" data-dlg-action="cancel-dialogue" data-dlg-id="${conv.id}">Отменить предложение</button>
+    </div>
+  `;
+}
+
+export async function cancelDialogue(convId) {
+  const conv = state.conversations.find(c => c.id === convId);
+  if (!conv) return;
+  if (conv.initiatedBy !== state.currentUser.uid) return;
+  if (!confirm("Отменить примирение?")) return;
+  try {
+    await deleteDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId));
+    closeDialogueModal();
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+function renderDialoguePartnerScreen(conv) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const myName = getMyNameForDialogue();
+  const partnerName = getPartnerNameForDialogue();
+  const reasonHtml = conv.reason
+    ? `<div class="dialogue__partner-hint">«${escapeHtml(conv.reason)}»</div>`
+    : "";
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div class="dialogue__partner">
+      <div class="dialogue__partner-title">Нужен диалог</div>
+
+      <div class="dialogue__names">
+        <span>${escapeHtml(myName)}</span>
+        <span class="dialogue__names-heart">${DIALOGUE_ICONS.heart}</span>
+        <span>${escapeHtml(partnerName)}</span>
+      </div>
+
+      <div class="dialogue__feeling-big">
+        Сейчас между вами есть
+        <em>${escapeHtml(f.label.toLowerCase())}</em>
+      </div>
+
+      <div class="dialogue__partner-text">
+        Поговорите о чувствах и о ситуации —<br>
+        скажите друг другу то, что важно.
+      </div>
+
+      ${reasonHtml}
+      <div class="dialogue__partner-hint">${escapeHtml(partnerName)} предлагает перейти к договору</div>
+
+      ${renderLessonHint()}
+
+      <button class="dialogue-btn" data-dlg-action="accept" data-dlg-id="${conv.id}">К договору</button>
+
+      <button class="btn-pause" data-dlg-action="open-pause" data-dlg-id="${conv.id}" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        Мне нужно время
+      </button>
+
+      <button class="dialogue__secondary-link" data-dlg-action="close">Не сейчас</button>
+
+      <div class="dialogue__partner-footer">
+        Режим завершится, когда вы оба подпишете договор.
+      </div>
+    </div>
+  `;
+  bindLessonHint(conv, renderDialogueContent);
+}
+
+export async function acceptDialogue(convId) {
+  try {
+    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId), {
+      phase: "talking"
+    });
+    vibrate(10);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+function renderDialogueTalking(conv) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const myText = (conv.texts || {})[state.currentUser.uid] || "";
+  const partnerUid = state.currentCouple.members.find(uid => uid !== state.currentUser.uid);
+  const partnerText = (conv.texts || {})[partnerUid] || "";
+  const partnerName = getPartnerNameForDialogue();
+  const bothWrote = myText && partnerText;
+
+  const partnerBoxHtml = partnerText
+    ? `<div class="dialogue__partner-box dialogue__partner-box--open">${escapeHtml(partnerText)}</div>`
+    : `<div class="dialogue__partner-box">${escapeHtml(partnerName)} ещё не ${gendered(state.partnerProfile, "написал", "написала")}.<br>Мы скажем, когда ответит.</div>`;
+
+  const partnerReady = !!(conv.readyToSign || {})[partnerUid];
+  const partnerReadyHint = partnerReady
+    ? `<div class="dialogue__partner-hint" style="margin-top:10px;">${escapeHtml(partnerName)} уже готов перейти к договору</div>`
+    : "";
+
+  const saveBtnHtml = `<button class="dialogue-btn" data-dlg-action="save-and-ready" data-dlg-id="${conv.id}">К договору</button>`;
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div style="text-align:center;">
+      <div class="dialogue__context">
+        <span class="dialogue__context-icon">${getFeelingIcon(conv.feeling)}</span>
+        <span>${escapeHtml(f.label)}</span>
+      </div>
+    </div>
+
+    <div class="dialogue__subtitle">Что важно для меня</div>
+
+    <textarea id="dialogue-my-text" rows="${bothWrote ? 4 : 5}" placeholder="Напиши своё — ${escapeHtml(partnerName.toLowerCase())} увидит, когда напишет он.">${escapeHtml(myText)}</textarea>
+
+    ${saveBtnHtml}
+    ${partnerReadyHint}
+
+    <div style="margin-top:14px;">
+      ${partnerBoxHtml}
+    </div>
+
+    ${renderLessonHint()}
+
+    <button class="btn-pause" data-dlg-action="open-pause" data-dlg-id="${conv.id}" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+      Мне нужно время
+    </button>
+  `;
+  bindLessonHint(conv, renderDialogueContent);
+}
+export async function saveDialogueAgreement(convId) {
+  const conv = state.conversations.find(c => c.id === convId);
+  if (!conv) return;
+
+  const title = ($("dlg-agr-title")?.value || "").trim();
+  const text = ($("dlg-agr-text")?.value || "").trim();
+  if (!title) { alert("Введи название договора"); return; }
+
+  const draft = conv.draftAgreement;
+
+  if (draft && draft.by !== state.currentUser.uid && draft.title === title && draft.text === text) {
+    await acceptAndFinalize(convId, draft);
+    return;
+  }
+
+  await proposeDraft(convId, title, text);
+}
+
+export async function proposeDraft(convId, title, text) {
+  try {
+    const draft = {
+      title,
+      text,
+      by: state.currentUser.uid,
+      ts: Date.now()
+    };
+    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId), {
+      draftAgreement: draft
+    });
+    vibrate(15);
+    const conv = state.conversations.find(c => c.id === convId);
+    if (conv) renderDialogueWaitingDraft({ ...conv, draftAgreement: draft });
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+export async function acceptAndFinalize(convId, draft) {
+  const btn = $("dlg-agr-submit");
+  if (btn) btn.disabled = true;
+  try {
+    const ref = await addDoc(collection(state.db, "couples", state.currentCoupleId, "agreements"), {
+      title: draft.title,
+      text: draft.text,
+      createdBy: draft.by,
+      createdAt: serverTimestamp(),
+      done: false,
+      fromDialogue: true,
+      fromConversation: convId
+    });
+    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId), {
+      phase: "signing",
+      agreementId: ref.id,
+      draftAgreement: null
+    });
+    vibrate(15);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+    if (btn) btn.disabled = false;
+  }
+}
+
+export async function cancelDraft(convId) {
+  try {
+    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId), {
+      draftAgreement: null
+    });
+    vibrate(10);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+export async function forceFinalizeDraft(convId) {
+  const conv = state.conversations.find(c => c.id === convId);
+  if (!conv || !conv.draftAgreement) return;
+  if (!confirm("Отправить версию как есть, без согласования с партнёром?")) return;
+  await acceptAndFinalize(convId, conv.draftAgreement);
+}
+export async function saveDialogueText(convId) {
+  const ta = $("dialogue-my-text");
+  if (!ta) return;
+  const text = ta.value.trim();
+  if (!text) { alert("Напиши что-нибудь"); return; }
+
+  try {
+    const conv = state.conversations.find(c => c.id === convId);
+    if (!conv) return;
+    const texts = { ...(conv.texts || {}) };
+    texts[state.currentUser.uid] = text;
+    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId), { texts });
+    vibrate(10);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+export async function saveAndReadyDialogue(convId) {
+  const ta = $("dialogue-my-text");
+  const conv = state.conversations.find(c => c.id === convId);
+  if (!conv) return;
+
+  const text = ta ? ta.value.trim() : "";
+  const partnerUid = state.currentCouple.members.find(uid => uid !== state.currentUser.uid);
+
+  const texts = { ...(conv.texts || {}) };
+  if (text) texts[state.currentUser.uid] = text;
+
+  const ready = { ...(conv.readyToSign || {}) };
+  ready[state.currentUser.uid] = Date.now();
+
+  try {
+    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId), {
+      texts,
+      readyToSign: ready
+    });
+    vibrate(15);
+
+    if (ready[partnerUid]) {
+      renderDialogueAgreementForm({ ...conv, texts, readyToSign: ready });
+    } else {
+      renderDialogueWaitingAgreement({ ...conv, texts, readyToSign: ready });
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+export async function openDialogueAgreement(convId) {
+  const conv = state.conversations.find(c => c.id === convId);
+  if (!conv) return;
+
+  // Ставим флаг «я готов к договору»
+  const ready = { ...(conv.readyToSign || {}) };
+  ready[state.currentUser.uid] = Date.now();
+
+  try {
+    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId), {
+      readyToSign: ready
+    });
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+    return;
+  }
+
+  const partnerUid = state.currentCouple.members.find(uid => uid !== state.currentUser.uid);
+  const bothReady = ready[state.currentUser.uid] && ready[partnerUid];
+
+  if (!bothReady) {
+    renderDialogueWaitingAgreement(conv);
+    vibrate(10);
+    return;
+  }
+
+  renderDialogueAgreementForm(conv);
+  vibrate(10);
+}
+export async function cancelReadyToSign(convId) {
+  const conv = state.conversations.find(c => c.id === convId);
+  if (!conv) return;
+  const ready = { ...(conv.readyToSign || {}) };
+  delete ready[state.currentUser.uid];
+  try {
+    await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId), {
+      readyToSign: ready
+    });
+    renderDialogueTalking({ ...conv, readyToSign: ready });
+    vibrate(10);
+  } catch (e) {
+    console.error(e);
+  }
+}
+function renderDialogueWaitingAgreement(conv) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const partnerName = getPartnerNameForDialogue();
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div style="text-align:center;">
+      <div class="dialogue__context">
+        <span class="dialogue__context-icon">${getFeelingIcon(conv.feeling)}</span>
+        <span>${escapeHtml(f.label)}</span>
+      </div>
+    </div>
+
+    <div class="dialogue__waiting">
+      <div class="dialogue__waiting-title">Ждём ${escapeHtml(partnerName)}</div>
+      <div class="dialogue__waiting-text">
+        Ты готов перейти к договору.<br>
+        Как только ${escapeHtml(partnerName)} тоже нажмёт «К договору» — откроется форма.
+      </div>
+
+      <button class="dialogue-btn" data-dlg-action="cancel-ready" data-dlg-id="${conv.id}">Вернуться к диалогу</button>
+    </div>
+  `;
+}
+
+function renderDialogueWaitingDraft(conv) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const partnerName = getPartnerNameForDialogue();
+  const draft = conv.draftAgreement || {};
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div style="text-align:center;">
+      <div class="dialogue__context">
+        <span class="dialogue__context-icon">${getFeelingIcon(conv.feeling)}</span>
+        <span>${escapeHtml(f.label)}</span>
+      </div>
+    </div>
+
+    <div class="dialogue__waiting">
+      <div class="dialogue__waiting-title">Ждём ${escapeHtml(partnerName)}</div>
+      <div class="dialogue__waiting-text">
+        Ты предложил версию договора.<br>
+        ${escapeHtml(partnerName)} посмотрит и либо согласится, либо предложит свою.
+      </div>
+
+      <div class="dialogue__agreement-box" style="margin-top:14px;text-align:left;">
+        <div class="dialogue__agreement-title">${escapeHtml(draft.title || "")}</div>
+        <div class="dialogue__agreement-text">${escapeHtml(draft.text || "")}</div>
+      </div>
+
+      <button class="dialogue-btn" data-dlg-action="force-finalize" data-dlg-id="${conv.id}">Отправить как есть</button>
+      <button class="dialogue-link dialogue-link--muted" data-dlg-action="cancel-draft" data-dlg-id="${conv.id}">Отозвать черновик</button>
+    </div>
+  `;
+}
+
+function renderDialogueAgreementForm(conv) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const draft = conv.draftAgreement;
+  const partnerName = getPartnerNameForDialogue();
+  const draftByPartner = draft && draft.by !== state.currentUser.uid;
+
+  const initialTitle = draft ? draft.title : "";
+  const initialText = draft ? draft.text : "";
+
+  const modeLabel = draftByPartner
+    ? `<div class="dialogue__partner-hint" style="margin-bottom:14px;text-align:center;">Версия ${escapeHtml(partnerName)}</div>`
+    : "";
+
+  const btnLabel = draftByPartner ? "Согласен и подписать" : "Предложить партнёру";
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div style="text-align:center;">
+      <div class="dialogue__context">
+        <span class="dialogue__context-icon">${getFeelingIcon(conv.feeling)}</span>
+        <span>${escapeHtml(f.label)}</span>
+      </div>
+    </div>
+
+    <div class="dialogue__subtitle">Что мы решили вместе</div>
+    ${modeLabel}
+
+    <label class="field-label">О чём договорились</label>
+    <input type="text" id="dlg-agr-title" placeholder="Например: «Прощаемся перед уходом»" maxlength="80" value="${escapeHtml(initialTitle)}">
+
+    <label class="field-label">Детали</label>
+    <textarea id="dlg-agr-text" rows="4" placeholder="Что именно решили, как часто, с какого момента..." maxlength="1000">${escapeHtml(initialText)}</textarea>
+
+    <button class="dialogue-btn" data-dlg-action="save-agreement" data-dlg-id="${conv.id}" id="dlg-agr-submit">${btnLabel}</button>
+    <button class="dialogue-link" data-dlg-action="open-modal" data-dlg-id="${conv.id}">Назад</button>
+  `;
+
+  if (draftByPartner) {
+    const titleEl = $("dlg-agr-title");
+    const textEl = $("dlg-agr-text");
+    const btnEl = $("dlg-agr-submit");
+    const check = () => {
+      const changed =
+        titleEl.value.trim() !== initialTitle ||
+        textEl.value.trim() !== initialText;
+      btnEl.textContent = changed ? "Предложить свою версию" : "Согласен и подписать";
+    };
+    titleEl.addEventListener("input", check);
+    textEl.addEventListener("input", check);
+  }
+}
+
+function renderDialogueSigning(conv) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const signatures = conv.signatures || {};
+  const iSigned = !!signatures[state.currentUser.uid];
+  const partnerUid = state.currentCouple.members.find(uid => uid !== state.currentUser.uid);
+  const partnerSigned = !!signatures[partnerUid];
+  const partnerName = getPartnerNameForDialogue();
+  const myName = getMyNameForDialogue();
+
+  const agreementId = conv.agreementId;
+  const agreement = (agreements || []).find(a => a.id === agreementId) || { title: "Договор", text: "" };
+
+  const signsHtml = `
+    <span class="dialogue__sign ${iSigned ? 'dialogue__sign--done' : 'dialogue__sign--waiting'}">${escapeHtml(myName)} ${iSigned ? '✓' : '…'}</span>
+    <span class="dialogue__sign ${partnerSigned ? 'dialogue__sign--done' : 'dialogue__sign--waiting'}">${escapeHtml(partnerName)} ${partnerSigned ? '✓' : '…'}</span>
+  `;
+
+  const footerHtml = (!iSigned && !partnerSigned)
+    ? `<div class="dialogue__partner-footer" style="margin-top:14px;">Режим завершится, когда подпишут оба.</div>`
+    : "";
+
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div style="text-align:center;">
+      <div class="dialogue__context">
+        <span class="dialogue__context-icon">${getFeelingIcon(conv.feeling)}</span>
+        <span>${escapeHtml(f.label)}</span>
+      </div>
+    </div>
+
+    <div class="dialogue__subtitle">Договор</div>
+
+    <div class="dialogue__agreement-box">
+      <div class="dialogue__agreement-title">${escapeHtml(agreement.title || "Договор")}</div>
+      <div class="dialogue__agreement-text">${escapeHtml(agreement.text || "")}</div>
+    </div>
+
+    <button class="dialogue-btn" ${iSigned ? 'disabled' : ''} data-dlg-action="sign" data-dlg-id="${conv.id}">
+      ${iSigned ? '✓ Подписано' : 'Подписываю'}
+    </button>
+
+    <div class="dialogue__signs" style="margin-top:14px;">
+      ${signsHtml}
+    </div>
+
+    ${footerHtml}
+  `;
+}
+
+export async function signDialogue(convId) {
+  try {
+    const ref = doc(state.db, "couples", state.currentCoupleId, "conversations", convId);
+    const partnerUid = state.currentCouple.members.find(uid => uid !== state.currentUser.uid);
+    let isDone = false;
+
+    await runTransaction(state.db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error("Разговор не найден");
+      const data = snap.data();
+      const signatures = { ...(data.signatures || {}) };
+      signatures[state.currentUser.uid] = Date.now();
+
+      const update = { signatures };
+      if (signatures[partnerUid]) {
+        update.phase = "done";
+        update.doneAt = serverTimestamp();
+        isDone = true;
+      }
+      tx.update(ref, update);
+    });
+
+    vibrate(15);
+    if (isDone) setTimeout(() => burstDialogueHearts(), 200);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+export async function signForPartner(convId) {
+  try {
+    const ref = doc(state.db, "couples", state.currentCoupleId, "conversations", convId);
+    const partnerUid = state.currentCouple.members.find(uid => uid !== state.currentUser.uid);
+    let isDone = false;
+
+    await runTransaction(state.db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error("Разговор не найден");
+      const data = snap.data();
+      const signatures = { ...(data.signatures || {}) };
+      signatures[partnerUid] = Date.now();
+
+      const update = { signatures };
+      if (signatures[state.currentUser.uid]) {
+        update.phase = "done";
+        update.doneAt = serverTimestamp();
+        isDone = true;
+      }
+      tx.update(ref, update);
+    });
+
+    vibrate(15);
+    if (isDone) setTimeout(() => burstDialogueHearts(), 200);
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка: " + e.message);
+  }
+}
+
+function renderDialogueDone(conv) {
+  const content = $("dialogue-modal-content");
+  content.innerHTML = `
+    <div class="dialogue__done">
+      <div class="dialogue__done-icon">${DIALOGUE_ICONS.heart}</div>
+      <div class="dialogue__done-title">Мир</div>
+      <div class="dialogue__done-text">Спасибо, что услышали друг друга.</div>
+    </div>
+    <button class="dialogue-link" style="margin-top:20px;" data-dlg-action="close">Закрыть</button>
+    <div class="dialogue__heart-burst" id="dialogue-heart-burst"></div>
+  `;
+  setTimeout(() => burstDialogueHearts(), 150);
+}
+
+export function burstDialogueHearts() {
+  const hb = $("dialogue-heart-burst");
+  if (!hb) return;
+  for (let i = 0; i < 10; i++) {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = DIALOGUE_ICONS.heart;
+    const svg = wrapper.firstElementChild;
+    const angle = (Math.PI * 2 * i) / 10 + Math.random() * 0.4;
+    const dist = 90 + Math.random() * 60;
+    svg.style.setProperty("--dx", Math.cos(angle) * dist + "px");
+    svg.style.setProperty("--dy", Math.sin(angle) * dist + "px");
+    svg.style.animationDelay = (i * 0.04) + "s";
+    hb.appendChild(svg);
+  }
+}
+
+export function buildDialogueCard(conv, isDone) {
+  const f = getDialogueFeelingInfo(conv.feeling);
+  const partnerUid = state.currentCouple.members.find(uid => uid !== state.currentUser.uid);
+  const partnerName = getPartnerNameForDialogue();
+
+  const card = document.createElement("div");
+  card.className = "conv-card conv-card--reconcile";
+  card.dataset.animId = conv.id;
+  if (isDone) card.classList.add("is-done");
+
+  const paused = isConvPaused(conv);
+  if (paused) card.classList.add("conv-card--paused");
+
+  let statusHtml = "";
+  let statusDot = "";
+
+  if (paused) {
+    statusDot = `<span class="status-dot paused"></span>`;
+    statusHtml = `
+      <span class="conv-card__paused-tag">⏸ ${escapeHtml(conv.pausedLabel || 'пауза')}</span>
+      <span data-pause-countdown data-pause-id="${conv.id}">${formatPauseRemaining(getConvPauseRemaining(conv))}</span>
+    `;
+  } else if (conv.phase === "invite") {
+    if (conv.initiatedBy === state.currentUser.uid) {
+      statusHtml = `Ждём ${escapeHtml(partnerName)}`;
+    } else {
+      statusHtml = `${escapeHtml(partnerName)} ждёт вас`;
+    }
+    statusDot = `<span class="status-dot status-dot--invite"></span>`;
+  } else if (conv.phase === "talking") {
+    const myText = (conv.texts || {})[state.currentUser.uid];
+    const partnerText = (conv.texts || {})[partnerUid];
+    if (myText && !partnerText) statusHtml = `${escapeHtml(partnerName)} ещё не написал`;
+    else if (!myText && partnerText) statusHtml = `${escapeHtml(partnerName)} написал, ваша очередь`;
+    else statusHtml = "Оба пишут";
+    statusDot = `<span class="status-dot status-dot--talking"></span>`;
+  } else if (conv.phase === "signing") {
+    const signatures = conv.signatures || {};
+    if (signatures[state.currentUser.uid] && !signatures[partnerUid]) statusHtml = `Ждём подписи ${escapeHtml(partnerName)}`;
+    else if (!signatures[state.currentUser.uid] && signatures[partnerUid]) statusHtml = `${escapeHtml(partnerName)} подписал, ваша очередь`;
+    else statusHtml = "К подписи";
+    statusDot = `<span class="status-dot status-dot--signing"></span>`;
+  } else if (conv.phase === "done") {
+    statusHtml = "Мир";
+    statusDot = `<span class="status-dot status-dot--done"></span>`;
+  }
+
+  card.innerHTML = `
+    <div class="conv-card__badge">${DIALOGUE_ICONS.dove}</div>
+    <div class="conv-card__feeling">
+      <span class="conv-card__icon">${getFeelingIcon(conv.feeling)}</span>
+      <span class="conv-card__name">${escapeHtml(f.label)}</span>
+    </div>
+    <div class="conv-card__date">${formatDate(conv.createdAt)}</div>
+    <div class="conv-card__status">
+      ${statusDot}
+      ${statusHtml}
+    </div>
+  `;
+
+  card.onclick = () => openDialogueModal(conv.id);
+  return card;
+}
+
+window.openDialogueModal = openDialogueModal;
+window.closeDialogueModal = closeDialogueModal;
+window.pickDialogueFeeling = pickDialogueFeeling;
+window.submitDialogueFeeling = submitDialogueFeeling;
+window.cancelDialogue = cancelDialogue;
+window.acceptDialogue = acceptDialogue;
+window.saveDialogueText = saveDialogueText;
+window.openDialogueAgreement = openDialogueAgreement;
+window.signDialogue = signDialogue;
+window.signForPartner = signForPartner;
+window.cancelOldDialogueAndStartNew = cancelOldDialogueAndStartNew;
