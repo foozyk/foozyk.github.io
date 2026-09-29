@@ -1,0 +1,79 @@
+name: Post-deploy check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for GitHub Pages deploy
+        run: |
+          echo "Ждём 60 секунд, чтобы Pages успел задеплоить..."
+          sleep 60
+
+      - name: Check HTTP 200 for all assets
+        run: |
+          set -e
+          BASE="https://foozyk.github.io"
+          FILES="index.html style.css app.js sw.js manifest.json questions.js words.js lessons.js firebase-config.js confetti.browser.min.js js/helpers.js js/dom.js js/state.js js/dialogue.js js/rhythm.js js/pause.js js/day-states.js js/lesson-hint.js js/word-of-day.js js/lessons-ui.js js/moon.js"
+          FAILED=0
+          for f in $FILES; do
+            URL="$BASE/$f"
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+            if [ "$CODE" != "200" ]; then
+              echo "FAIL: $URL -> $CODE"
+              FAILED=1
+            else
+              echo "OK: $URL"
+            fi
+          done
+          exit $FAILED
+
+      - name: Check cache-bust in index.html
+        run: |
+          set -e
+          HTML=$(curl -s "https://foozyk.github.io/")
+          if echo "$HTML" | grep -qE 'src="app\.js\?v=[0-9]+"'; then
+            echo "OK: app.js has ?v= parameter"
+          else
+            echo "FAIL: app.js has NO ?v= in index.html"
+            exit 1
+          fi
+          if echo "$HTML" | grep -qE 'style\.css\?v=[0-9]+'; then
+            echo "OK: style.css has ?v= parameter"
+          else
+            echo "FAIL: style.css has NO ?v= in index.html"
+            exit 1
+          fi
+
+      - name: Check dialogue.js import has ?v= in app.js
+        run: |
+          set -e
+          APP=$(curl -s "https://foozyk.github.io/app.js")
+          if echo "$APP" | grep -qE 'dialogue\.js\?v=[0-9]+'; then
+            echo "OK: import dialogue.js?v=N found in app.js"
+          else
+            echo "WARN: dialogue.js import has NO ?v= (not critical)"
+          fi
+
+      - name: Syntax check all JS from CDN
+        run: |
+          set -e
+          FILES="app.js js/helpers.js js/dom.js js/state.js js/dialogue.js js/rhythm.js js/pause.js js/day-states.js js/lesson-hint.js js/word-of-day.js js/lessons-ui.js js/moon.js"
+          for f in $FILES; do
+            curl -s "https://foozyk.github.io/$f" > /tmp/check.mjs
+            if node --check /tmp/check.mjs 2>/dev/null; then
+              echo "OK: $f"
+            else
+              echo "FAIL: syntax error in $f"
+              node --check /tmp/check.mjs
+              exit 1
+            fi
+          done
+
+      - name: Summary
+        if: success()
+        run: echo "Post-deploy check PASSED - site is healthy"
