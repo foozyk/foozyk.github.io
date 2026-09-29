@@ -186,5 +186,58 @@ app.js: 5820 → 5461 стр. Механика: колбэки (bindLessonHint(c
 
 ---
 
+## v30.5 — 29.09.2026 — Инструменты, инфраструктура, HANDOFF v30.5
+
+### 30.5.1 tools/check.js — расширен до 9 секций
+- Блок 3: сверка импортов app.js с экспортами js/*.js (ловит опечатки и забытые export).
+- Блок 3b: cache-bust версии (app.js?v= в index.html, import dialogue.js?v= в app.js).
+- Блок 5: синхронизация nashgod ↔ ghio по размерам index.html/style.css/app.js.
+- Блок 8: проверка вложенных code fence в md-файлах (HANDOFF, CHANGELOG, SESSION-LOG, README, ROADMAP, LEGEND-STATES).
+- Блок 9 (новое, коммит 3fb583d): сравнение CACHE_NAME в sw.js с версией в шапке файла. WARN при рассинхроне.
+- Коммиты: nashgod fa20b25, a51a18f, 3fb583d.
+
+### 30.5.2 tools/backup.js — бэкап перед правкой
+- node tools/backup.js app.js style.css → <файл>.bak-YYYYMMDD-HHMMSS.
+- Коммит: nashgod a51a18f.
+
+### 30.5.3 tools/release.js — релиз одной командой
+- Авто-бамп ?v=, копирование в ghio, коммит + пуш.
+- Коммит: nashgod fa20b25.
+
+### 30.5.4 UI-тест (puppeteer-core)
+- tools/login.js — сохраняет Firebase Auth из IndexedDB firebaseLocalStorageDb (НЕ из cookies — первая версия это не учитывала).
+- tools/ui-test.js — headless-прогон со скриншотами в tools/ui-shots/.
+- Коммиты: nashgod 40ef532, 00ecbbb.
+- ВАЖНО: оба ходят на прод по зашитому URL. Полная изоляция (тестовый аккаунт + coupleId + guard) — отложена. См. HANDOFF §13.
+
+### 30.5.5 GitHub Action post-deploy-check.yml (ghio)
+- При пуше в main: HTTP 200 по 22 файлам прода + cache-bust ?v= в index.html + syntax всех JS.
+- Первый прогон — success.
+- Коммит: ghio a4632e5.
+
+### 30.5.6 .gitignore и .bat-меню
+- .gitignore: добавлено /*.bat — локальные .bat не засоряют репо. Коммит nashgod d35c99e.
+- 5 .bat в корне (check, backup, release, ui-test, login) + «Наш год.bat» на рабочем столе. UTF-8 без BOM, chcp 65001, cd в C:\nashgod. cp866 не работает.
+
+### 30.5.7 fix(dialogue): guard openDialogueModal + cache-bust v14
+- Защита от повторного открытия модалки примирения.
+- Повторный бамп app.js?v=13 → ?v=14.
+- Коммиты: nashgod f9b39ca, deploy 91d9acb.
+
+### 30.5.8 Диагноз кнопки примирения — ЗАКРЫТ
+- UI-тест: у Руслана «Открыть его» работает (03 → модалка, 04 → «Ждём Юлю»). Код корректен.
+- Проблема Юли — её кэш/PWA/Service Worker. Дальше: тест в инкогнито.
+
+### 30.5.9 Правила проекта
+- Распределение отчётов: HANDOFF (состояние) / CHANGELOG (история версий) / SESSION-LOG (журнал сессий) / память (правила и факты). Коммит nashgod ba58a96.
+- memory_update — ТОЛЬКО с точным ID из контекста. Иначе memory_save.
+- memory_save требует поле tags (массив строк). Без него — Invalid memory payload.
+
+### 30.5.10 HANDOFF v30.5
+- Актуализированы разделы 3 (размеры файлов), 5 (инструменты, диагностика), 8 (риски ui-test), 13 (накопительно).
+- Коммиты: nashgod b8af594, ghio f14346c.
+
+---
+
 Формат записи: `## vN — дата — краткое название`, далее подразделы по типам правок.*
 *Хочешь проверить, что было в предыдущих версиях — ищи в HANDOFF.md или git log.*
