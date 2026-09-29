@@ -2,7 +2,7 @@ import { doc, updateDoc, deleteDoc, setDoc, getDoc, collection, addDoc, Timestam
 import { $, vibrate } from "./dom.js";
 import { escapeHtml, formatDate } from "./helpers.js";
 import { state } from "./state.js";
-import { isConvPaused, getConvPauseRemaining, formatPauseRemaining, openPauseModal, cancelPause } from "./pause.js";
+import { isConvPaused, getConvPauseRemaining, formatPauseRemaining, startPauseTimer, openPauseModal, cancelPause } from "./pause.js";
 import { renderLessonHint, bindLessonHint } from "./lesson-hint.js";
 
 /* ==========================================================
