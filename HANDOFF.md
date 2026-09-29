@@ -36,6 +36,14 @@
 - .gitattributes, .gitignore
 - tools/check.js — проверка проекта (node --check + скобки CSS + размеры + git)
 - tools/shot.js — скриншот сайта (Chrome headless)
+- tools/backup.js — бэкап файла перед правкой (file.bak-YYYYMMDD-HHMMSS)
+- tools/release.js — релиз одной командой (бамп ?v=, копирование в ghio, пуш)
+- tools/login.js + tools/ui-test.js — headless UI-тест (puppeteer-core, Firebase IndexedDB)
+- tools/ui-shots/ — результаты UI-тестов (скриншоты, отчёты, console)
+- package.json — зависимости (puppeteer-core), npm-скрипты (check, release, login, ui-test)
+- SESSION-LOG.md — журнал сессий (append-only, свежие сверху)
+- .github/workflows/post-deploy-check.yml (в ghio) — post-deploy CI
+- *.bat в корне (check, backup, release, ui-test, login, Наш год.bat) — локальные меню-помощники для Юлии, в .gitignore
 - HANDOFF.md — этот документ
 - CHANGELOG.md (15 345 б) — история версий v26–v30.4
 - APK-проект: C:\nashgod-android (Bubblewrap)
