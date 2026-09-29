@@ -251,7 +251,17 @@ export function openDialogueModal(convId) {
   }
 
   state._currentDialogueId = convId;
-  renderDialogueContent(conv);
+  try {
+    renderDialogueContent(conv);
+  } catch (err) {
+    console.error("renderDialogueContent FAILED:", err, { conv });
+    alert(
+      "Ошибка при открытии примирения.\n\n" +
+      (err && err.message ? err.message : String(err)) +
+      "\n\n" + (err && err.stack ? err.stack.slice(0, 500) : "")
+    );
+    return;
+  }
 
   $("dialogue-modal").classList.remove("hidden");
   document.body.classList.add("state-reconcile");
