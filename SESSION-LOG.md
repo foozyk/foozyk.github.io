@@ -12,6 +12,14 @@
 
 ---
 
+## 2026-09-29 (сессия, часть 4 — финал: v16-v19)
+- **Reconcile imports (v16-v18):** в js/dialogue.js при выносе (b0782bf) пропущены импорты — всплывали по одной ветке: v16 renderLessonHint+bindLessonHint (lesson-hint.js, падало у Юли), v17 startPauseTimer (pause.js, у Руслана), v18 gendered (helpers.js, у Руслана). Найдены Python-чекером (вызовы функций без import/local/global, но есть в экспортах соседей).
+- **Pause owner (v19, вариант A):** cancelPause в js/pause.js отказывает, если pausedBy !== текущий uid (alert). Кнопка «Снять паузу» в js/dialogue.js показывается только автору паузы. Партнёру — «Партнёр взял(а) время подумать. Знак ждёт здесь — без давления».
+- **Коммиты:** nashgod 43ee79a (pause owner + v19), 4cf3fe4 (gendered), 6e1e5dd (startPauseTimer), 8bd6775 (lessonHint), a826287 (try/catch); ghio 152ed2b, d285bd5, a07bed5, d849419, 64ad72d.
+- **Прод:** app.js?v=19, dialogue.js?v=19. Всё залито, check.js зелёный.
+- **НЕ проверено вживую:** v18+v19. Пользователь ушёл спать до Ctrl+Shift+R.
+- **Осталось:** проверить v18+v19 вживую; CHANGELOG v16-v19; портировать Python-чекер импортов в tools/check.js (секц.10).
+
 ## 2026-09-29 (сессия, часть 3 — закрытие)
 - **check.js секция 9:** проверка sw.js CACHE_NAME vs версия в шапке (WARN при рассинхроне). Коммит nashgod 3fb583d, запушен.
 - **HANDOFF v30.5:** актуализирован целиком. Коммиты: nashgod b8af594, ghio f14346c. Запушено в оба.
