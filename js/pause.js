@@ -151,6 +151,11 @@ export async function confirmPause() {
 
 export async function cancelPause(convId) {
   try {
+    const conv = (state.conversations || []).find(c => c.id === convId);
+    if (conv && conv.pausedBy && conv.pausedBy !== state.currentUser.uid) {
+      alert("Снять паузу может только тот, кто её поставил.");
+      return;
+    }
     await updateDoc(doc(state.db, "couples", state.currentCoupleId, "conversations", convId), {
       pausedUntil: null,
       pausedBy: null,

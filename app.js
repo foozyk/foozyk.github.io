@@ -22,7 +22,7 @@ import { renderLessonHint, bindLessonHint } from "./js/lesson-hint.js";
 import { initQuietFeature, initSkipFeature, isQuietDay, applyQuietDayState, quietDayKey, skipDayKey, applySkipDayState, closeQuietModal, closeSkipModal } from "./js/day-states.js";
 import { isConvPaused, getConvPauseRemaining, formatPauseRemaining, startPauseTimer, renderPauseNavIndicator, openPauseModal, cancelPause, closePauseModal, initPauseFeature } from "./js/pause.js";
 import { initRhythm, renderRhythm, closeNoteSheet } from "./js/rhythm.js";
-import { initDialogue, renderDialogueContent, burstDialogueHearts, getDialogueFeelingInfo, buildDialogueCard, openDialogueModal, closeDialogueModal } from "./js/dialogue.js?v=18";
+import { initDialogue, renderDialogueContent, burstDialogueHearts, getDialogueFeelingInfo, buildDialogueCard, openDialogueModal, closeDialogueModal } from "./js/dialogue.js?v=19";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);

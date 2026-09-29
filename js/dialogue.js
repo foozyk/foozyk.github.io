@@ -292,11 +292,11 @@ export function renderDialogueContent(conv) {
         <div class="paused-state__title">Пауза</div>
         <div class="paused-state__origin">в этом примирении · <b>${escapeHtml(conv.pausedLabel || '')}</b></div>
         <div class="paused-state__countdown" data-pause-countdown data-pause-id="${conv.id}">${formatPauseRemaining(getConvPauseRemaining(conv))}</div>
-        <div class="paused-state__text">Ты взял(а) время подумать. Партнёр видит знак именно здесь и ждёт — без давления.</div>
-        <button class="btn-pause" data-dlg-action="cancel-pause" data-dlg-id="${conv.id}" style="margin-top:6px">
+        <div class="paused-state__text">${conv.pausedBy === state.currentUser.uid ? "Ты взял(а) время подумать. Партнёр видит знак именно здесь и ждёт — без давления." : "Партнёр взял(а) время подумать. Знак ждёт здесь — без давления."}</div>
+        ${conv.pausedBy === state.currentUser.uid ? `<button class="btn-pause" data-dlg-action="cancel-pause" data-dlg-id="${conv.id}" style="margin-top:6px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
           Снять паузу
-        </button>
+        </button>` : ""}
       </div>
     `;
     startPauseTimer();
