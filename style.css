@@ -6746,8 +6746,16 @@ body::after {
   from { opacity: 0; transform: scale(.94); }
   to   { opacity: 1; transform: scale(1); }
 }
+
+/* Дыхание скобок на splash: сходятся и расходятся бесконечно */
+#loading .splash-br--left  { animation: brLeft  1.6s ease-in-out infinite alternate; }
+#loading .splash-br--right { animation: brRight 1.6s ease-in-out infinite alternate; }
+@keyframes brLeft  { from { transform: translateX(0);   } to { transform: translateX(28px);  } }
+@keyframes brRight { from { transform: translateX(0);   } to { transform: translateX(-28px); } }
+
 @media (prefers-reduced-motion: reduce){
   #loading .splash-inner{ animation: none; }
+  #loading .splash-br    { animation: none; }
 }
 
 
