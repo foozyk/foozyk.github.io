@@ -239,7 +239,16 @@ export async function submitDialogueFeeling() {
 
 export function openDialogueModal(convId) {
   const conv = state.conversations.find(c => c.id === convId);
-  if (!conv) return;
+  if (!conv) {
+    console.error("openDialogueModal: reconcile not found in state.conversations", {
+      convId,
+      total: state.conversations.length,
+      reconciles: state.conversations.filter(c => c.mode === "reconcile").map(c => ({ id: c.id, phase: c.phase }))
+    });
+    closeDialogueModal();
+    alert("Не удалось открыть примирение. Попробуйте обновить страницу (Ctrl+Shift+R).");
+    return;
+  }
 
   state._currentDialogueId = convId;
   renderDialogueContent(conv);
