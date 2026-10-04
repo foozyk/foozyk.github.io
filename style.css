@@ -5633,6 +5633,25 @@ body:not(.dark) .truth-level-btn{
 }
 .history-answer.empty{ color:var(--muted); font-style:italic; }
 
+
+.history-re-btn{
+  margin-top:12px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.12);
+  color:var(--text-soft);
+  padding:8px 14px;
+  border-radius:10px;
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  transition:all .2s ease;
+  width:100%;
+}
+.history-re-btn:active{
+  transform:scale(.97);
+  background:rgba(255,255,255,.12);
+}
+
 /* ---------- КНОПКИ «ИТОГИ ГОДА» И «PDF» ---------- */
 .retro-btn{
   display:block;

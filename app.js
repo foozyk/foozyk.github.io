@@ -22,7 +22,7 @@ import { renderLessonHint, bindLessonHint } from "./js/lesson-hint.js";
 import { initQuietFeature, initSkipFeature, isQuietDay, applyQuietDayState, quietDayKey, skipDayKey, applySkipDayState, closeQuietModal, closeSkipModal } from "./js/day-states.js";
 import { isConvPaused, getConvPauseRemaining, formatPauseRemaining, startPauseTimer, renderPauseNavIndicator, openPauseModal, cancelPause, closePauseModal, initPauseFeature } from "./js/pause.js";
 import { initRhythm, renderRhythm, closeNoteSheet } from "./js/rhythm.js";
-import { initDialogue, renderDialogueContent, burstDialogueHearts, getDialogueFeelingInfo, buildDialogueCard, openDialogueModal, closeDialogueModal } from "./js/dialogue.js?v=19";
+import { initDialogue, renderDialogueContent, burstDialogueHearts, getDialogueFeelingInfo, buildDialogueCard, openDialogueModal, closeDialogueModal } from "./js/dialogue.js?v=20";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -1351,11 +1351,23 @@ async function renderHistory() {
           showPartner ? "Пока не ответил(а)" : "Скрыто (ты ещё не ответил(а))"
         }
       </div>
+      <button class="history-re-btn" onclick="startReDiscussion(${day})">Вернуться к разговору</button>
     `;
     markForAnim(div, "day-" + day, prevIds, idx++);
     container.appendChild(div);
   }
 }
+
+window.startReDiscussion = async (day) => {
+  vibrate(10);
+  const q = getQuestionForDay(day);
+  _pendingTopic = `Продолжение темы: "${q?.text || "Вопрос дня"}"`;
+  switchNav("conversation");
+  // Даём время переключиться
+  setTimeout(() => {
+    openPendingConversation();
+  }, 100);
+};
 
 /* ---------- ПРОФИЛИ ---------- */
 async function initProfile() {
